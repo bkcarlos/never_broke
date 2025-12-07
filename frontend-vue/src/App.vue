@@ -16,10 +16,12 @@
             'text-gray-500 hover:text-gray-700 hover:bg-gray-50': !isActive(tab.path) 
           }"
         >
-          <i 
-            :class="['iconfont', tab.icon, 'text-2xl mb-1 transition-transform']"
+          <Icon 
+            :name="tab.icon" 
+            size="24px"
+            class="mb-1 transition-transform"
             :style="{ transform: isActive(tab.path) ? 'scale(1.1)' : 'scale(1)' }"
-          ></i>
+          />
           <span class="text-xs font-medium" :class="{ 'font-semibold': isActive(tab.path) }">
             {{ tab.label }}
           </span>
@@ -31,15 +33,16 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import Icon from './components/Icon.vue'
 
 const route = useRoute()
 
 const tabs = [
-  { path: '/', icon: 'icon-home', label: '首页' },
-  { path: '/detail', icon: 'icon-list', label: '明细' },
-  { path: '/actions', icon: 'icon-add', label: '操作' },
-  { path: '/reports', icon: 'icon-chart', label: '报表' },
-  { path: '/profile', icon: 'icon-user', label: '我的' }
+  { path: '/', icon: 'home', label: '首页' },
+  { path: '/detail', icon: 'list', label: '明细' },
+  { path: '/actions', icon: 'add', label: '操作' },
+  { path: '/reports', icon: 'chart', label: '报表' },
+  { path: '/profile', icon: 'user', label: '我的' }
 ]
 
 const isActive = (path: string) => {

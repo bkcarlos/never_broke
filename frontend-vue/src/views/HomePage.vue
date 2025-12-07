@@ -6,10 +6,10 @@
       <div class="absolute top-6 right-4 flex gap-3">
         <button 
           @click="toggleShowAmount" 
-          class="text-2xl hover:scale-110 transition-transform"
+          class="hover:scale-110 transition-transform"
           :title="showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
         >
-          <i :class="showAmount ? 'iconfont icon-eye' : 'iconfont icon-eye-close'"></i>
+          <Icon :name="showAmount ? 'eye' : 'eye-close'" size="24px" class="text-white" />
         </button>
       </div>
 
@@ -229,6 +229,7 @@ import { ref, computed, onMounted } from 'vue'
 import type { HomeOverview } from '@/types'
 import { getHomeOverview } from '@/api/home'
 import { t } from '@/i18n'
+import Icon from '@/components/Icon.vue'
 
 const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
