@@ -113,6 +113,27 @@ export default {
   'category.investment': 'Investment',
   'category.other': 'Other',
 
+  // Transfer Page
+  'transfer.title': 'Account Transfer',
+  'transfer.amountLabel': 'Transfer Amount',
+  'transfer.amountPlaceholder': '0.00',
+  'transfer.summary': 'From',
+  'transfer.summaryTo': 'to',
+  'transfer.fromAccount': 'From Account',
+  'transfer.toAccount': 'To Account',
+  'transfer.balance': 'Balance',
+  'transfer.selectFrom': 'Select from account',
+  'transfer.selectTo': 'Select to account',
+  'transfer.time': 'Time',
+  'transfer.remark': 'Remark (optional)',
+  'transfer.remarkPlaceholder': 'e.g., Credit card payment, Fixed deposit',
+  'transfer.submit': 'Confirm Transfer',
+  'transfer.success': 'Transfer successful',
+  'transfer.error.loadAccounts': 'Failed to load accounts',
+  'transfer.error.invalidAmount': 'Please enter a valid amount',
+  'transfer.error.invalidAccounts': 'Please select different from and to accounts',
+  'transfer.error.invalidDate': 'Please select date and time',
+
   // Common
   'common.loading': 'Loading...',
   'common.error': 'Error',

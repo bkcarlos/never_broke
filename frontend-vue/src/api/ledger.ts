@@ -12,7 +12,11 @@ export function getDailyTransactions(date: string): Promise<DailyTransactionResp
 /**
  * 创建交易（支出/收入/转账）
  */
-export function createTransaction(payload: CreateTransactionPayload): Promise<Transaction> {
-  return post<Transaction>('/transactions', payload)
+export async function createTransaction(payload: CreateTransactionPayload): Promise<void> {
+  try {
+    await post<Transaction>('/transactions', payload)
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Failed to create transaction')
+  }
 }
 

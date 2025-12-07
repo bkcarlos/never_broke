@@ -113,6 +113,27 @@ export default {
   'category.investment': '投资',
   'category.other': '其他',
 
+  // 转账页
+  'transfer.title': '账户间转账',
+  'transfer.amountLabel': '转账金额',
+  'transfer.amountPlaceholder': '0.00',
+  'transfer.summary': '从',
+  'transfer.summaryTo': '转到',
+  'transfer.fromAccount': '转出账户',
+  'transfer.toAccount': '转入账户',
+  'transfer.balance': '余额',
+  'transfer.selectFrom': '请选择转出账户',
+  'transfer.selectTo': '请选择转入账户',
+  'transfer.time': '时间',
+  'transfer.remark': '备注（可选）',
+  'transfer.remarkPlaceholder': '例如：还信用卡、存定期',
+  'transfer.submit': '确认转账',
+  'transfer.success': '转账成功',
+  'transfer.error.loadAccounts': '加载账户失败',
+  'transfer.error.invalidAmount': '请输入正确的金额',
+  'transfer.error.invalidAccounts': '请选择不同的转出和转入账户',
+  'transfer.error.invalidDate': '请选择日期和时间',
+
   // 通用
   'common.loading': '加载中...',
   'common.error': '出错了',
