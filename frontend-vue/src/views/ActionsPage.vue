@@ -27,33 +27,6 @@
         <Icon name="transfer" size="40px" class="mb-2 text-blue-500" />
         <div class="font-semibold">{{ t('actions.transfer') }}</div>
       </button>
-
-      <!-- 设置预算 -->
-      <button 
-        @click="handleAction('setBudget')"
-        class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-      >
-        <Icon name="target" size="40px" class="mb-2 text-purple-500" />
-        <div class="font-semibold">{{ t('actions.setBudget') }}</div>
-      </button>
-
-      <!-- 新增账户 -->
-      <button 
-        @click="handleAction('addAccount')"
-        class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-      >
-        <Icon name="bank" size="40px" class="mb-2 text-indigo-500" />
-        <div class="font-semibold">{{ t('actions.addAccount') }}</div>
-      </button>
-
-      <!-- 导入账单 -->
-      <button 
-        @click="handleAction('import')"
-        class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-      >
-        <Icon name="import" size="40px" class="mb-2 text-orange-500" />
-        <div class="font-semibold">{{ t('actions.import') }}</div>
-      </button>
     </div>
 
     <!-- 提示信息 -->

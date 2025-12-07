@@ -41,6 +41,48 @@
         </div>
       </div>
 
+      <!-- 新增账户 -->
+      <div class="setting-item bg-white rounded-lg shadow p-4">
+        <button 
+          @click="handleAddAccount"
+          class="w-full flex items-center justify-between"
+        >
+          <div class="flex items-center gap-3">
+            <Icon name="bank" size="24px" class="text-indigo-500" />
+            <span class="font-semibold">{{ t('actions.addAccount') }}</span>
+          </div>
+          <Icon name="add" size="20px" class="text-gray-400" />
+        </button>
+      </div>
+
+      <!-- 设置预算 -->
+      <div class="setting-item bg-white rounded-lg shadow p-4">
+        <button 
+          @click="handleSetBudget"
+          class="w-full flex items-center justify-between"
+        >
+          <div class="flex items-center gap-3">
+            <Icon name="target" size="24px" class="text-purple-500" />
+            <span class="font-semibold">{{ t('actions.setBudget') }}</span>
+          </div>
+          <Icon name="add" size="20px" class="text-gray-400" />
+        </button>
+      </div>
+
+      <!-- 导入账单 -->
+      <div class="setting-item bg-white rounded-lg shadow p-4">
+        <button 
+          @click="handleImport"
+          class="w-full flex items-center justify-between"
+        >
+          <div class="flex items-center gap-3">
+            <Icon name="import" size="24px" class="text-orange-500" />
+            <span class="font-semibold">{{ t('actions.import') }}</span>
+          </div>
+          <Icon name="add" size="20px" class="text-gray-400" />
+        </button>
+      </div>
+
       <!-- 示例金额展示 -->
       <div class="example bg-blue-50 rounded-lg p-4">
         <p class="text-sm text-gray-600 mb-2">{{ t('profile.example') }}</p>
@@ -72,6 +114,7 @@ import { ref, onMounted, computed } from 'vue'
 import { getUserSettings, updateUserSettings } from '@/api/user'
 import { t, locale, setLocale } from '@/i18n'
 import type { UserSettings, Locale } from '@/types'
+import Icon from '@/components/Icon.vue'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -120,6 +163,27 @@ function handleLocaleChange() {
 
 function toggleShowAmount() {
   settings.value.showAmount = !settings.value.showAmount
+}
+
+function handleAddAccount() {
+  // TODO: 后续实现具体功能
+  console.log('Add account clicked')
+  const actionName = t('actions.addAccount')
+  alert(`TODO: ${t('actions.todoAlert').replace('{action}', actionName)}`)
+}
+
+function handleSetBudget() {
+  // TODO: 后续实现具体功能
+  console.log('Set budget clicked')
+  const actionName = t('actions.setBudget')
+  alert(`TODO: ${t('actions.todoAlert').replace('{action}', actionName)}`)
+}
+
+function handleImport() {
+  // TODO: 后续实现具体功能
+  console.log('Import clicked')
+  const actionName = t('actions.import')
+  alert(`TODO: ${t('actions.todoAlert').replace('{action}', actionName)}`)
 }
 
 async function saveSettings() {
