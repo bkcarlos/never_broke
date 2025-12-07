@@ -79,7 +79,7 @@ const isActive = (path: string) => {
   transform: translateX(-50%);
   width: 0;
   height: 3px;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
   border-radius: 0 0 3px 3px;
   transition: width 0.3s ease;
 }

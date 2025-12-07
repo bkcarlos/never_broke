@@ -16,7 +16,7 @@
       <!-- 问候语和标题 -->
       <div class="mt-4">
         <p class="text-sm text-white/80 mb-1">{{ greeting }}</p>
-        <div class="flex items-center gap-3 mb-2">
+        <div class="flex items-center gap-3 mb-0">
           <h1 class="text-3xl font-bold">NeverBroke</h1>
           <div class="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
             <p class="text-xs text-white/90">{{ t('home.keepRecording', { days: String(recordingDays) }) }}</p>
@@ -42,44 +42,28 @@
     </div>
 
     <!-- 主内容区 -->
-    <div v-else-if="data" class="flex-1 px-4 pb-32">
-      <!-- 卡片 1: 发薪周期 / 今天能花多少 -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 -mt-10 mb-4 relative z-10">
-        <div class="flex items-center justify-between">
-          <div class="flex-1">
-            <p class="text-sm text-gray-500 mb-1">{{ t('home.freeToSpend') }}</p>
-            <p class="text-3xl font-bold text-indigo-600 mb-2">
-              ¥{{ formatMoney(data.payCycle.freeToSpend) }}
-            </p>
-            <p class="text-xs text-gray-400">
-              {{ t('home.daysToPayday', { days: String(data.payCycle.daysToNextPayday) }) }}
+    <div v-else-if="data" class="flex-1 px-4 pb-4">
+      <!-- 卡片 1: 资产总览 -->
+      <div class="bg-white rounded-2xl shadow-md p-6 -mt-10 mb-4 relative z-10">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.assetSummary') }}</h2>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="text-center">
+            <p class="text-xs text-gray-500 mb-1">{{ t('home.totalAssets') }}</p>
+            <p class="text-lg font-bold text-blue-600">
+              ¥{{ formatMoney(data.assetSummary.totalAssets) }}
             </p>
           </div>
-          <div class="flex-shrink-0 ml-4">
-            <!-- 简单的环形进度 -->
-            <div class="relative w-20 h-20">
-              <svg class="w-full h-full transform -rotate-90">
-                <circle 
-                  cx="40" cy="40" r="32" 
-                  stroke="#e5e7eb" 
-                  stroke-width="6" 
-                  fill="none"
-                />
-                <circle 
-                  cx="40" cy="40" r="32" 
-                  stroke="#6366f1" 
-                  stroke-width="6" 
-                  fill="none"
-                  :stroke-dasharray="`${data.payCycle.cycleUsedPercent * 2.01} 201`"
-                  class="transition-all duration-500"
-                />
-              </svg>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <span class="text-xs font-semibold text-gray-700">
-                  {{ Math.round(data.payCycle.cycleUsedPercent) }}%
-                </span>
-              </div>
-            </div>
+          <div class="text-center">
+            <p class="text-xs text-gray-500 mb-1">{{ t('home.totalLiabilities') }}</p>
+            <p class="text-lg font-bold text-orange-600">
+              ¥{{ formatMoney(data.assetSummary.totalLiabilities) }}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-gray-500 mb-1">{{ t('home.netAssets') }}</p>
+            <p class="text-lg font-bold text-green-600">
+              ¥{{ formatMoney(data.assetSummary.netAssets) }}
+            </p>
           </div>
         </div>
       </div>
@@ -146,27 +130,43 @@
         </p>
       </div>
 
-      <!-- 卡片 3: 资产总览 -->
+      <!-- 卡片 3: 本周期可自由支配 -->
       <div class="bg-white rounded-2xl shadow-md p-6 mb-4">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.assetSummary') }}</h2>
-        <div class="grid grid-cols-3 gap-4">
-          <div class="text-center">
-            <p class="text-xs text-gray-500 mb-1">{{ t('home.totalAssets') }}</p>
-            <p class="text-lg font-bold text-blue-600">
-              ¥{{ formatMoney(data.assetSummary.totalAssets) }}
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <p class="text-sm text-gray-500 mb-1">{{ t('home.freeToSpend') }}</p>
+            <p class="text-3xl font-bold text-indigo-600 mb-2">
+              ¥{{ formatMoney(data.payCycle.freeToSpend) }}
+            </p>
+            <p class="text-xs text-gray-400">
+              {{ t('home.daysToPayday', { days: String(data.payCycle.daysToNextPayday) }) }}
             </p>
           </div>
-          <div class="text-center">
-            <p class="text-xs text-gray-500 mb-1">{{ t('home.totalLiabilities') }}</p>
-            <p class="text-lg font-bold text-orange-600">
-              ¥{{ formatMoney(data.assetSummary.totalLiabilities) }}
-            </p>
-          </div>
-          <div class="text-center">
-            <p class="text-xs text-gray-500 mb-1">{{ t('home.netAssets') }}</p>
-            <p class="text-lg font-bold text-green-600">
-              ¥{{ formatMoney(data.assetSummary.netAssets) }}
-            </p>
+          <div class="flex-shrink-0 ml-4">
+            <!-- 简单的环形进度 -->
+            <div class="relative w-20 h-20">
+              <svg class="w-full h-full transform -rotate-90">
+                <circle 
+                  cx="40" cy="40" r="32" 
+                  stroke="#e5e7eb" 
+                  stroke-width="6" 
+                  fill="none"
+                />
+                <circle 
+                  cx="40" cy="40" r="32" 
+                  stroke="#6366f1" 
+                  stroke-width="6" 
+                  fill="none"
+                  :stroke-dasharray="`${data.payCycle.cycleUsedPercent * 2.01} 201`"
+                  class="transition-all duration-500"
+                />
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-xs font-semibold text-gray-700">
+                  {{ Math.round(data.payCycle.cycleUsedPercent) }}%
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -174,24 +174,8 @@
       <!-- 模块 4: 本月消费概览 -->
       <div class="bg-white rounded-2xl shadow-md p-6 mb-4">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.spendOverview') }}</h2>
-        <div class="flex gap-6">
-          <!-- 左侧：伪条形图 -->
-          <div class="flex items-end gap-2 h-32">
-            <div 
-              v-for="(cat, index) in data.categoryTop" 
-              :key="cat.categoryKey"
-              class="flex flex-col items-center gap-1"
-            >
-              <div 
-                class="w-12 rounded-t transition-all duration-500"
-                :class="getCategoryColor(index)"
-                :style="{ height: `${cat.percent * 1.2}%` }"
-              ></div>
-              <span class="text-xs text-gray-400">{{ cat.percent }}%</span>
-            </div>
-          </div>
-          <!-- 右侧：TOP3 列表 -->
-          <div class="flex-1 space-y-3">
+        <!-- TOP3 列表 -->
+        <div class="space-y-3">
             <div 
               v-for="(cat, index) in data.categoryTop" 
               :key="cat.categoryKey"
@@ -213,17 +197,7 @@
                 <p class="text-xs text-gray-400">{{ cat.percent }}%</p>
               </div>
             </div>
-          </div>
         </div>
-      </div>
-
-      <!-- 模块 5: 提示条 -->
-      <div 
-        v-if="data.hint"
-        class="rounded-xl p-4 mb-4"
-        :class="getHintClass(data.hint.type)"
-      >
-        <p class="text-sm">{{ t(data.hint.textKey) }}</p>
       </div>
     </div>
   </div>
@@ -310,31 +284,9 @@ function toggleShowAmount() {
   localStorage.setItem('showAmount', String(showAmount.value))
 }
 
-// 获取分类颜色
-function getCategoryColor(index: number): string {
-  const colors = [
-    'bg-gradient-to-t from-indigo-400 to-indigo-600',
-    'bg-gradient-to-t from-purple-400 to-purple-600',
-    'bg-gradient-to-t from-pink-400 to-pink-600'
-  ]
-  return colors[index] || 'bg-gray-400'
-}
-
 function getCategoryDotColor(index: number): string {
   const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500']
   return colors[index] || 'bg-gray-500'
-}
-
-// 获取提示样式
-function getHintClass(type: string): string {
-  switch (type) {
-    case 'warning':
-      return 'bg-amber-50 text-amber-700'
-    case 'success':
-      return 'bg-emerald-50 text-emerald-700'
-    default:
-      return 'bg-sky-50 text-sky-700'
-  }
 }
 
 // 加载数据
