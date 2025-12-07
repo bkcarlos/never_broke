@@ -53,6 +53,28 @@ export default {
   'actions.comingSoon': 'These features will be implemented in future versions',
   'actions.todoAlert': 'Implement {action} feature',
 
+  // Record Form Page
+  'record.title': 'Record',
+  'record.expense': 'Add Expense',
+  'record.income': 'Add Income',
+  'record.transfer': 'Transfer',
+  'record.amount': 'Amount',
+  'record.amountPlaceholder': 'Enter amount',
+  'record.category': 'Category',
+  'record.categoryPlaceholder': 'Select category',
+  'record.account': 'Account',
+  'record.accountPlaceholder': 'Select account',
+  'record.fromAccount': 'From Account',
+  'record.toAccount': 'To Account',
+  'record.remark': 'Remark',
+  'record.remarkPlaceholder': 'Enter remark (optional)',
+  'record.date': 'Date',
+  'record.time': 'Time',
+  'record.submit': 'Submit',
+  'record.submitting': 'Submitting...',
+  'record.success': 'Record saved successfully!',
+  'record.error': 'Failed to save record, please try again',
+
   // Reports Page
   'reports.title': 'Monthly Report',
   'reports.prevMonth': 'Previous Month',

@@ -53,6 +53,28 @@ export default {
   'actions.comingSoon': '这些操作功能将在后续版本中实现',
   'actions.todoAlert': '实现 {action} 功能',
 
+  // 记账表单页
+  'record.title': '记账',
+  'record.expense': '记支出',
+  'record.income': '记收入',
+  'record.transfer': '转账',
+  'record.amount': '金额',
+  'record.amountPlaceholder': '请输入金额',
+  'record.category': '分类',
+  'record.categoryPlaceholder': '请选择分类',
+  'record.account': '账户',
+  'record.accountPlaceholder': '请选择账户',
+  'record.fromAccount': '转出账户',
+  'record.toAccount': '转入账户',
+  'record.remark': '备注',
+  'record.remarkPlaceholder': '请输入备注（可选）',
+  'record.date': '日期',
+  'record.time': '时间',
+  'record.submit': '提交',
+  'record.submitting': '提交中...',
+  'record.success': '记账成功！',
+  'record.error': '记账失败，请重试',
+
   // 报表页
   'reports.title': '月度报表',
   'reports.prevMonth': '上月',

@@ -2,6 +2,7 @@ package router
 
 import (
 	"neverbroke/common/logger"
+	"neverbroke/internal/accounts"
 	"neverbroke/internal/home"
 	"neverbroke/internal/ledger"
 	"neverbroke/internal/report"
@@ -37,9 +38,14 @@ func Setup(store *memory.Store) *gin.Engine {
 		homeHandler := home.NewHandler()
 		v1.GET("/home/overview", homeHandler.GetOverview)
 
+		// 账户
+		accountsHandler := accounts.NewHandler()
+		v1.GET("/accounts", accountsHandler.ListAccountsHandler)
+
 		// 账本明细
 		ledgerHandler := ledger.NewHandler()
 		v1.GET("/transactions/daily", ledgerHandler.GetDailyTransactions)
+		v1.POST("/transactions", ledgerHandler.CreateTransaction)
 
 		// 报表
 		reportHandler := report.NewHandler()
@@ -53,4 +59,3 @@ func Setup(store *memory.Store) *gin.Engine {
 
 	return r
 }
-

@@ -108,19 +108,19 @@ const radialActions: RadialAction[] = [
     key: 'record_expense',
     label: '记支出',
     icon: 'minus-circle',
-    route: '/actions'
+    route: '/record?type=expense'
   },
   {
     key: 'record_income',
     label: '记收入',
     icon: 'add-circle',
-    route: '/actions'
+    route: '/record?type=income'
   },
   {
     key: 'record_transfer',
     label: '转账',
     icon: 'transfer',
-    route: '/actions'
+    route: '/record?type=transfer'
   }
 ]
 

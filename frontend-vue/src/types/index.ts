@@ -96,6 +96,51 @@ export interface UserSettings {
   showAmount: boolean
 }
 
+// ========== 账户相关类型 ==========
+
+export type AccountType = 'cash' | 'bank' | 'wallet' | 'credit'
+
+export interface Account {
+  id: string
+  name: string
+  type: AccountType
+  currency: string
+  balance: number
+  archived: boolean
+}
+
+export interface AccountOption {
+  id: string
+  name: string
+}
+
+// ========== 交易相关类型 ==========
+
+export type TransactionType = 'expense' | 'income' | 'transfer'
+
+export interface CreateTransactionPayload {
+  type: TransactionType
+  amount: number
+  categoryKey?: string
+  remark?: string
+  occurredAt: string
+  accountId?: string // expense/income
+  fromAccountId?: string // transfer
+  toAccountId?: string // transfer
+}
+
+export interface Transaction {
+  id: string
+  type: TransactionType
+  amount: number
+  categoryKey?: string
+  remark?: string
+  occurredAt: string
+  accountId?: string
+  fromAccountId?: string
+  toAccountId?: string
+}
+
 // ========== API 响应通用类型 ==========
 
 export interface ApiResponse<T> {
