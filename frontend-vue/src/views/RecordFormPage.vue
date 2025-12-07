@@ -1,9 +1,43 @@
 <template>
   <div class="page-container">
     <div class="page-content">
-      <!-- 头部 -->
+      <!-- 头部：模式切换按钮 -->
       <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">{{ pageTitle }}</h1>
+        <div class="flex gap-2 mb-4">
+          <button
+            @click="switchMode('expense')"
+            :class="[
+              'flex-1 py-3 px-4 rounded-lg font-semibold transition-all',
+              mode === 'expense'
+                ? 'bg-red-500 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            ]"
+          >
+            {{ t('record.expense') }}
+          </button>
+          <button
+            @click="switchMode('income')"
+            :class="[
+              'flex-1 py-3 px-4 rounded-lg font-semibold transition-all',
+              mode === 'income'
+                ? 'bg-green-500 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            ]"
+          >
+            {{ t('record.income') }}
+          </button>
+          <button
+            @click="switchMode('transfer')"
+            :class="[
+              'flex-1 py-3 px-4 rounded-lg font-semibold transition-all',
+              mode === 'transfer'
+                ? 'bg-blue-500 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            ]"
+          >
+            {{ t('record.transfer') }}
+          </button>
+        </div>
       </div>
 
       <!-- 表单 -->
@@ -147,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getAccounts } from '@/api/accounts'
 import { createTransaction } from '@/api/ledger'
@@ -159,6 +193,13 @@ const router = useRouter()
 
 // 模式：expense, income, transfer
 const mode = ref<'expense' | 'income' | 'transfer'>('expense')
+
+// 切换模式时清空相关字段
+function switchMode(newMode: 'expense' | 'income' | 'transfer') {
+  mode.value = newMode
+  // 切换模式时清空分类选择
+  categoryKey.value = ''
+}
 
 // 表单数据
 const amount = ref<number>(0)
@@ -200,14 +241,7 @@ const categories = computed(() => {
   return []
 })
 
-// 页面标题
-const pageTitle = computed(() => {
-  if (mode.value === 'expense') return t('record.expense')
-  if (mode.value === 'income') return t('record.income')
-  return t('record.transfer')
-})
-
-// 从路由参数初始化模式
+// 从路由参数初始化模式（如果存在）
 function initModeFromRoute() {
   const type = route.query.type as string
   if (type === 'expense' || type === 'income' || type === 'transfer') {
@@ -292,6 +326,13 @@ async function onSubmit() {
     submitting.value = false
   }
 }
+
+// 监听路由参数变化
+watch(() => route.query.type, (newType) => {
+  if (newType === 'expense' || newType === 'income' || newType === 'transfer') {
+    switchMode(newType)
+  }
+}, { immediate: true })
 
 onMounted(() => {
   initModeFromRoute()

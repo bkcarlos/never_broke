@@ -55,8 +55,8 @@ export default {
 
   // 记账表单页
   'record.title': '记账',
-  'record.expense': '记支出',
-  'record.income': '记收入',
+  'record.expense': '支出',
+  'record.income': '收入',
   'record.transfer': '转账',
   'record.amount': '金额',
   'record.amountPlaceholder': '请输入金额',

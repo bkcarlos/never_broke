@@ -106,13 +106,13 @@ const rightTabs = [
 const radialActions: RadialAction[] = [
   {
     key: 'record_expense',
-    label: '记支出',
+    label: '支出',
     icon: 'minus-circle',
     route: '/record?type=expense'
   },
   {
     key: 'record_income',
-    label: '记收入',
+    label: '收入',
     icon: 'add-circle',
     route: '/record?type=income'
   },
@@ -144,7 +144,18 @@ function handleNavClick() {
 
 function handleSelect(action: RadialAction) {
   isRadialOpen.value = false
-  router.push(action.route)
+  // 解析路由路径和查询参数
+  const [path, queryString] = action.route.split('?')
+  const query: Record<string, string> = {}
+  if (queryString) {
+    queryString.split('&').forEach(param => {
+      const [key, value] = param.split('=')
+      if (key && value) {
+        query[key] = decodeURIComponent(value)
+      }
+    })
+  }
+  router.push({ path, query })
 }
 </script>
 

@@ -55,8 +55,8 @@ export default {
 
   // Record Form Page
   'record.title': 'Record',
-  'record.expense': 'Add Expense',
-  'record.income': 'Add Income',
+  'record.expense': 'Expense',
+  'record.income': 'Income',
   'record.transfer': 'Transfer',
   'record.amount': 'Amount',
   'record.amountPlaceholder': 'Enter amount',
