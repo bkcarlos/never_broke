@@ -43,7 +43,7 @@
 
       <!-- 示例金额展示 -->
       <div class="example bg-blue-50 rounded-lg p-4">
-        <p class="text-sm text-gray-600 mb-2">示例：</p>
+        <p class="text-sm text-gray-600 mb-2">{{ t('profile.example') }}</p>
         <p class="text-2xl font-bold">
           {{ settings.showAmount ? '¥12,345.67' : '¥****' }}
         </p>
@@ -56,7 +56,7 @@
         :disabled="saving"
         class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
       >
-        {{ saving ? '保存中...' : t('common.save') }}
+        {{ saving ? t('profile.saving') : t('common.save') }}
       </button>
 
       <!-- 错误提示 -->
@@ -133,7 +133,7 @@ async function saveSettings() {
     })
     settings.value = { ...updated }
     originalSettings.value = { ...updated }
-    alert('设置已保存！')
+    alert(t('profile.saveSuccess'))
   } catch (e) {
     error.value = e instanceof Error ? e.message : '保存设置失败'
   } finally {

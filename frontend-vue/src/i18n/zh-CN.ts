@@ -8,6 +8,8 @@ export default {
 
   // 首页
   'home.title': '首页',
+  'home.todayOverview': '今日概览',
+  'home.monthOverview': '本月概览',
   'home.todayExpense': '今日支出',
   'home.todayAvailable': '今日可花',
   'home.monthUsed': '本月已用',
@@ -21,6 +23,8 @@ export default {
 
   // 明细页
   'detail.title': '账单明细',
+  'detail.prevDay': '前一天',
+  'detail.nextDay': '后一天',
   'detail.totalIncome': '收入',
   'detail.totalExpense': '支出',
   'detail.noData': '暂无数据',
@@ -33,14 +37,20 @@ export default {
   'actions.setBudget': '设置预算',
   'actions.addAccount': '新增账户',
   'actions.import': '导入账单',
+  'actions.comingSoon': '这些操作功能将在后续版本中实现',
+  'actions.todoAlert': '实现 {action} 功能',
 
   // 报表页
   'reports.title': '月度报表',
+  'reports.prevMonth': '上月',
+  'reports.nextMonth': '下月',
   'reports.totalIncome': '总收入',
   'reports.totalExpense': '总支出',
   'reports.netIncome': '结余',
   'reports.categoryStats': '分类统计',
   'reports.dailyTrend': '每日趋势',
+  'reports.income': '收',
+  'reports.expense': '支',
 
   // 我的页面
   'profile.title': '我的',
@@ -48,6 +58,9 @@ export default {
   'profile.language': '语言',
   'profile.showAmount': '显示金额',
   'profile.hideAmount': '隐藏金额',
+  'profile.example': '示例：',
+  'profile.saving': '保存中...',
+  'profile.saveSuccess': '设置已保存！',
 
   // 分类
   'category.food': '餐饮',

@@ -21,7 +21,7 @@
       <!-- 今日数据卡片 -->
       <div class="card bg-white rounded-xl shadow-sm p-5 mb-4 border border-gray-100">
         <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
-          <span class="mr-2">📅</span>今日概览
+          <span class="mr-2">📅</span>{{ t('home.todayOverview') }}
         </h2>
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -42,7 +42,7 @@
       <!-- 本月数据卡片 -->
       <div class="card bg-white rounded-xl shadow-sm p-5 mb-4 border border-gray-100">
         <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
-          <span class="mr-2">📊</span>本月概览
+          <span class="mr-2">📊</span>{{ t('home.monthOverview') }}
         </h2>
         <div class="grid grid-cols-3 gap-3">
           <div>

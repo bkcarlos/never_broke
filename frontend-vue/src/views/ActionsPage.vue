@@ -59,7 +59,7 @@
     <!-- 提示信息 -->
     <div class="mt-6 p-4 bg-blue-50 rounded-lg">
       <p class="text-sm text-blue-700">
-        💡 这些操作功能将在后续版本中实现
+        💡 {{ t('actions.comingSoon') }}
       </p>
     </div>
   </div>
@@ -71,7 +71,8 @@ import { t } from '@/i18n'
 function handleAction(action: string) {
   // TODO: 后续实现具体功能
   console.log('Action clicked:', action)
-  alert(`TODO: 实现 ${action} 功能`)
+  const actionName = t(`actions.${action}`)
+  alert(`TODO: ${t('actions.todoAlert').replace('{action}', actionName)}`)
 }
 </script>
 

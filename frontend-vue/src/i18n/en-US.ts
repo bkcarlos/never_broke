@@ -8,6 +8,8 @@ export default {
 
   // Home Page
   'home.title': 'Home',
+  'home.todayOverview': 'Today Overview',
+  'home.monthOverview': 'Month Overview',
   'home.todayExpense': 'Today Expense',
   'home.todayAvailable': 'Today Available',
   'home.monthUsed': 'Month Used',
@@ -21,6 +23,8 @@ export default {
 
   // Detail Page
   'detail.title': 'Transaction Detail',
+  'detail.prevDay': 'Previous Day',
+  'detail.nextDay': 'Next Day',
   'detail.totalIncome': 'Income',
   'detail.totalExpense': 'Expense',
   'detail.noData': 'No Data',
@@ -33,14 +37,20 @@ export default {
   'actions.setBudget': 'Set Budget',
   'actions.addAccount': 'Add Account',
   'actions.import': 'Import',
+  'actions.comingSoon': 'These features will be implemented in future versions',
+  'actions.todoAlert': 'Implement {action} feature',
 
   // Reports Page
   'reports.title': 'Monthly Report',
+  'reports.prevMonth': 'Previous Month',
+  'reports.nextMonth': 'Next Month',
   'reports.totalIncome': 'Total Income',
   'reports.totalExpense': 'Total Expense',
   'reports.netIncome': 'Net Income',
   'reports.categoryStats': 'Category Stats',
   'reports.dailyTrend': 'Daily Trend',
+  'reports.income': 'In',
+  'reports.expense': 'Out',
 
   // Profile Page
   'profile.title': 'Profile',
@@ -48,6 +58,9 @@ export default {
   'profile.language': 'Language',
   'profile.showAmount': 'Show Amount',
   'profile.hideAmount': 'Hide Amount',
+  'profile.example': 'Example:',
+  'profile.saving': 'Saving...',
+  'profile.saveSuccess': 'Settings saved!',
 
   // Categories
   'category.food': 'Food',

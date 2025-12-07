@@ -7,7 +7,7 @@
           @click="changeDate(-1)"
           class="px-3 py-1 text-blue-500 hover:bg-blue-50 rounded"
         >
-          ← 前一天
+          ← {{ t('detail.prevDay') }}
         </button>
         <input 
           v-model="selectedDate" 
@@ -19,7 +19,7 @@
           @click="changeDate(1)"
           class="px-3 py-1 text-blue-500 hover:bg-blue-50 rounded"
         >
-          后一天 →
+          {{ t('detail.nextDay') }} →
         </button>
       </div>
     </div>

@@ -7,7 +7,7 @@
           @click="changeMonth(-1)"
           class="px-3 py-1 text-blue-500 hover:bg-blue-50 rounded"
         >
-          ← 上月
+          ← {{ t('reports.prevMonth') }}
         </button>
         <input 
           v-model="selectedMonth" 
@@ -19,7 +19,7 @@
           @click="changeMonth(1)"
           class="px-3 py-1 text-blue-500 hover:bg-blue-50 rounded"
         >
-          下月 →
+          {{ t('reports.nextMonth') }} →
         </button>
       </div>
     </div>
@@ -110,10 +110,10 @@
             <span class="text-sm text-gray-600">{{ day.date }}</span>
             <div class="flex gap-4">
               <span class="text-sm text-green-600">
-                收 ¥{{ formatAmount(day.income, showAmount) }}
+                {{ t('reports.income') }} ¥{{ formatAmount(day.income, showAmount) }}
               </span>
               <span class="text-sm text-red-600">
-                支 ¥{{ formatAmount(day.expense, showAmount) }}
+                {{ t('reports.expense') }} ¥{{ formatAmount(day.expense, showAmount) }}
               </span>
             </div>
           </div>
