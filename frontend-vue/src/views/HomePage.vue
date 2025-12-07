@@ -174,29 +174,38 @@
       <!-- 模块 4: 本月消费概览 -->
       <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.spendOverview') }}</h2>
-        <!-- TOP3 列表 -->
-        <div class="space-y-3">
+        
+        <!-- 左右布局：左边扇形图，右边列表 -->
+        <div class="flex items-center gap-6">
+          <!-- 左侧：扇形图 -->
+          <div class="flex-shrink-0 flex-1">
+            <div ref="pieChartRef" class="w-full aspect-square min-w-32"></div>
+          </div>
+
+          <!-- 右侧：TOP3 + 其他 列表 -->
+          <div class="flex-1 space-y-3">
             <div 
-              v-for="(cat, index) in data.categoryTop" 
-              :key="cat.categoryKey"
+              v-for="(item, index) in pieChartData" 
+              :key="item.name"
               class="flex items-center justify-between"
             >
               <div class="flex items-center gap-2">
                 <div 
                   class="w-3 h-3 rounded-full"
-                  :class="getCategoryDotColor(index)"
+                  :style="{ backgroundColor: item.color }"
                 ></div>
                 <span class="text-sm font-medium text-gray-700">
-                  {{ t(`category.${cat.categoryKey}`) }}
+                  {{ item.label }}
                 </span>
               </div>
               <div class="text-right">
                 <p class="text-sm font-semibold text-gray-800">
-                  ¥{{ formatMoney(cat.amount) }}
+                  ¥{{ formatMoney(item.value) }}
                 </p>
-                <p class="text-xs text-gray-400">{{ cat.percent }}%</p>
+                <p class="text-xs text-gray-400">{{ item.percent.toFixed(1) }}%</p>
               </div>
             </div>
+          </div>
         </div>
       </div>
     </div>
@@ -204,7 +213,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
+import * as echarts from 'echarts'
 import type { HomeOverview } from '@/types'
 import { getHomeOverview } from '@/api/home'
 import { t } from '@/i18n'
@@ -216,6 +226,10 @@ const data = ref<HomeOverview | null>(null)
 
 // 金额显隐，从 localStorage 读取
 const showAmount = ref<boolean>(true)
+
+// 扇形图相关
+const pieChartRef = ref<HTMLElement | null>(null)
+let pieChartInstance: echarts.ECharts | null = null
 
 // 记账天数
 const recordingDays = computed(() => {
@@ -289,6 +303,167 @@ function getCategoryDotColor(index: number): string {
   return colors[index] || 'bg-gray-500'
 }
 
+// 扇形图数据
+const pieChartData = computed(() => {
+  if (!data.value || !data.value.categoryTop || data.value.categoryTop.length === 0) {
+    return []
+  }
+
+  const top3 = data.value.categoryTop.slice(0, 3)
+  const top3PercentTotal = top3.reduce((sum, cat) => sum + cat.percent, 0)
+  const totalExpense = data.value.todayStats.monthUsed
+  const top3AmountTotal = top3.reduce((sum, cat) => sum + cat.amount, 0)
+  
+  // 计算"其他"类别：优先使用百分比计算，如果百分比总和小于100%，则显示"其他"
+  const otherPercent = Math.max(0, 100 - top3PercentTotal)
+  const otherAmount = Math.max(0, totalExpense - top3AmountTotal)
+  
+  // 如果百分比计算出的"其他"存在，或者金额计算出的"其他"存在，都显示
+  const shouldShowOther = otherPercent > 0.01 || otherAmount > 0.01
+
+  const colors = ['#6366f1', '#a855f7', '#ec4899', '#94a3b8'] // indigo, purple, pink, gray
+
+  const result = top3.map((cat, index) => ({
+    name: cat.categoryKey,
+    value: cat.amount,
+    percent: cat.percent,
+    color: colors[index],
+    label: t(`category.${cat.categoryKey}`)
+  }))
+
+  // 如果有其他类别，添加到结果中
+  if (shouldShowOther) {
+    // 使用实际计算的金额，如果为0或负数，则使用百分比反推
+    const finalOtherAmount = otherAmount > 0.01 
+      ? otherAmount 
+      : (otherPercent / 100) * totalExpense
+    
+    result.push({
+      name: 'other',
+      value: finalOtherAmount,
+      percent: otherPercent,
+      color: colors[3],
+      label: t('category.other')
+    })
+  }
+
+  return result
+})
+
+// 初始化扇形图
+function initPieChart() {
+  if (!pieChartRef.value || !data.value) return
+
+  // 如果已存在实例，先销毁
+  if (pieChartInstance) {
+    pieChartInstance.dispose()
+  }
+
+  // 创建新的图表实例
+  pieChartInstance = echarts.init(pieChartRef.value)
+
+  const chartData = pieChartData.value.map(item => ({
+    value: item.value,
+    name: item.label
+  }))
+
+  const colors = pieChartData.value.map(item => item.color)
+
+  const option = {
+    tooltip: {
+      trigger: 'item',
+      confine: true,
+      appendToBody: false,
+      position: (point: number[], params: any, dom: HTMLElement, rect: any, size: any) => {
+        // 动态计算位置，确保 tooltip 不超出容器
+        const [x, y] = point
+        const viewWidth = size.viewSize[0]
+        const viewHeight = size.viewSize[1]
+        const boxWidth = size.contentSize[0]
+        const boxHeight = size.contentSize[1]
+        
+        let posX = x + 10
+        let posY = y - boxHeight / 2
+        
+        // 如果右侧空间不足，显示在左侧
+        if (posX + boxWidth > viewWidth) {
+          posX = x - boxWidth - 10
+        }
+        
+        // 如果上方空间不足，调整到下方
+        if (posY < 0) {
+          posY = 10
+        }
+        
+        // 如果下方空间不足，调整到上方
+        if (posY + boxHeight > viewHeight) {
+          posY = viewHeight - boxHeight - 10
+        }
+        
+        return [posX, posY]
+      },
+      formatter: (params: any) => {
+        return `${params.name}<br/>¥${formatMoney(params.value)} (${params.percent}%)`
+      }
+    },
+    legend: {
+      show: false
+    },
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['50%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 4,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: {
+          show: false
+        },
+        labelLine: {
+          show: false
+        },
+        emphasis: {
+          label: {
+            show: false
+          },
+          labelLine: {
+            show: false
+          },
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        },
+        data: chartData,
+        color: colors
+      }
+    ]
+  }
+
+  pieChartInstance.setOption(option)
+  
+  // 添加窗口大小变化监听
+  window.addEventListener('resize', handleResize)
+}
+
+// 监听数据变化，更新图表
+watch(
+  () => [data.value, pieChartData.value],
+  () => {
+    if (data.value && pieChartData.value.length > 0) {
+      nextTick(() => {
+        initPieChart()
+      })
+    }
+  },
+  { deep: true }
+)
+
 // 加载数据
 async function loadData() {
   loading.value = true
@@ -319,6 +494,22 @@ onMounted(() => {
   
   // 加载数据
   loadData()
+})
+
+// 窗口大小变化时调整图表大小
+function handleResize() {
+  if (pieChartInstance) {
+    pieChartInstance.resize()
+  }
+}
+
+// 组件卸载时销毁图表
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  if (pieChartInstance) {
+    pieChartInstance.dispose()
+    pieChartInstance = null
+  }
 })
 </script>
 
