@@ -63,17 +63,42 @@
           <label class="block text-sm font-medium text-gray-700 mb-2">
             {{ t('record.category') }}
           </label>
-          <select
-            v-model="categoryKey"
-            :placeholder="t('record.categoryPlaceholder')"
-            required
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          >
-            <option value="">{{ t('record.categoryPlaceholder') }}</option>
-            <option v-for="cat in categories" :key="cat.key" :value="cat.key">
+          <!-- 支出模式：快速选择按钮网格 -->
+          <div v-if="mode === 'expense'" class="grid grid-cols-4 gap-2">
+            <button
+              v-for="cat in categories"
+              :key="cat.key"
+              type="button"
+              @click="categoryKey = cat.key"
+              :class="[
+                'py-3 px-2 rounded-lg font-medium text-sm transition-all',
+                'border-2',
+                categoryKey === cat.key
+                  ? 'bg-red-500 text-white border-red-500 shadow-md'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50'
+              ]"
+            >
               {{ t(`category.${cat.key}`) }}
-            </option>
-          </select>
+            </button>
+          </div>
+          <!-- 收入模式：快速选择按钮网格 -->
+          <div v-else-if="mode === 'income'" class="grid grid-cols-4 gap-2">
+            <button
+              v-for="cat in categories"
+              :key="cat.key"
+              type="button"
+              @click="categoryKey = cat.key"
+              :class="[
+                'py-3 px-2 rounded-lg font-medium text-sm transition-all',
+                'border-2',
+                categoryKey === cat.key
+                  ? 'bg-green-500 text-white border-green-500 shadow-md'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50'
+              ]"
+            >
+              {{ t(`category.${cat.key}`) }}
+            </button>
+          </div>
         </div>
 
         <!-- 账户选择 -->
@@ -228,6 +253,14 @@ const categories = computed(() => {
       { key: 'housing' },
       { key: 'healthcare' },
       { key: 'education' },
+      { key: 'communication' },
+      { key: 'clothing' },
+      { key: 'beauty' },
+      { key: 'sports' },
+      { key: 'travel' },
+      { key: 'gifts' },
+      { key: 'pets' },
+      { key: 'utilities' },
       { key: 'other' }
     ]
   } else if (mode.value === 'income') {
@@ -235,6 +268,11 @@ const categories = computed(() => {
       { key: 'salary' },
       { key: 'bonus' },
       { key: 'investment' },
+      { key: 'parttime' },
+      { key: 'finance' },
+      { key: 'rental' },
+      { key: 'refund' },
+      { key: 'redpacket' },
       { key: 'other' }
     ]
   }
