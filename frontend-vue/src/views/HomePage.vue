@@ -1,7 +1,5 @@
 <template>
   <div class="home-page p-4">
-    <h1 class="text-2xl font-bold mb-6">{{ t('home.title') }}</h1>
-
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
       <p class="text-gray-500">{{ t('common.loading') }}</p>
@@ -21,8 +19,10 @@
     <!-- 数据展示 -->
     <div v-else-if="overview">
       <!-- 今日数据卡片 -->
-      <div class="card bg-white rounded-lg shadow p-4 mb-4">
-        <h2 class="text-lg font-semibold mb-3">今日概览</h2>
+      <div class="card bg-white rounded-xl shadow-sm p-5 mb-4 border border-gray-100">
+        <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
+          <span class="mr-2">📅</span>今日概览
+        </h2>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <p class="text-sm text-gray-500">{{ t('home.todayExpense') }}</p>
@@ -40,8 +40,10 @@
       </div>
 
       <!-- 本月数据卡片 -->
-      <div class="card bg-white rounded-lg shadow p-4 mb-4">
-        <h2 class="text-lg font-semibold mb-3">本月概览</h2>
+      <div class="card bg-white rounded-xl shadow-sm p-5 mb-4 border border-gray-100">
+        <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
+          <span class="mr-2">📊</span>本月概览
+        </h2>
         <div class="grid grid-cols-3 gap-3">
           <div>
             <p class="text-xs text-gray-500">{{ t('home.monthUsed') }}</p>
@@ -65,8 +67,10 @@
       </div>
 
       <!-- 资产总览卡片 -->
-      <div class="card bg-white rounded-lg shadow p-4 mb-4">
-        <h2 class="text-lg font-semibold mb-3">{{ t('home.assetSummary') }}</h2>
+      <div class="card bg-white rounded-xl shadow-sm p-5 mb-4 border border-gray-100">
+        <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
+          <span class="mr-2">💰</span>{{ t('home.assetSummary') }}
+        </h2>
         <div class="space-y-2">
           <div class="flex justify-between">
             <span class="text-gray-600">{{ t('home.totalAssets') }}</span>
@@ -90,8 +94,10 @@
       </div>
 
       <!-- 支出分类 TOP -->
-      <div v-if="overview.topCategories.length > 0" class="card bg-white rounded-lg shadow p-4">
-        <h2 class="text-lg font-semibold mb-3">{{ t('home.topCategories') }}</h2>
+      <div v-if="overview.topCategories.length > 0" class="card bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+        <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
+          <span class="mr-2">🏆</span>{{ t('home.topCategories') }}
+        </h2>
         <div class="space-y-2">
           <div 
             v-for="cat in overview.topCategories" 

@@ -1,7 +1,5 @@
 <template>
   <div class="actions-page p-4">
-    <h1 class="text-2xl font-bold mb-6">{{ t('actions.title') }}</h1>
-
     <div class="actions-grid grid grid-cols-2 gap-4">
       <!-- 记支出 -->
       <button 

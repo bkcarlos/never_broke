@@ -1,7 +1,5 @@
 <template>
   <div class="reports-page p-4">
-    <h1 class="text-2xl font-bold mb-4">{{ t('reports.title') }}</h1>
-
     <!-- 月份选择 -->
     <div class="month-selector bg-white rounded-lg shadow p-4 mb-4">
       <div class="flex items-center justify-between">

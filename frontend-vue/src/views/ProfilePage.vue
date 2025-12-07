@@ -1,7 +1,5 @@
 <template>
   <div class="profile-page p-4">
-    <h1 class="text-2xl font-bold mb-6">{{ t('profile.title') }}</h1>
-
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
       <p class="text-gray-500">{{ t('common.loading') }}</p>

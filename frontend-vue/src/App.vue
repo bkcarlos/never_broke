@@ -10,11 +10,18 @@
           v-for="tab in tabs" 
           :key="tab.path"
           :to="tab.path"
-          class="flex flex-col items-center justify-center flex-1 h-full"
-          :class="{ 'text-blue-600': isActive(tab.path), 'text-gray-500': !isActive(tab.path) }"
+          class="nav-item flex flex-col items-center justify-center flex-1 h-full transition-all duration-200"
+          :class="{ 
+            'text-blue-600 bg-blue-50': isActive(tab.path), 
+            'text-gray-500 hover:text-gray-700 hover:bg-gray-50': !isActive(tab.path) 
+          }"
         >
-          <span class="text-2xl mb-1">{{ tab.icon }}</span>
-          <span class="text-xs">{{ tab.label }}</span>
+          <span class="text-2xl mb-1 transition-transform" :class="{ 'scale-110': isActive(tab.path) }">
+            {{ tab.icon }}
+          </span>
+          <span class="text-xs font-medium" :class="{ 'font-semibold': isActive(tab.path) }">
+            {{ tab.label }}
+          </span>
         </router-link>
       </div>
     </nav>
@@ -22,7 +29,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -55,6 +61,27 @@ const isActive = (path: string) => {
 
 .bottom-nav {
   z-index: 1000;
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 0 0 3px 3px;
+  transition: width 0.3s ease;
+}
+
+.nav-item.text-blue-600::before {
+  width: 60%;
 }
 </style>
 

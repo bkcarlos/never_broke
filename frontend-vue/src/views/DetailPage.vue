@@ -1,7 +1,5 @@
 <template>
   <div class="detail-page p-4">
-    <h1 class="text-2xl font-bold mb-4">{{ t('detail.title') }}</h1>
-
     <!-- 日期选择 -->
     <div class="date-selector bg-white rounded-lg shadow p-4 mb-4">
       <div class="flex items-center justify-between">
