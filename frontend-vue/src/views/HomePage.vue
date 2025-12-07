@@ -375,29 +375,35 @@ function initPieChart() {
       confine: true,
       appendToBody: false,
       position: (point: number[], params: any, dom: HTMLElement, rect: any, size: any) => {
-        // 动态计算位置，确保 tooltip 不超出容器
+        // 动态计算位置，确保 tooltip 不超出容器且不遮挡鼠标
         const [x, y] = point
         const viewWidth = size.viewSize[0]
         const viewHeight = size.viewSize[1]
         const boxWidth = size.contentSize[0]
         const boxHeight = size.contentSize[1]
         
-        let posX = x + 10
-        let posY = y - boxHeight / 2
+        // 默认显示在鼠标右上方，避免遮挡鼠标指针
+        let posX = x + 20  // 增加水平偏移，避免覆盖鼠标
+        let posY = y - boxHeight - 10  // 显示在上方，避免覆盖鼠标
         
         // 如果右侧空间不足，显示在左侧
         if (posX + boxWidth > viewWidth) {
-          posX = x - boxWidth - 10
+          posX = x - boxWidth - 20
         }
         
-        // 如果上方空间不足，调整到下方
+        // 如果上方空间不足，显示在下方
         if (posY < 0) {
-          posY = 10
+          posY = y + 20  // 显示在鼠标下方
         }
         
-        // 如果下方空间不足，调整到上方
+        // 如果下方空间也不足，调整到中间位置
         if (posY + boxHeight > viewHeight) {
-          posY = viewHeight - boxHeight - 10
+          posY = (viewHeight - boxHeight) / 2
+        }
+        
+        // 确保不超出左边界
+        if (posX < 0) {
+          posX = 10
         }
         
         return [posX, posY]
