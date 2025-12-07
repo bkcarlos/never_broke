@@ -16,7 +16,12 @@
       <!-- 问候语和标题 -->
       <div class="mt-4">
         <p class="text-sm text-white/80 mb-1">{{ greeting }}</p>
-        <h1 class="text-3xl font-bold mb-2">NeverBroke</h1>
+        <div class="flex items-center gap-3 mb-2">
+          <h1 class="text-3xl font-bold">NeverBroke</h1>
+          <div class="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+            <p class="text-xs text-white/90">{{ t('home.keepRecording', { days: String(recordingDays) }) }}</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -237,6 +242,25 @@ const data = ref<HomeOverview | null>(null)
 
 // 金额显隐，从 localStorage 读取
 const showAmount = ref<boolean>(true)
+
+// 记账天数
+const recordingDays = computed(() => {
+  // 从 localStorage 获取首次记账日期
+  const firstRecordDate = localStorage.getItem('firstRecordDate')
+  if (!firstRecordDate) {
+    // 如果没有记录，设置当前日期为首次记账日期
+    const today = new Date().toISOString().split('T')[0]
+    localStorage.setItem('firstRecordDate', today)
+    return 1
+  }
+  
+  // 计算天数差
+  const first = new Date(firstRecordDate)
+  const today = new Date()
+  const diffTime = Math.abs(today.getTime() - first.getTime())
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  return diffDays + 1
+})
 
 // 问候语
 const greeting = computed(() => {

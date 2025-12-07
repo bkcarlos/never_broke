@@ -13,6 +13,7 @@ export default {
   'home.greeting.afternoon': 'Good afternoon',
   'home.greeting.evening': 'Good evening',
   'home.greeting.night': 'Good night',
+  'home.keepRecording': '{days} days tracking',
   'home.freeToSpend': 'Free to Spend This Cycle',
   'home.daysToPayday': '{days} days until next payday',
   'home.adjustBudget': 'Adjust Budget',

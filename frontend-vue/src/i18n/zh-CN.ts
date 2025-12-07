@@ -13,6 +13,7 @@ export default {
   'home.greeting.afternoon': '下午好',
   'home.greeting.evening': '晚上好',
   'home.greeting.night': '深夜好',
+  'home.keepRecording': '坚持记账 {days} 天',
   'home.freeToSpend': '本周期可自由支配',
   'home.daysToPayday': '距离下次发薪还有 {days} 天',
   'home.adjustBudget': '调整预算',
