@@ -1,6 +1,6 @@
 <template>
-  <div class="profile-page-container">
-    <div class="profile-page p-4 pb-[74px]">
+  <div class="page-container">
+    <div class="page-content">
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
       <p class="text-gray-500">{{ t('common.loading') }}</p>
@@ -213,15 +213,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.profile-page-container {
-  /* 移除固定高度和滚动，让页面自然流动 */
-  min-height: 100%;
-}
-
-.profile-page {
-  padding-bottom: 2rem;
-  min-height: 100%;
-}
+/* 页面样式已移至全局样式文件 (style.css) 的 .page-container 和 .page-content */
 
 /* 确保下拉框不影响导航栏 */
 .dropdown-select {

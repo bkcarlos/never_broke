@@ -170,6 +170,7 @@ function handleSelect(action: RadialAction) {
 .main-content {
   min-height: calc(100vh - 4rem);
   padding-bottom: 4rem; /* 为底部导航栏留出空间 */
+  background-color: transparent; /* 让背景透明，由各个页面自己控制背景色 */
 }
 
 .bottom-nav {

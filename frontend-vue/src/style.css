@@ -61,3 +61,14 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+/* 通用页面容器样式 */
+@layer components {
+  .page-container {
+    @apply flex flex-col bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-400 min-h-[calc(100vh-4rem)];
+  }
+  
+  .page-content {
+    @apply p-4 pb-3;
+  }
+}
+

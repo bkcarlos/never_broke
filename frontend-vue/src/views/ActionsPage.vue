@@ -1,5 +1,6 @@
 <template>
-  <div class="actions-page p-4 pb-[74px]">
+  <div class="page-container">
+    <div class="page-content">
     <div class="actions-grid grid grid-cols-2 gap-4">
       <!-- 记支出 -->
       <button 
@@ -35,6 +36,7 @@
       <p class="text-sm text-blue-700">
         {{ t('actions.comingSoon') }}
       </p>
+    </div>
     </div>
   </div>
 </template>

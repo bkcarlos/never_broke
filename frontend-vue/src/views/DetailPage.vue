@@ -1,6 +1,6 @@
 <template>
-  <div class="detail-page-container">
-    <div class="detail-page p-4 pb-[74px]">
+  <div class="page-container">
+    <div class="page-content">
     <!-- 日期选择 -->
     <div class="date-selector bg-white rounded-lg shadow p-4 mb-4">
       <div class="flex items-center justify-between">
@@ -142,15 +142,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.detail-page-container {
-  /* 移除固定高度和滚动，让页面自然流动 */
-  min-height: 100%;
-}
-
-.detail-page {
-  padding-bottom: 2rem;
-  min-height: 100%;
-}
+/* 页面样式已移至全局样式文件 (style.css) 的 .page-container 和 .page-content */
 
 /* 确保日期选择器的下拉选项不影响导航栏 */
 input[type="date"] {
