@@ -1,5 +1,5 @@
 <template>
-  <div class="actions-page p-4">
+  <div class="actions-page p-4 pb-[74px]">
     <div class="actions-grid grid grid-cols-2 gap-4">
       <!-- 记支出 -->
       <button 
