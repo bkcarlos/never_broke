@@ -1,7 +1,7 @@
 <template>
-  <div class="flex flex-col min-h-screen bg-slate-50">
-    <!-- 顶部渐变 Hero 区 -->
-    <div class="relative bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-400 text-white h-52 px-4 pt-6 pb-8">
+  <div class="flex flex-col bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-400">
+    <!-- 顶部头部区域 -->
+    <div class="relative px-4 pt-6 pb-4 text-white">
       <!-- 右上角操作按钮 -->
       <div class="absolute top-6 right-4 flex gap-3">
         <button 
@@ -27,15 +27,15 @@
 
     <!-- 加载状态 -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
-      <p class="text-gray-500">{{ t('common.loading') }}</p>
+      <p class="text-white/90">{{ t('common.loading') }}</p>
     </div>
 
     <!-- 错误状态 -->
     <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center px-4">
-      <p class="text-red-500 mb-4">{{ t('common.error') }}: {{ error }}</p>
+      <p class="text-white mb-4">{{ t('common.error') }}: {{ error }}</p>
       <button 
         @click="loadData" 
-        class="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
+        class="px-6 py-2 bg-white text-indigo-600 rounded-lg hover:bg-white/90 transition-colors font-semibold"
       >
         {{ t('common.retry') }}
       </button>
@@ -44,7 +44,7 @@
     <!-- 主内容区 -->
     <div v-else-if="data" class="flex-1 px-4 pb-4">
       <!-- 卡片 1: 资产总览 -->
-      <div class="bg-white rounded-2xl shadow-md p-6 -mt-10 mb-4 relative z-10">
+      <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.assetSummary') }}</h2>
         <div class="grid grid-cols-3 gap-4">
           <div class="text-center">
@@ -69,7 +69,7 @@
       </div>
 
       <!-- 卡片 2: 本月预算 -->
-      <div class="bg-white rounded-2xl shadow-md p-6 mb-4">
+      <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-gray-800">{{ t('home.monthBudget') }}</h2>
           <button 
@@ -131,7 +131,7 @@
       </div>
 
       <!-- 卡片 3: 本周期可自由支配 -->
-      <div class="bg-white rounded-2xl shadow-md p-6 mb-4">
+      <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
         <div class="flex items-center justify-between">
           <div class="flex-1">
             <p class="text-sm text-gray-500 mb-1">{{ t('home.freeToSpend') }}</p>
@@ -172,7 +172,7 @@
       </div>
 
       <!-- 模块 4: 本月消费概览 -->
-      <div class="bg-white rounded-2xl shadow-md p-6 mb-4">
+      <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.spendOverview') }}</h2>
         <!-- TOP3 列表 -->
         <div class="space-y-3">
