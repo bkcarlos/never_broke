@@ -46,11 +46,22 @@ frontend-vue/
 └── package.json
 ```
 
+## 环境要求
+
+- **Node.js**: 16.0.0+ （推荐使用 20.x LTS）
+- **npm**: 7.0.0+
+
+> 💡 如果遇到 Node.js 版本问题，请查看 [NODE_VERSION.md](./NODE_VERSION.md) 获取详细解决方案。
+
 ## 快速开始
 
 ### 安装依赖
 
 ```bash
+# 删除旧的依赖（如果存在）
+rm -rf node_modules package-lock.json
+
+# 安装依赖
 npm install
 ```
 
