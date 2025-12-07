@@ -35,24 +35,36 @@ export function setLocale(newLocale: Locale) {
 /**
  * 翻译函数
  * @param key 翻译键
+ * @param params 参数对象（可选）
  * @param fallback 降级文案（可选）
  */
-export function t(key: string, fallback?: string): string {
-  const message = messages[currentLocale.value]?.[key]
-  if (message) {
-    return message
+export function t(key: string, params?: Record<string, string | number> | string, fallback?: string): string {
+  // 兼容旧的调用方式：t(key, fallback)
+  if (typeof params === 'string') {
+    fallback = params
+    params = undefined
   }
+
+  let message = messages[currentLocale.value]?.[key]
   
   // 如果当前语言没有，尝试中文
-  if (currentLocale.value !== 'zh-CN') {
-    const zhMessage = messages['zh-CN']?.[key]
-    if (zhMessage) {
-      return zhMessage
-    }
+  if (!message && currentLocale.value !== 'zh-CN') {
+    message = messages['zh-CN']?.[key]
   }
   
   // 都没有就返回 fallback 或 key
-  return fallback || key
+  if (!message) {
+    return fallback || key
+  }
+
+  // 替换参数
+  if (params && typeof params === 'object') {
+    return message.replace(/\{(\w+)\}/g, (match, key) => {
+      return params[key] !== undefined ? String(params[key]) : match
+    })
+  }
+
+  return message
 }
 
 /**

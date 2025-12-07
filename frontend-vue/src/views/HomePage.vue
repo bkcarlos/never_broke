@@ -1,152 +1,350 @@
 <template>
-  <div class="home-page p-4">
+  <div class="flex flex-col min-h-screen bg-slate-50">
+    <!-- 顶部渐变 Hero 区 -->
+    <div class="relative bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-400 text-white h-52 px-4 pt-6 pb-8">
+      <!-- 右上角操作按钮 -->
+      <div class="absolute top-6 right-4 flex gap-3">
+        <button 
+          @click="toggleShowAmount" 
+          class="text-2xl hover:scale-110 transition-transform"
+          :title="showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
+        >
+          <i :class="showAmount ? 'iconfont icon-eye' : 'iconfont icon-eye-close'"></i>
+        </button>
+      </div>
+
+      <!-- 问候语和标题 -->
+      <div class="mt-4">
+        <p class="text-sm text-white/80 mb-1">{{ greeting }}</p>
+        <h1 class="text-3xl font-bold mb-2">NeverBroke</h1>
+      </div>
+    </div>
+
     <!-- 加载状态 -->
-    <div v-if="loading" class="text-center py-8">
+    <div v-if="loading" class="flex-1 flex items-center justify-center">
       <p class="text-gray-500">{{ t('common.loading') }}</p>
     </div>
 
     <!-- 错误状态 -->
-    <div v-else-if="error" class="text-center py-8">
+    <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center px-4">
       <p class="text-red-500 mb-4">{{ t('common.error') }}: {{ error }}</p>
       <button 
         @click="loadData" 
-        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        class="px-6 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
       >
         {{ t('common.retry') }}
       </button>
     </div>
 
-    <!-- 数据展示 -->
-    <div v-else-if="overview">
-      <!-- 今日数据卡片 -->
-      <div class="card bg-white rounded-xl shadow-sm p-5 mb-4 border border-gray-100">
-        <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
-          <span class="mr-2">📅</span>{{ t('home.todayOverview') }}
-        </h2>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <p class="text-sm text-gray-500">{{ t('home.todayExpense') }}</p>
-            <p class="text-xl font-bold text-red-500">
-              ¥{{ formatAmount(overview.todayStats.todayExpense, showAmount) }}
+    <!-- 主内容区 -->
+    <div v-else-if="data" class="flex-1 px-4 pb-32">
+      <!-- 卡片 1: 发薪周期 / 今天能花多少 -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 -mt-10 mb-4 relative z-10">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <p class="text-sm text-gray-500 mb-1">{{ t('home.freeToSpend') }}</p>
+            <p class="text-3xl font-bold text-indigo-600 mb-2">
+              ¥{{ formatMoney(data.payCycle.freeToSpend) }}
+            </p>
+            <p class="text-xs text-gray-400">
+              {{ t('home.daysToPayday', { days: String(data.payCycle.daysToNextPayday) }) }}
             </p>
           </div>
-          <div>
-            <p class="text-sm text-gray-500">{{ t('home.todayAvailable') }}</p>
-            <p class="text-xl font-bold text-green-500">
-              ¥{{ formatAmount(overview.todayStats.todayAvailable, showAmount) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 本月数据卡片 -->
-      <div class="card bg-white rounded-xl shadow-sm p-5 mb-4 border border-gray-100">
-        <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
-          <span class="mr-2">📊</span>{{ t('home.monthOverview') }}
-        </h2>
-        <div class="grid grid-cols-3 gap-3">
-          <div>
-            <p class="text-xs text-gray-500">{{ t('home.monthUsed') }}</p>
-            <p class="text-lg font-bold">
-              ¥{{ formatAmount(overview.todayStats.monthUsed, showAmount) }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500">{{ t('home.monthBudget') }}</p>
-            <p class="text-lg font-bold">
-              ¥{{ formatAmount(overview.todayStats.monthBudget, showAmount) }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs text-gray-500">{{ t('home.monthNet') }}</p>
-            <p class="text-lg font-bold" :class="overview.todayStats.monthNet >= 0 ? 'text-green-500' : 'text-red-500'">
-              ¥{{ formatAmount(overview.todayStats.monthNet, showAmount) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 资产总览卡片 -->
-      <div class="card bg-white rounded-xl shadow-sm p-5 mb-4 border border-gray-100">
-        <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
-          <span class="mr-2">💰</span>{{ t('home.assetSummary') }}
-        </h2>
-        <div class="space-y-2">
-          <div class="flex justify-between">
-            <span class="text-gray-600">{{ t('home.totalAssets') }}</span>
-            <span class="font-bold text-blue-600">
-              ¥{{ formatAmount(overview.assetSummary.totalAssets, showAmount) }}
-            </span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-600">{{ t('home.totalLiabilities') }}</span>
-            <span class="font-bold text-orange-600">
-              ¥{{ formatAmount(overview.assetSummary.totalLiabilities, showAmount) }}
-            </span>
-          </div>
-          <div class="flex justify-between pt-2 border-t">
-            <span class="text-gray-800 font-semibold">{{ t('home.netAssets') }}</span>
-            <span class="font-bold text-green-600 text-lg">
-              ¥{{ formatAmount(overview.assetSummary.netAssets, showAmount) }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 支出分类 TOP -->
-      <div v-if="overview.topCategories.length > 0" class="card bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-        <h2 class="text-base font-semibold mb-4 text-gray-700 flex items-center">
-          <span class="mr-2">🏆</span>{{ t('home.topCategories') }}
-        </h2>
-        <div class="space-y-2">
-          <div 
-            v-for="cat in overview.topCategories" 
-            :key="cat.categoryKey"
-            class="flex items-center justify-between"
-          >
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-gray-500">#{{ cat.rank }}</span>
-              <span>{{ t(`category.${cat.categoryKey}`) }}</span>
+          <div class="flex-shrink-0 ml-4">
+            <!-- 简单的环形进度 -->
+            <div class="relative w-20 h-20">
+              <svg class="w-full h-full transform -rotate-90">
+                <circle 
+                  cx="40" cy="40" r="32" 
+                  stroke="#e5e7eb" 
+                  stroke-width="6" 
+                  fill="none"
+                />
+                <circle 
+                  cx="40" cy="40" r="32" 
+                  stroke="#6366f1" 
+                  stroke-width="6" 
+                  fill="none"
+                  :stroke-dasharray="`${data.payCycle.cycleUsedPercent * 2.01} 201`"
+                  class="transition-all duration-500"
+                />
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-xs font-semibold text-gray-700">
+                  {{ Math.round(data.payCycle.cycleUsedPercent) }}%
+                </span>
+              </div>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-gray-500">{{ cat.percent }}%</span>
-              <span class="font-semibold">
-                ¥{{ formatAmount(cat.amount, showAmount) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- 卡片 2: 本月预算 -->
+      <div class="bg-white rounded-2xl shadow-md p-6 mb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-800">{{ t('home.monthBudget') }}</h2>
+          <button 
+            @click="$router.push('/reports')" 
+            class="text-sm text-indigo-500 hover:text-indigo-600"
+          >
+            {{ t('home.adjustBudget') }} →
+          </button>
+        </div>
+        <div class="flex items-center gap-6">
+          <!-- 圆形进度 -->
+          <div class="relative w-24 h-24 flex-shrink-0">
+            <svg class="w-full h-full transform -rotate-90">
+              <circle 
+                cx="48" cy="48" r="40" 
+                stroke="#e5e7eb" 
+                stroke-width="8" 
+                fill="none"
+              />
+              <circle 
+                cx="48" cy="48" r="40" 
+                :stroke="budgetColor" 
+                stroke-width="8" 
+                fill="none"
+                :stroke-dasharray="`${budgetUsedPercent * 2.51} 251`"
+                class="transition-all duration-500"
+              />
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span class="text-sm font-bold text-gray-700">
+                {{ Math.round(budgetUsedPercent) }}%
+              </span>
+            </div>
+          </div>
+          <!-- 预算详情 -->
+          <div class="flex-1 space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">{{ t('home.monthBudget') }}</span>
+              <span class="font-semibold">¥{{ formatMoney(data.todayStats.monthBudget) }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">{{ t('home.monthUsed') }}</span>
+              <span class="font-semibold text-red-500">¥{{ formatMoney(data.todayStats.monthUsed) }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">{{ t('home.remaining') }}</span>
+              <span class="font-semibold text-green-500">
+                ¥{{ formatMoney(data.todayStats.monthBudget - data.todayStats.monthUsed) }}
               </span>
             </div>
           </div>
         </div>
+        <p class="text-xs text-gray-400 mt-3">
+          {{ t('home.budgetProgress', { 
+            dayPercent: String(Math.round(dayOfMonth / daysInMonth * 100)),
+            usedPercent: String(Math.round(budgetUsedPercent))
+          }) }}
+        </p>
+      </div>
+
+      <!-- 卡片 3: 资产总览 -->
+      <div class="bg-white rounded-2xl shadow-md p-6 mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.assetSummary') }}</h2>
+        <div class="grid grid-cols-3 gap-4">
+          <div class="text-center">
+            <p class="text-xs text-gray-500 mb-1">{{ t('home.totalAssets') }}</p>
+            <p class="text-lg font-bold text-blue-600">
+              ¥{{ formatMoney(data.assetSummary.totalAssets) }}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-gray-500 mb-1">{{ t('home.totalLiabilities') }}</p>
+            <p class="text-lg font-bold text-orange-600">
+              ¥{{ formatMoney(data.assetSummary.totalLiabilities) }}
+            </p>
+          </div>
+          <div class="text-center">
+            <p class="text-xs text-gray-500 mb-1">{{ t('home.netAssets') }}</p>
+            <p class="text-lg font-bold text-green-600">
+              ¥{{ formatMoney(data.assetSummary.netAssets) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模块 4: 本月消费概览 -->
+      <div class="bg-white rounded-2xl shadow-md p-6 mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.spendOverview') }}</h2>
+        <div class="flex gap-6">
+          <!-- 左侧：伪条形图 -->
+          <div class="flex items-end gap-2 h-32">
+            <div 
+              v-for="(cat, index) in data.categoryTop" 
+              :key="cat.categoryKey"
+              class="flex flex-col items-center gap-1"
+            >
+              <div 
+                class="w-12 rounded-t transition-all duration-500"
+                :class="getCategoryColor(index)"
+                :style="{ height: `${cat.percent * 1.2}%` }"
+              ></div>
+              <span class="text-xs text-gray-400">{{ cat.percent }}%</span>
+            </div>
+          </div>
+          <!-- 右侧：TOP3 列表 -->
+          <div class="flex-1 space-y-3">
+            <div 
+              v-for="(cat, index) in data.categoryTop" 
+              :key="cat.categoryKey"
+              class="flex items-center justify-between"
+            >
+              <div class="flex items-center gap-2">
+                <div 
+                  class="w-3 h-3 rounded-full"
+                  :class="getCategoryDotColor(index)"
+                ></div>
+                <span class="text-sm font-medium text-gray-700">
+                  {{ t(`category.${cat.categoryKey}`) }}
+                </span>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-semibold text-gray-800">
+                  ¥{{ formatMoney(cat.amount) }}
+                </p>
+                <p class="text-xs text-gray-400">{{ cat.percent }}%</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模块 5: 提示条 -->
+      <div 
+        v-if="data.hint"
+        class="rounded-xl p-4 mb-4"
+        :class="getHintClass(data.hint.type)"
+      >
+        <p class="text-sm">{{ t(data.hint.textKey) }}</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { getHomeOverview } from '@/api/home'
-import { t, formatAmount } from '@/i18n'
+import { ref, computed, onMounted } from 'vue'
 import type { HomeOverview } from '@/types'
+import { getHomeOverview } from '@/api/home'
+import { t } from '@/i18n'
 
-const loading = ref(false)
+const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
-const overview = ref<HomeOverview | null>(null)
-const showAmount = ref(true) // 后续可以从用户设置读取
+const data = ref<HomeOverview | null>(null)
 
+// 金额显隐，从 localStorage 读取
+const showAmount = ref<boolean>(true)
+
+// 问候语
+const greeting = computed(() => {
+  const hour = new Date().getHours()
+  if (hour < 6) return t('home.greeting.night')
+  if (hour < 12) return t('home.greeting.morning')
+  if (hour < 18) return t('home.greeting.afternoon')
+  return t('home.greeting.evening')
+})
+
+// 当前月份
+const currentMonth = computed(() => {
+  const now = new Date()
+  return `${now.getFullYear()}${t('common.year')}${now.getMonth() + 1}${t('common.month')}`
+})
+
+// 预算使用百分比
+const budgetUsedPercent = computed(() => {
+  if (!data.value) return 0
+  return (data.value.todayStats.monthUsed / data.value.todayStats.monthBudget) * 100
+})
+
+// 预算颜色
+const budgetColor = computed(() => {
+  const percent = budgetUsedPercent.value
+  if (percent >= 90) return '#ef4444' // red
+  if (percent >= 70) return '#f59e0b' // orange
+  return '#10b981' // green
+})
+
+// 当前日期信息
+const dayOfMonth = computed(() => new Date().getDate())
+const daysInMonth = computed(() => {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+})
+
+// 格式化金额
+function formatMoney(value: number): string {
+  if (!showAmount.value) return '***'
+  return value.toFixed(2)
+}
+
+// 切换金额显隐
+function toggleShowAmount() {
+  showAmount.value = !showAmount.value
+  localStorage.setItem('showAmount', String(showAmount.value))
+}
+
+// 获取分类颜色
+function getCategoryColor(index: number): string {
+  const colors = [
+    'bg-gradient-to-t from-indigo-400 to-indigo-600',
+    'bg-gradient-to-t from-purple-400 to-purple-600',
+    'bg-gradient-to-t from-pink-400 to-pink-600'
+  ]
+  return colors[index] || 'bg-gray-400'
+}
+
+function getCategoryDotColor(index: number): string {
+  const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500']
+  return colors[index] || 'bg-gray-500'
+}
+
+// 获取提示样式
+function getHintClass(type: string): string {
+  switch (type) {
+    case 'warning':
+      return 'bg-amber-50 text-amber-700'
+    case 'success':
+      return 'bg-emerald-50 text-emerald-700'
+    default:
+      return 'bg-sky-50 text-sky-700'
+  }
+}
+
+// 加载数据
 async function loadData() {
   loading.value = true
   error.value = null
   
+  console.log('🔍 开始加载首页数据...')
+  
   try {
-    overview.value = await getHomeOverview()
+    const result = await getHomeOverview()
+    console.log('✅ 数据加载成功:', result)
+    data.value = result
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '未知错误'
+    console.error('❌ 数据加载失败:', e)
+    error.value = e instanceof Error ? e.message : t('common.error')
   } finally {
     loading.value = false
+    console.log('📊 当前状态 - loading:', loading.value, 'error:', error.value, 'hasData:', !!data.value)
   }
 }
 
+// 初始化
 onMounted(() => {
+  // 读取金额显隐设置
+  const stored = localStorage.getItem('showAmount')
+  if (stored !== null) {
+    showAmount.value = stored === 'true'
+  }
+  
+  // 加载数据
   loadData()
 })
 </script>
 
+<style scoped>
+/* 可选：添加一些自定义动画 */
+</style>

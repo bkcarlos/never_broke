@@ -17,6 +17,8 @@ export async function request<T>(
   options?: RequestInit
 ): Promise<T> {
   try {
+    console.log(`🌐 请求: ${BASE_URL}${url}`)
+    
     const response = await fetch(`${BASE_URL}${url}`, {
       headers: {
         'Content-Type': 'application/json',
@@ -24,6 +26,8 @@ export async function request<T>(
       },
       ...options
     })
+
+    console.log(`📡 响应状态: ${response.status} ${response.statusText}`)
 
     if (!response.ok) {
       throw new HttpError(
@@ -33,13 +37,16 @@ export async function request<T>(
     }
 
     const result: ApiResponse<T> = await response.json()
+    console.log(`📦 原始响应数据:`, result)
 
     if (result.code !== 0) {
       throw new HttpError(result.code, result.message)
     }
 
+    console.log(`✨ 解析后的数据:`, result.data)
     return result.data
   } catch (error) {
+    console.error(`❌ 请求失败:`, error)
     if (error instanceof HttpError) {
       throw error
     }

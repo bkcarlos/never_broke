@@ -6,7 +6,7 @@
         @click="handleAction('addExpense')"
         class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
       >
-        <div class="text-4xl mb-2">💸</div>
+        <i class="iconfont icon-minus-circle text-4xl mb-2 text-red-500"></i>
         <div class="font-semibold">{{ t('actions.addExpense') }}</div>
       </button>
 
@@ -15,7 +15,7 @@
         @click="handleAction('addIncome')"
         class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
       >
-        <div class="text-4xl mb-2">💰</div>
+        <i class="iconfont icon-add-circle text-4xl mb-2 text-green-500"></i>
         <div class="font-semibold">{{ t('actions.addIncome') }}</div>
       </button>
 
@@ -24,7 +24,7 @@
         @click="handleAction('transfer')"
         class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
       >
-        <div class="text-4xl mb-2">🔄</div>
+        <i class="iconfont icon-transfer text-4xl mb-2 text-blue-500"></i>
         <div class="font-semibold">{{ t('actions.transfer') }}</div>
       </button>
 
@@ -33,7 +33,7 @@
         @click="handleAction('setBudget')"
         class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
       >
-        <div class="text-4xl mb-2">🎯</div>
+        <i class="iconfont icon-target text-4xl mb-2 text-purple-500"></i>
         <div class="font-semibold">{{ t('actions.setBudget') }}</div>
       </button>
 
@@ -42,7 +42,7 @@
         @click="handleAction('addAccount')"
         class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
       >
-        <div class="text-4xl mb-2">🏦</div>
+        <i class="iconfont icon-bank text-4xl mb-2 text-indigo-500"></i>
         <div class="font-semibold">{{ t('actions.addAccount') }}</div>
       </button>
 
@@ -51,15 +51,16 @@
         @click="handleAction('import')"
         class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
       >
-        <div class="text-4xl mb-2">📥</div>
+        <i class="iconfont icon-import text-4xl mb-2 text-orange-500"></i>
         <div class="font-semibold">{{ t('actions.import') }}</div>
       </button>
     </div>
 
     <!-- 提示信息 -->
-    <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+    <div class="mt-6 p-4 bg-blue-50 rounded-lg flex items-center gap-2">
+      <i class="iconfont icon-info-circle text-blue-500"></i>
       <p class="text-sm text-blue-700">
-        💡 {{ t('actions.comingSoon') }}
+        {{ t('actions.comingSoon') }}
       </p>
     </div>
   </div>

@@ -7,4 +7,3 @@ import type { HomeOverview } from '@/types'
 export function getHomeOverview(): Promise<HomeOverview> {
   return get<HomeOverview>('/home/overview')
 }
-

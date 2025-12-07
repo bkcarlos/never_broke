@@ -3,9 +3,9 @@ package home
 import (
 	"neverbroke/common/logger"
 	"neverbroke/internal/http/response"
-	"neverbroke/internal/storage/models"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // Handler 首页处理器
@@ -20,29 +20,40 @@ func NewHandler() *Handler {
 func (h *Handler) GetOverview(c *gin.Context) {
 	logger.Debug("Fetching home overview")
 
-	// Mock 数据
-	overview := models.HomeOverview{
-		TodayStats: models.TodayStats{
-			TodayExpense:   156.80,
-			TodayAvailable: 343.20,
-			MonthUsed:      3456.78,
-			MonthBudget:    5000.00,
-			MonthNet:       1543.22,
+	// TODO: 未来可以从 userId、数据库中计算；现在用 mock 数据
+	overview := HomeOverview{
+		TodayStats: TodayStats{
+			TodayExpense:   126.0,
+			TodayAvailable: 230.0,
+			MonthUsed:      2340.0,
+			MonthBudget:    3000.0,
+			MonthNet:       660.0,
 		},
-		AssetSummary: models.AssetSummary{
-			TotalAssets:      125000.00,
-			TotalLiabilities: 35000.00,
-			NetAssets:        90000.00,
+		PayCycle: PayCycleOverview{
+			CycleName:        "12月发薪周期",
+			DaysToNextPayday: 12,
+			FreeToSpend:      3420.0,
+			CycleUsedPercent: 38.5,
 		},
-		TopCategories: []models.CategoryStat{
-			{CategoryKey: "food", Amount: 1234.56, Percent: 35.7, Rank: 1},
-			{CategoryKey: "transport", Amount: 876.54, Percent: 25.3, Rank: 2},
-			{CategoryKey: "shopping", Amount: 654.32, Percent: 18.9, Rank: 3},
-			{CategoryKey: "entertainment", Amount: 432.10, Percent: 12.5, Rank: 4},
-			{CategoryKey: "other", Amount: 259.26, Percent: 7.6, Rank: 5},
+		AssetSummary: AssetSummary{
+			TotalAssets:      12380.0,
+			TotalLiabilities: 3000.0,
+			NetAssets:        9380.0,
+		},
+		CategoryTop: []CategoryStat{
+			{CategoryKey: "FOOD_DINING", Amount: 860.0, Percent: 36.0, Rank: 1},
+			{CategoryKey: "RENT", Amount: 1800.0, Percent: 30.0, Rank: 2},
+			{CategoryKey: "TRANSPORT", Amount: 320.0, Percent: 12.0, Rank: 3},
+		},
+		Hint: HomeHint{
+			Type:    HintInfo,
+			TextKey: "home.hint.default",
 		},
 	}
 
-	logger.Info("Home overview fetched successfully")
+	logger.Info("Home overview fetched successfully",
+		zap.Int("categoryCount", len(overview.CategoryTop)),
+		zap.Float64("freeToSpend", overview.PayCycle.FreeToSpend),
+	)
 	response.OK(c, overview)
 }

@@ -8,6 +8,18 @@ export default {
 
   // Home Page
   'home.title': 'Home',
+  'home.currentBook': 'Personal Book',
+  'home.greeting.morning': 'Good morning',
+  'home.greeting.afternoon': 'Good afternoon',
+  'home.greeting.evening': 'Good evening',
+  'home.greeting.night': 'Good night',
+  'home.freeToSpend': 'Free to Spend This Cycle',
+  'home.daysToPayday': '{days} days until next payday',
+  'home.adjustBudget': 'Adjust Budget',
+  'home.remaining': 'Remaining',
+  'home.budgetProgress': '{dayPercent}% of month passed · {usedPercent}% budget used',
+  'home.spendOverview': 'Monthly Spending Overview',
+  'home.hint.default': 'Keep tracking for 5 days 👏',
   'home.todayOverview': 'Today Overview',
   'home.monthOverview': 'Month Overview',
   'home.todayExpense': 'Today Expense',
@@ -63,6 +75,9 @@ export default {
   'profile.saveSuccess': 'Settings saved!',
 
   // Categories
+  'category.FOOD_DINING': 'Food & Dining',
+  'category.RENT': 'Rent',
+  'category.TRANSPORT': 'Transport',
   'category.food': 'Food',
   'category.transport': 'Transport',
   'category.shopping': 'Shopping',
@@ -81,6 +96,8 @@ export default {
   'common.retry': 'Retry',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
-  'common.confirm': 'Confirm'
+  'common.confirm': 'Confirm',
+  'common.year': '',
+  'common.month': ''
 }
 

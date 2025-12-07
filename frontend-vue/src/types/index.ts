@@ -5,7 +5,14 @@ export interface TodayStats {
   todayAvailable: number
   monthUsed: number
   monthBudget: number
-  monthNet: number // 本月结余
+  monthNet: number
+}
+
+export interface PayCycleOverview {
+  cycleName: string
+  daysToNextPayday: number
+  freeToSpend: number
+  cycleUsedPercent: number
 }
 
 export interface AssetSummary {
@@ -21,10 +28,19 @@ export interface CategoryStat {
   rank: number
 }
 
+export type HintType = 'info' | 'warning' | 'success'
+
+export interface HomeHint {
+  type: HintType
+  textKey: string
+}
+
 export interface HomeOverview {
   todayStats: TodayStats
+  payCycle: PayCycleOverview
   assetSummary: AssetSummary
-  topCategories: CategoryStat[]
+  categoryTop: CategoryStat[]
+  hint: HomeHint
 }
 
 // ========== 明细页相关类型 ==========
@@ -87,4 +103,3 @@ export interface ApiResponse<T> {
   message: string
   data: T
 }
-

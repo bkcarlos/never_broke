@@ -8,6 +8,18 @@ export default {
 
   // 首页
   'home.title': '首页',
+  'home.currentBook': '个人账本',
+  'home.greeting.morning': '早上好',
+  'home.greeting.afternoon': '下午好',
+  'home.greeting.evening': '晚上好',
+  'home.greeting.night': '深夜好',
+  'home.freeToSpend': '本周期可自由支配',
+  'home.daysToPayday': '距离下次发薪还有 {days} 天',
+  'home.adjustBudget': '调整预算',
+  'home.remaining': '剩余',
+  'home.budgetProgress': '今天前已过 {dayPercent}% · 已用 {usedPercent}% 预算',
+  'home.spendOverview': '本月消费概览',
+  'home.hint.default': '坚持记账 5 天啦 👏',
   'home.todayOverview': '今日概览',
   'home.monthOverview': '本月概览',
   'home.todayExpense': '今日支出',
@@ -63,6 +75,9 @@ export default {
   'profile.saveSuccess': '设置已保存！',
 
   // 分类
+  'category.FOOD_DINING': '餐饮',
+  'category.RENT': '房租',
+  'category.TRANSPORT': '交通',
   'category.food': '餐饮',
   'category.transport': '交通',
   'category.shopping': '购物',
@@ -81,6 +96,8 @@ export default {
   'common.retry': '重试',
   'common.save': '保存',
   'common.cancel': '取消',
-  'common.confirm': '确认'
+  'common.confirm': '确认',
+  'common.year': '年',
+  'common.month': '月'
 }
 
