@@ -13,8 +13,8 @@
           :to="tab.path"
           class="nav-item flex flex-col items-center justify-center flex-1 h-full transition-all duration-200"
           :class="{ 
-            'text-blue-600 bg-blue-50': isActive(tab.path), 
-            'text-gray-500 hover:text-gray-700 hover:bg-gray-50': !isActive(tab.path) 
+            'text-blue-600': isActive(tab.path), 
+            'text-gray-500 hover:text-gray-700': !isActive(tab.path) 
           }"
           @click="handleNavClick"
         >
@@ -44,8 +44,8 @@
           :to="tab.path"
           class="nav-item flex flex-col items-center justify-center flex-1 h-full transition-all duration-200"
           :class="{ 
-            'text-blue-600 bg-blue-50': isActive(tab.path), 
-            'text-gray-500 hover:text-gray-700 hover:bg-gray-50': !isActive(tab.path) 
+            'text-blue-600': isActive(tab.path), 
+            'text-gray-500 hover:text-gray-700': !isActive(tab.path) 
           }"
           @click="handleNavClick"
         >
