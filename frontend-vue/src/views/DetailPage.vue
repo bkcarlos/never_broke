@@ -1,5 +1,6 @@
 <template>
-  <div class="detail-page p-4 pb-[74px]">
+  <div class="detail-page-container">
+    <div class="detail-page p-4 pb-[74px]">
     <!-- 日期选择 -->
     <div class="date-selector bg-white rounded-lg shadow p-4 mb-4">
       <div class="flex items-center justify-between">
@@ -96,6 +97,7 @@
         {{ t('detail.noData') }}
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -138,4 +140,29 @@ onMounted(() => {
   loadData()
 })
 </script>
+
+<style scoped>
+.detail-page-container {
+  /* 移除固定高度和滚动，让页面自然流动 */
+  min-height: 100%;
+}
+
+.detail-page {
+  padding-bottom: 2rem;
+  min-height: 100%;
+}
+
+/* 确保日期选择器的下拉选项不影响导航栏 */
+input[type="date"] {
+  z-index: 1;
+  position: relative;
+}
+
+/* 在移动端，date input的下拉选项可能超出容器，需要特殊处理 */
+@media (max-width: 768px) {
+  input[type="date"]:focus {
+    z-index: 999;
+  }
+}
+</style>
 

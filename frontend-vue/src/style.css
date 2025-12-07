@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 隐藏滚动条但保持滚动功能 */
+html {
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE 和 Edge */
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  /* Chrome, Safari, Edge */
+  display: none;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -10,10 +23,41 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE 和 Edge */
+  -ms-overflow-style: none;
+}
+
+body::-webkit-scrollbar {
+  /* Chrome, Safari, Edge */
+  display: none;
 }
 
 #app {
   min-height: 100vh;
   background-color: #f5f5f5;
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE 和 Edge */
+  -ms-overflow-style: none;
+}
+
+#app::-webkit-scrollbar {
+  /* Chrome, Safari, Edge */
+  display: none;
+}
+
+/* 隐藏所有可滚动元素的滚动条 */
+* {
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE 和 Edge */
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  /* Chrome, Safari, Edge */
+  display: none;
 }
 

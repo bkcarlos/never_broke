@@ -14,7 +14,7 @@
           v-model="selectedMonth" 
           type="month" 
           @change="loadData"
-          class="px-3 py-1 border rounded"
+          class="px-3 py-1 border rounded month-input"
         />
         <button 
           @click="changeMonth(1)"
@@ -171,14 +171,26 @@ onMounted(() => {
 
 <style scoped>
 .reports-page-container {
-  height: calc(100vh - 2.5rem);
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* 移除固定高度和滚动，让页面自然流动 */
+  min-height: 100%;
 }
 
 .reports-page {
   padding-bottom: 2rem;
   min-height: 100%;
+}
+
+/* 确保月份选择器的下拉选项不影响导航栏 */
+.month-input {
+  z-index: 1;
+  position: relative;
+}
+
+/* 在移动端，month input的下拉选项可能超出容器，需要特殊处理 */
+@media (max-width: 768px) {
+  .month-input:focus {
+    z-index: 999;
+  }
 }
 </style>
 

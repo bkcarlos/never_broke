@@ -150,16 +150,55 @@ function handleSelect(action: RadialAction) {
 
 <style scoped>
 .app-container {
-  min-height: 100vh;
+  min-height: 800px;
   background-color: #f5f5f5;
+  /* 限制最小宽度为手机合理尺寸，最大宽度并居中 */
+  min-width: 320px;
+  max-width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* 在大屏幕上居中显示，限制最大宽度 */
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 768px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  }
 }
 
 .main-content {
   min-height: calc(100vh - 4rem);
+  padding-bottom: 4rem; /* 为底部导航栏留出空间 */
 }
 
 .bottom-nav {
   z-index: 1000;
+  /* 确保导航栏始终在最上层 */
+  position: fixed;
+}
+
+/* 全局样式：确保所有下拉框的z-index低于导航栏 */
+select,
+input[type="date"],
+input[type="month"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* 当下拉框获得焦点时，确保下拉选项的z-index仍然低于导航栏 */
+select:focus,
+input[type="date"]:focus,
+input[type="month"]:focus {
+  z-index: 999;
+}
+
+/* 在移动端，原生下拉选项可能会全屏显示，但导航栏应该始终可见 */
+@media (max-width: 768px) {
+  /* 确保导航栏在移动端也始终可见 */
+  .bottom-nav {
+    z-index: 1000 !important;
+  }
 }
 
 .nav-item {

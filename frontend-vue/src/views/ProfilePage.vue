@@ -1,5 +1,6 @@
 <template>
-  <div class="profile-page p-4 pb-[74px]">
+  <div class="profile-page-container">
+    <div class="profile-page p-4 pb-[74px]">
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
       <p class="text-gray-500">{{ t('common.loading') }}</p>
@@ -14,7 +15,7 @@
           <select 
             v-model="currentLocale" 
             @change="handleLocaleChange"
-            class="px-3 py-1 border rounded"
+            class="px-3 py-1 border rounded dropdown-select"
           >
             <option value="zh-CN">简体中文</option>
             <option value="en-US">English</option>
@@ -105,6 +106,7 @@
       <div v-if="error" class="p-4 bg-red-50 text-red-600 rounded-lg">
         {{ error }}
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -209,4 +211,35 @@ onMounted(() => {
   loadSettings()
 })
 </script>
+
+<style scoped>
+.profile-page-container {
+  /* 移除固定高度和滚动，让页面自然流动 */
+  min-height: 100%;
+}
+
+.profile-page {
+  padding-bottom: 2rem;
+  min-height: 100%;
+}
+
+/* 确保下拉框不影响导航栏 */
+.dropdown-select {
+  z-index: 1;
+  position: relative;
+}
+
+/* 在移动端，select的下拉选项可能超出容器，需要特殊处理 */
+@media (max-width: 768px) {
+  .dropdown-select {
+    /* 确保下拉选项不会覆盖导航栏 */
+    position: relative;
+  }
+  
+  /* 当select打开时，确保其下拉选项的z-index低于导航栏 */
+  .dropdown-select:focus {
+    z-index: 999;
+  }
+}
+</style>
 
