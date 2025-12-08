@@ -33,6 +33,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ProfilePage.vue')
   },
   {
+    path: '/accounts',
+    name: 'AccountManagement',
+    component: () => import('@/views/AccountManagementPage.vue')
+  },
+  {
     path: '/accounts/new',
     name: 'NewAccount',
     component: () => import('@/views/NewAccountPage.vue')

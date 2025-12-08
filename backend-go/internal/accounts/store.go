@@ -5,9 +5,34 @@ import "sync"
 var (
 	mu       sync.RWMutex
 	accounts = []Account{
-		{ID: "wallet_wechat", Name: "微信钱包", Type: AccountTypeWallet, Currency: "CNY", Balance: 1200, Archived: false},
-		{ID: "wallet_alipay", Name: "支付宝", Type: AccountTypeWallet, Currency: "CNY", Balance: 800, Archived: false},
-		{ID: "bank_icbc", Name: "工行储蓄卡", Type: AccountTypeBank, Currency: "CNY", Balance: 5000, Archived: false},
+		{
+			ID:          "wallet_wechat",
+			Type:        AccountTypeWallet,
+			Institution: AccountInstitutionWeChat,
+			Currency:    "CNY",
+			Balance:     1200,
+			Archived:    false,
+		},
+		{
+			ID:          "bank_icbc_1234",
+			Type:        AccountTypeBank,
+			Institution: AccountInstitutionICBC,
+			CardLast4:   "1234",
+			Currency:    "CNY",
+			Balance:     5000,
+			Archived:    false,
+		},
+		{
+			ID:          "credit_cmb_7788",
+			Type:        AccountTypeCredit,
+			Institution: AccountInstitutionCMB,
+			CardLast4:   "7788",
+			Currency:    "CNY",
+			Balance:     2000,
+			CreditLimit: 20000,
+			TempLimit:   3000,
+			Archived:    false,
+		},
 	}
 )
 
@@ -52,4 +77,17 @@ func AddAccount(acc Account) Account {
 	defer mu.Unlock()
 	accounts = append(accounts, acc)
 	return acc
+}
+
+// UpdateAccount 更新账户（用于更新额度等）
+func UpdateAccount(id string, updater func(*Account)) bool {
+	mu.Lock()
+	defer mu.Unlock()
+	for i := range accounts {
+		if accounts[i].ID == id {
+			updater(&accounts[i])
+			return true
+		}
+	}
+	return false
 }

@@ -45,6 +45,7 @@ func Setup(store *memory.Store) *gin.Engine {
 		accountsHandler := accounts.NewHandler()
 		v1.GET("/accounts", accountsHandler.ListAccountsHandler)
 		v1.POST("/accounts", accountsHandler.CreateAccountHandler)
+		v1.PATCH("/accounts/:id/credit-limits", accountsHandler.UpdateCreditLimitsHandler)
 
 		// 账本明细
 		ledgerHandler := ledger.NewHandler()

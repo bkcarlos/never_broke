@@ -147,6 +147,43 @@ export default {
   'transfer.error.invalidAccounts': '请选择不同的转出和转入账户',
   'transfer.error.invalidDate': '请选择日期和时间',
 
+  // 账户管理
+  'account.manage.title': '账户管理',
+  'account.manage.add': '新增账户',
+  'account.section.credit': '信用卡',
+  'account.section.bank': '银行卡',
+  'account.section.wallet': '钱包',
+  'account.section.cash': '现金',
+  'account.balance': '余额',
+  'account.credit.edit': '管理额度',
+  'account.credit.total': '总额度',
+  'account.credit.temp': '临时额度',
+  'account.credit.available': '剩余额度',
+  'account.credit.totalPlaceholder': '例如 20000',
+  'account.credit.tempPlaceholder': '没有可留空',
+  'account.empty': '暂无账户',
+  'account.error.load': '加载账户失败',
+  'account.error.invalidCreditLimit': '请输入有效的总额度',
+  'account.error.invalidTempLimit': '请输入有效的临时额度',
+  // 账户机构
+  'account.institution.icbc': '工行',
+  'account.institution.ccb': '建行',
+  'account.institution.abc': '农行',
+  'account.institution.boc': '中行',
+  'account.institution.bocom': '交行',
+  'account.institution.cmb': '招行',
+  'account.institution.wechat': '微信',
+  'account.institution.alipay': '支付宝',
+  'account.institution.other': '其他',
+  // 账户类型
+  'account.type.cash': '现金',
+  'account.type.bank': '储蓄卡',
+  'account.type.wallet': '钱包',
+  'account.type.credit': '信用卡',
+  // 账户显示
+  'account.display.last4': '尾号{last4}',
+  'account.display.unnamed': '未配置账户',
+
   // 通用
   'common.loading': '加载中...',
   'common.error': '出错了',

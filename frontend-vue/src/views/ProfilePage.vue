@@ -54,7 +54,7 @@
         </div>
       </div>
 
-      <!-- 新增账户 -->
+      <!-- 账户管理 -->
       <div class="setting-item bg-white rounded-lg shadow p-4">
         <button 
           @click="handleAddAccount"
@@ -62,7 +62,7 @@
         >
           <div class="flex items-center gap-3">
             <Icon name="bank" size="24px" class="text-indigo-500" />
-            <span class="font-semibold">{{ t('actions.addAccount') }}</span>
+            <span class="font-semibold">{{ t('account.manage.title', '账户管理') }}</span>
           </div>
           <Icon name="add" size="20px" class="text-gray-400" />
         </button>
@@ -198,7 +198,7 @@ function toggleShowAmount() {
 }
 
 function handleAddAccount() {
-  router.push('/accounts/new')
+  router.push('/accounts')
 }
 
 function handleSetBudget() {

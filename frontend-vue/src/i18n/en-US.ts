@@ -147,6 +147,43 @@ export default {
   'transfer.error.invalidAccounts': 'Please select different from and to accounts',
   'transfer.error.invalidDate': 'Please select date and time',
 
+  // Account Management
+  'account.manage.title': 'Account Management',
+  'account.manage.add': 'Add Account',
+  'account.section.credit': 'Credit Cards',
+  'account.section.bank': 'Bank Cards',
+  'account.section.wallet': 'Wallets',
+  'account.section.cash': 'Cash',
+  'account.balance': 'Balance',
+  'account.credit.edit': 'Manage Limits',
+  'account.credit.total': 'Credit Limit',
+  'account.credit.temp': 'Temp Limit',
+  'account.credit.available': 'Available',
+  'account.credit.totalPlaceholder': 'e.g., 20000',
+  'account.credit.tempPlaceholder': 'Leave empty if none',
+  'account.empty': 'No accounts',
+  'account.error.load': 'Failed to load accounts',
+  'account.error.invalidCreditLimit': 'Please enter a valid credit limit',
+  'account.error.invalidTempLimit': 'Please enter a valid temp limit',
+  // Account Institution
+  'account.institution.icbc': 'ICBC',
+  'account.institution.ccb': 'CCB',
+  'account.institution.abc': 'ABC',
+  'account.institution.boc': 'BOC',
+  'account.institution.bocom': 'BOCOM',
+  'account.institution.cmb': 'CMB',
+  'account.institution.wechat': 'WeChat',
+  'account.institution.alipay': 'Alipay',
+  'account.institution.other': 'Other',
+  // Account Type
+  'account.type.cash': 'Cash',
+  'account.type.bank': 'Debit Card',
+  'account.type.wallet': 'Wallet',
+  'account.type.credit': 'Credit Card',
+  // Account Display
+  'account.display.last4': 'Last4 {last4}',
+  'account.display.unnamed': 'Unnamed Account',
+
   // Common
   'common.loading': 'Loading...',
   'common.error': 'Error',

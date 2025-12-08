@@ -100,12 +100,26 @@ export interface UserSettings {
 
 export type AccountType = 'cash' | 'bank' | 'wallet' | 'credit'
 
+export type AccountInstitution =
+  | 'icbc'
+  | 'ccb'
+  | 'abc'
+  | 'boc'
+  | 'bocom'
+  | 'cmb'
+  | 'wechat'
+  | 'alipay'
+  | 'other'
+
 export interface Account {
   id: string
-  name: string
   type: AccountType
+  institution?: AccountInstitution
+  cardLast4?: string
   currency: string
   balance: number
+  creditLimit?: number
+  tempLimit?: number
   archived: boolean
 }
 
@@ -115,10 +129,18 @@ export interface AccountOption {
 }
 
 export interface CreateAccountPayload {
-  name: string
   type: AccountType
+  institution?: AccountInstitution
+  cardLast4?: string
   currency: string
   balance: number
+  creditLimit?: number
+  tempLimit?: number
+}
+
+export interface UpdateCreditLimitPayload {
+  creditLimit?: number
+  tempLimit?: number
 }
 
 // ========== 交易相关类型 ==========

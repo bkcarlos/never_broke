@@ -14,21 +14,6 @@
 
       <!-- 表单卡片 -->
       <div class="bg-white rounded-lg shadow p-6 space-y-6">
-        <!-- 账户名称 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            账户名称 <span class="text-red-500">*</span>
-          </label>
-          <input
-            v-model="form.name"
-            type="text"
-            placeholder="请输入账户名称"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            :class="{ 'border-red-500': errors.name }"
-          />
-          <p v-if="errors.name" class="mt-1 text-sm text-red-500">{{ errors.name }}</p>
-        </div>
-
         <!-- 账户类型 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -50,10 +35,105 @@
           <p v-if="errors.type" class="mt-1 text-sm text-red-500">{{ errors.type }}</p>
         </div>
 
+        <!-- 机构选择（bank/credit/wallet 必填） -->
+        <div v-if="form.type === 'bank' || form.type === 'credit' || form.type === 'wallet'">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            <span v-if="form.type === 'bank' || form.type === 'credit'">银行</span>
+            <span v-else>平台</span>
+            <span class="text-red-500">*</span>
+          </label>
+          <select
+            v-model="form.institution"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            :class="{ 'border-red-500': errors.institution }"
+          >
+            <option value="">请选择</option>
+            <option
+              v-for="inst in availableInstitutions"
+              :key="inst.value"
+              :value="inst.value"
+            >
+              {{ inst.label }}
+            </option>
+          </select>
+          <p v-if="errors.institution" class="mt-1 text-sm text-red-500">{{ errors.institution }}</p>
+        </div>
+
+        <!-- 卡片尾号（bank/credit 必填） -->
+        <div v-if="form.type === 'bank' || form.type === 'credit'">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            卡片尾号 <span class="text-red-500">*</span>
+          </label>
+          <input
+            v-model="form.cardLast4"
+            type="text"
+            maxlength="4"
+            placeholder="2-4位数字"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            :class="{ 'border-red-500': errors.cardLast4 }"
+            @input="form.cardLast4 = form.cardLast4.replace(/\D/g, '')"
+          />
+          <p v-if="errors.cardLast4" class="mt-1 text-sm text-red-500">{{ errors.cardLast4 }}</p>
+          <p class="mt-1 text-xs text-gray-500">请输入2-4位数字</p>
+        </div>
+
+        <!-- 信用卡额度（仅 credit 类型） -->
+        <template v-if="form.type === 'credit'">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              总额度
+            </label>
+            <input
+              v-model.number="form.creditLimit"
+              type="number"
+              step="0.01"
+              placeholder="例如 20000"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              :class="{ 'border-red-500': errors.creditLimit }"
+            />
+            <p v-if="errors.creditLimit" class="mt-1 text-sm text-red-500">{{ errors.creditLimit }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              临时额度
+            </label>
+            <input
+              v-model.number="form.tempLimit"
+              type="number"
+              step="0.01"
+              placeholder="没有可留空"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              :class="{ 'border-red-500': errors.tempLimit }"
+            />
+            <p v-if="errors.tempLimit" class="mt-1 text-sm text-red-500">{{ errors.tempLimit }}</p>
+          </div>
+        </template>
+
+        <!-- 初始余额 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            <span v-if="form.type === 'credit'">已用额度</span>
+            <span v-else>初始余额</span>
+          </label>
+          <input
+            v-model.number="form.balance"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            :class="{ 'border-red-500': errors.balance }"
+          />
+          <p v-if="errors.balance" class="mt-1 text-sm text-red-500">{{ errors.balance }}</p>
+          <p class="mt-1 text-xs text-gray-500">
+            <span v-if="form.type === 'credit'">信用卡已使用的额度</span>
+            <span v-else>可以为 0 或正数，允许为负</span>
+          </p>
+        </div>
+
         <!-- 币种 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            币种 <span class="text-red-500">*</span>
+            币种
           </label>
           <select
             v-model="form.currency"
@@ -67,21 +147,10 @@
           <p v-if="errors.currency" class="mt-1 text-sm text-red-500">{{ errors.currency }}</p>
         </div>
 
-        <!-- 初始余额 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            初始余额
-          </label>
-          <input
-            v-model.number="form.balance"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            :class="{ 'border-red-500': errors.balance }"
-          />
-          <p v-if="errors.balance" class="mt-1 text-sm text-red-500">{{ errors.balance }}</p>
-          <p class="mt-1 text-xs text-gray-500">可以为 0 或正数，允许为负（如信用卡透支）</p>
+        <!-- 预览 -->
+        <div class="pt-4 border-t border-gray-200">
+          <p class="text-sm text-gray-600 mb-2">预览：</p>
+          <p class="text-lg font-semibold text-gray-900">{{ previewName }}</p>
         </div>
       </div>
 
@@ -105,19 +174,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { createAccount } from '@/api/accounts'
-import type { AccountType, CreateAccountPayload } from '@/types'
+import { formatAccountDisplayName } from '@/utils/accountDisplay'
+import type { AccountType, AccountInstitution, CreateAccountPayload, Account } from '@/types'
 import Icon from '@/components/Icon.vue'
 
 const router = useRouter()
 
-const form = reactive<CreateAccountPayload>({
-  name: '',
+const form = reactive<CreateAccountPayload & { creditLimit?: number; tempLimit?: number }>({
   type: 'cash' as AccountType,
+  institution: undefined,
+  cardLast4: '',
   currency: 'CNY',
-  balance: 0
+  balance: 0,
+  creditLimit: undefined,
+  tempLimit: undefined
 })
 
 const errors = reactive<Record<string, string>>({})
@@ -131,6 +204,45 @@ const accountTypes = [
   { value: 'credit' as AccountType, label: '信用卡' }
 ]
 
+const bankInstitutions: Array<{ value: AccountInstitution; label: string }> = [
+  { value: 'icbc', label: '工商银行' },
+  { value: 'ccb', label: '建设银行' },
+  { value: 'abc', label: '农业银行' },
+  { value: 'boc', label: '中国银行' },
+  { value: 'bocom', label: '交通银行' },
+  { value: 'cmb', label: '招商银行' },
+  { value: 'other', label: '其他' }
+]
+
+const walletInstitutions: Array<{ value: AccountInstitution; label: string }> = [
+  { value: 'wechat', label: '微信' },
+  { value: 'alipay', label: '支付宝' },
+  { value: 'other', label: '其他' }
+]
+
+const availableInstitutions = computed(() => {
+  if (form.type === 'bank' || form.type === 'credit') {
+    return bankInstitutions
+  } else if (form.type === 'wallet') {
+    return walletInstitutions
+  }
+  return []
+})
+
+const previewAccount = computed<Account>(() => ({
+  id: '',
+  type: form.type,
+  institution: form.institution,
+  cardLast4: form.cardLast4 || undefined,
+  currency: form.currency,
+  balance: Number(form.balance) || 0,
+  creditLimit: form.creditLimit,
+  tempLimit: form.tempLimit,
+  archived: false
+}))
+
+const previewName = computed(() => formatAccountDisplayName(previewAccount.value))
+
 function validateForm(): boolean {
   // 清空之前的错误
   Object.keys(errors).forEach(key => {
@@ -139,13 +251,28 @@ function validateForm(): boolean {
 
   let isValid = true
 
-  // 校验名称
-  if (!form.name.trim()) {
-    errors.name = '账户名称不能为空'
+  // 校验类型
+  if (!form.type) {
+    errors.type = '请选择账户类型'
     isValid = false
   }
 
-  // 校验类型（已在选择器中限制，这里可以跳过）
+  // 根据类型校验必填字段
+  if (form.type === 'bank' || form.type === 'credit') {
+    if (!form.institution) {
+      errors.institution = '请选择银行'
+      isValid = false
+    }
+    if (!form.cardLast4 || form.cardLast4.length < 2 || form.cardLast4.length > 4) {
+      errors.cardLast4 = '请输入2-4位卡片尾号'
+      isValid = false
+    }
+  } else if (form.type === 'wallet') {
+    if (!form.institution) {
+      errors.institution = '请选择平台'
+      isValid = false
+    }
+  }
 
   // 校验币种
   if (!form.currency) {
@@ -157,6 +284,18 @@ function validateForm(): boolean {
   if (isNaN(form.balance)) {
     errors.balance = '请输入有效的金额'
     isValid = false
+  }
+
+  // 校验信用卡额度
+  if (form.type === 'credit') {
+    if (form.creditLimit !== undefined && form.creditLimit < 0) {
+      errors.creditLimit = '总额度不能为负数'
+      isValid = false
+    }
+    if (form.tempLimit !== undefined && form.tempLimit < 0) {
+      errors.tempLimit = '临时额度不能为负数'
+      isValid = false
+    }
   }
 
   return isValid
@@ -175,15 +314,20 @@ async function handleSubmit() {
   submitError.value = null
 
   try {
-    await createAccount({
-      name: form.name.trim(),
+    const payload: CreateAccountPayload = {
       type: form.type,
+      institution: form.institution,
+      cardLast4: form.cardLast4 || undefined,
       currency: form.currency,
-      balance: form.balance
-    })
+      balance: form.balance,
+      creditLimit: form.type === 'credit' && form.creditLimit !== undefined ? form.creditLimit : undefined,
+      tempLimit: form.type === 'credit' && form.tempLimit !== undefined ? form.tempLimit : undefined
+    }
+
+    await createAccount(payload)
 
     alert('创建成功')
-    router.push('/profile')
+    router.push('/accounts')
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : '创建账户失败'
   } finally {
