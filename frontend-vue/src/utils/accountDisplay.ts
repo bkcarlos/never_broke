@@ -17,6 +17,24 @@ function getInstitutionLabel(inst?: AccountInstitution): string | undefined {
       return t('account.institution.bocom', '交行')
     case 'cmb':
       return t('account.institution.cmb', '招行')
+    case 'spdb':
+      return t('account.institution.spdb', '浦发')
+    case 'citic':
+      return t('account.institution.citic', '中信')
+    case 'ceb':
+      return t('account.institution.ceb', '光大')
+    case 'hxb':
+      return t('account.institution.hxb', '华夏')
+    case 'cmbc':
+      return t('account.institution.cmbc', '民生')
+    case 'cgb':
+      return t('account.institution.cgb', '广发')
+    case 'pab':
+      return t('account.institution.pab', '平安')
+    case 'cib':
+      return t('account.institution.cib', '兴业')
+    case 'psbc':
+      return t('account.institution.psbc', '邮储')
     case 'wechat':
       return t('account.institution.wechat', '微信')
     case 'alipay':
@@ -44,6 +62,22 @@ export function formatAccountDisplayName(account: Account): string {
   const typeLabel = getTypeLabel(account.type)
   const parts: string[] = []
 
+  // 现金类型：只显示类型
+  if (account.type === 'cash') {
+    parts.push(typeLabel)
+    return parts.join(' ')
+  }
+
+  // 钱包类型：显示机构（平台）+ 类型，不显示尾号
+  if (account.type === 'wallet') {
+    if (institutionLabel) {
+      parts.push(institutionLabel)
+    }
+    parts.push(typeLabel)
+    return parts.join(' ')
+  }
+
+  // 银行卡和信用卡：显示机构 + 类型 + 尾号
   // 1. 机构（如果有）
   if (institutionLabel) {
     parts.push(institutionLabel)
@@ -52,8 +86,8 @@ export function formatAccountDisplayName(account: Account): string {
   // 2. 账户类型（必定有）
   parts.push(typeLabel)
 
-  // 3. 尾号
-  if (account.cardLast4 && account.cardLast4.length > 0) {
+  // 3. 尾号（仅 bank 和 credit 类型显示）
+  if ((account.type === 'bank' || account.type === 'credit') && account.cardLast4 && account.cardLast4.length > 0) {
     parts.push(
       t('account.display.last4', '尾号{last4}').replace('{last4}', account.cardLast4)
     )

@@ -14,15 +14,24 @@ const (
 type AccountInstitution string
 
 const (
-	AccountInstitutionICBC   AccountInstitution = "icbc"
-	AccountInstitutionCCB    AccountInstitution = "ccb"
-	AccountInstitutionABC    AccountInstitution = "abc"
-	AccountInstitutionBOC    AccountInstitution = "boc"
-	AccountInstitutionBOCOM  AccountInstitution = "bocom"
-	AccountInstitutionCMB    AccountInstitution = "cmb"
-	AccountInstitutionWeChat AccountInstitution = "wechat"
-	AccountInstitutionAlipay AccountInstitution = "alipay"
-	AccountInstitutionOther  AccountInstitution = "other"
+	AccountInstitutionICBC   AccountInstitution = "icbc"   // 工商银行
+	AccountInstitutionCCB    AccountInstitution = "ccb"    // 建设银行
+	AccountInstitutionABC    AccountInstitution = "abc"    // 农业银行
+	AccountInstitutionBOC    AccountInstitution = "boc"    // 中国银行
+	AccountInstitutionBOCOM  AccountInstitution = "bocom"  // 交通银行
+	AccountInstitutionCMB    AccountInstitution = "cmb"    // 招商银行
+	AccountInstitutionSPDB   AccountInstitution = "spdb"   // 浦发银行
+	AccountInstitutionCITIC  AccountInstitution = "citic"  // 中信银行
+	AccountInstitutionCEB    AccountInstitution = "ceb"    // 光大银行
+	AccountInstitutionHXB    AccountInstitution = "hxb"    // 华夏银行
+	AccountInstitutionCMBC   AccountInstitution = "cmbc"   // 民生银行
+	AccountInstitutionCGB    AccountInstitution = "cgb"    // 广发银行
+	AccountInstitutionPAB    AccountInstitution = "pab"    // 平安银行
+	AccountInstitutionCIB    AccountInstitution = "cib"    // 兴业银行
+	AccountInstitutionPSBC   AccountInstitution = "psbc"   // 邮储银行
+	AccountInstitutionWeChat AccountInstitution = "wechat" // 微信
+	AccountInstitutionAlipay AccountInstitution = "alipay" // 支付宝
+	AccountInstitutionOther  AccountInstitution = "other"  // 其他
 )
 
 // Account 账户模型

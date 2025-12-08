@@ -23,7 +23,7 @@
             <button
               v-for="type in accountTypes"
               :key="type.value"
-              @click="form.type = type.value"
+              @click="handleTypeChange(type.value)"
               class="px-4 py-3 border-2 rounded-lg font-medium transition-all"
               :class="form.type === type.value
                 ? 'border-blue-500 bg-blue-50 text-blue-700'
@@ -211,6 +211,15 @@ const bankInstitutions: Array<{ value: AccountInstitution; label: string }> = [
   { value: 'boc', label: '中国银行' },
   { value: 'bocom', label: '交通银行' },
   { value: 'cmb', label: '招商银行' },
+  { value: 'spdb', label: '浦发银行' },
+  { value: 'citic', label: '中信银行' },
+  { value: 'ceb', label: '光大银行' },
+  { value: 'hxb', label: '华夏银行' },
+  { value: 'cmbc', label: '民生银行' },
+  { value: 'cgb', label: '广发银行' },
+  { value: 'pab', label: '平安银行' },
+  { value: 'cib', label: '兴业银行' },
+  { value: 'psbc', label: '邮储银行' },
   { value: 'other', label: '其他' }
 ]
 
@@ -233,11 +242,12 @@ const previewAccount = computed<Account>(() => ({
   id: '',
   type: form.type,
   institution: form.institution,
-  cardLast4: form.cardLast4 || undefined,
+  // 只有 bank 和 credit 类型才显示尾号
+  cardLast4: (form.type === 'bank' || form.type === 'credit') && form.cardLast4 ? form.cardLast4 : undefined,
   currency: form.currency,
   balance: Number(form.balance) || 0,
-  creditLimit: form.creditLimit,
-  tempLimit: form.tempLimit,
+  creditLimit: form.type === 'credit' ? form.creditLimit : undefined,
+  tempLimit: form.type === 'credit' ? form.tempLimit : undefined,
   archived: false
 }))
 
@@ -299,6 +309,48 @@ function validateForm(): boolean {
   }
 
   return isValid
+}
+
+function handleTypeChange(newType: AccountType) {
+  form.type = newType
+  
+  // 清理不相关的字段
+  if (newType === 'cash') {
+    // 现金类型：不需要机构和尾号
+    form.institution = undefined
+    form.cardLast4 = ''
+    form.creditLimit = undefined
+    form.tempLimit = undefined
+  } else if (newType === 'wallet') {
+    // 钱包类型：需要机构（平台），不需要尾号和额度
+    form.cardLast4 = ''
+    form.creditLimit = undefined
+    form.tempLimit = undefined
+    // 如果之前选择的是银行机构，清空
+    if (form.institution && !walletInstitutions.find(i => i.value === form.institution)) {
+      form.institution = undefined
+    }
+  } else if (newType === 'bank') {
+    // 银行卡：需要机构和尾号，不需要额度
+    form.creditLimit = undefined
+    form.tempLimit = undefined
+    // 如果之前选择的是钱包平台，清空
+    if (form.institution && !bankInstitutions.find(i => i.value === form.institution)) {
+      form.institution = undefined
+    }
+  } else if (newType === 'credit') {
+    // 信用卡：需要机构和尾号，可以有额度
+    // 如果之前选择的是钱包平台，清空
+    if (form.institution && !bankInstitutions.find(i => i.value === form.institution)) {
+      form.institution = undefined
+    }
+  }
+  
+  // 清空相关错误
+  errors.institution = ''
+  errors.cardLast4 = ''
+  errors.creditLimit = ''
+  errors.tempLimit = ''
 }
 
 function handleBack() {

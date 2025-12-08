@@ -101,15 +101,24 @@ export interface UserSettings {
 export type AccountType = 'cash' | 'bank' | 'wallet' | 'credit'
 
 export type AccountInstitution =
-  | 'icbc'
-  | 'ccb'
-  | 'abc'
-  | 'boc'
-  | 'bocom'
-  | 'cmb'
-  | 'wechat'
-  | 'alipay'
-  | 'other'
+  | 'icbc'   // 工商银行
+  | 'ccb'    // 建设银行
+  | 'abc'    // 农业银行
+  | 'boc'    // 中国银行
+  | 'bocom'  // 交通银行
+  | 'cmb'    // 招商银行
+  | 'spdb'   // 浦发银行
+  | 'citic'  // 中信银行
+  | 'ceb'    // 光大银行
+  | 'hxb'    // 华夏银行
+  | 'cmbc'   // 民生银行
+  | 'cgb'    // 广发银行
+  | 'pab'    // 平安银行
+  | 'cib'    // 兴业银行
+  | 'psbc'   // 邮储银行
+  | 'wechat' // 微信
+  | 'alipay' // 支付宝
+  | 'other'  // 其他
 
 export interface Account {
   id: string
