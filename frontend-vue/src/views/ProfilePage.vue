@@ -12,14 +12,26 @@
       <div class="setting-item bg-white rounded-lg shadow p-4">
         <div class="flex items-center justify-between">
           <span class="font-semibold">{{ t('profile.language') }}</span>
-          <select 
-            v-model="currentLocale" 
-            @change="handleLocaleChange"
-            class="px-3 py-1 border rounded dropdown-select"
-          >
-            <option value="zh-CN">简体中文</option>
-            <option value="en-US">English</option>
-          </select>
+          <div class="flex gap-2">
+            <button
+              @click="handleLocaleSelect('zh-CN')"
+              class="px-4 py-2 rounded-lg font-medium transition-all duration-200"
+              :class="currentLocale === 'zh-CN' 
+                ? 'bg-blue-500 text-white shadow-md' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+            >
+              简体中文
+            </button>
+            <button
+              @click="handleLocaleSelect('en-US')"
+              class="px-4 py-2 rounded-lg font-medium transition-all duration-200"
+              :class="currentLocale === 'en-US' 
+                ? 'bg-blue-500 text-white shadow-md' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+            >
+              English
+            </button>
+          </div>
         </div>
       </div>
 
@@ -158,9 +170,10 @@ async function loadSettings() {
   }
 }
 
-function handleLocaleChange() {
-  settings.value.locale = currentLocale.value
-  setLocale(currentLocale.value)
+function handleLocaleSelect(locale: Locale) {
+  currentLocale.value = locale
+  settings.value.locale = locale
+  setLocale(locale)
 }
 
 function toggleShowAmount() {
@@ -215,23 +228,5 @@ onMounted(() => {
 <style scoped>
 /* 页面样式已移至全局样式文件 (style.css) 的 .page-container 和 .page-content */
 
-/* 确保下拉框不影响导航栏 */
-.dropdown-select {
-  z-index: 1;
-  position: relative;
-}
-
-/* 在移动端，select的下拉选项可能超出容器，需要特殊处理 */
-@media (max-width: 768px) {
-  .dropdown-select {
-    /* 确保下拉选项不会覆盖导航栏 */
-    position: relative;
-  }
-  
-  /* 当select打开时，确保其下拉选项的z-index低于导航栏 */
-  .dropdown-select:focus {
-    z-index: 999;
-  }
-}
 </style>
 
