@@ -25,4 +25,9 @@ type CreateTransactionRequest struct {
 type Transaction struct {
 	ID string `json:"id"`
 	CreateTransactionRequest
+
+	// 新增：分期关联信息（如果是分期每一期的还款）
+	InstallmentPlanID string `json:"installmentPlanId,omitempty"` // 所属分期计划
+	InstallmentPeriod int    `json:"installmentPeriod,omitempty"` // 第几期（从1开始）
+	InstallmentTotal  int    `json:"installmentTotal,omitempty"`  // 总期数
 }

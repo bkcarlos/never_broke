@@ -7,6 +7,7 @@ import (
 	"neverbroke/internal/home"
 	"neverbroke/internal/importer"
 	"neverbroke/internal/incomeplan"
+	"neverbroke/internal/installment"
 	"neverbroke/internal/ledger"
 	"neverbroke/internal/report"
 	"neverbroke/internal/storage/memory"
@@ -74,6 +75,10 @@ func Setup(store *memory.Store) *gin.Engine {
 		incomePlanHandler := incomeplan.NewHandler()
 		v1.GET("/income-plans", incomePlanHandler.ListIncomePlansHandler)
 		v1.POST("/income-plans", incomePlanHandler.CreateIncomePlanHandler)
+
+		// 分期
+		installmentHandler := installment.NewHandler()
+		v1.POST("/installments/expense", installmentHandler.CreateExpenseInstallmentHandler)
 	}
 
 	return r

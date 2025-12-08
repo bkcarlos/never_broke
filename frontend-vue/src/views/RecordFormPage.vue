@@ -114,7 +114,7 @@
           >
             <option value="">{{ t('record.accountPlaceholder') }}</option>
             <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
-              {{ acc.name }}
+              {{ formatAccountDisplayName(acc) }}
             </option>
           </select>
         </div>
@@ -132,7 +132,7 @@
             >
               <option value="">{{ t('record.accountPlaceholder') }}</option>
               <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
-                {{ acc.name }}
+                {{ formatAccountDisplayName(acc) }}
               </option>
             </select>
           </div>
@@ -147,7 +147,7 @@
             >
               <option value="">{{ t('record.accountPlaceholder') }}</option>
               <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
-                {{ acc.name }}
+                {{ formatAccountDisplayName(acc) }}
               </option>
             </select>
           </div>
@@ -192,6 +192,86 @@
           </div>
         </div>
 
+        <!-- 分期付款（仅支出模式） -->
+        <section v-if="mode === 'expense'" class="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-medium text-slate-800">
+                {{ t('record.installment.title', '分期付款') }}
+              </div>
+              <div class="text-xs text-slate-500 mt-1">
+                {{ t('record.installment.subtitle', '自动生成每期还款明细') }}
+              </div>
+            </div>
+            <label class="inline-flex items-center cursor-pointer">
+              <input
+                v-model="isInstallment"
+                type="checkbox"
+                class="sr-only"
+              />
+              <span
+                class="w-10 h-5 flex items-center bg-slate-200 rounded-full p-1 duration-200"
+                :class="isInstallment ? 'bg-indigo-500' : ''"
+              >
+                <span
+                  class="bg-white w-4 h-4 rounded-full shadow transform duration-200"
+                  :class="isInstallment ? 'translate-x-5' : ''"
+                />
+              </span>
+            </label>
+          </div>
+
+          <div v-if="isInstallment" class="space-y-3 pt-2 border-t border-slate-100">
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <div class="text-xs text-slate-500 mb-1">
+                  {{ t('record.installment.term', '分期期数（月）') }}
+                </div>
+                <input
+                  v-model="termMonths"
+                  type="number"
+                  min="2"
+                  class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+                  :placeholder="t('record.installment.termPlaceholder', '例如 12')"
+                />
+              </div>
+              <div class="flex-1">
+                <div class="text-xs text-slate-500 mb-1">
+                  {{ t('record.installment.fee', '总手续费（可选）') }}
+                </div>
+                <input
+                  v-model="feeTotal"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+                  :placeholder="t('record.installment.feePlaceholder', '没有可填 0')"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs text-slate-500 mb-1">
+                {{ t('record.installment.firstDueDate', '首期扣款日') }}
+              </div>
+              <input
+                v-model="firstDueDate"
+                type="date"
+                class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+              />
+            </div>
+
+            <div class="text-[11px] text-slate-400">
+              {{ t('record.installment.hint', '保存后会按期数自动生成每期还款明细记录，用于后续统计和现金流预测。') }}
+            </div>
+          </div>
+        </section>
+
+        <!-- 错误提示 -->
+        <div v-if="error" class="p-4 bg-red-50 text-red-600 rounded-lg text-sm">
+          {{ error }}
+        </div>
+
         <!-- 提交按钮 -->
         <button
           type="submit"
@@ -210,7 +290,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getAccounts } from '@/api/accounts'
 import { createTransaction } from '@/api/ledger'
-import type { Account, AccountOption, CreateTransactionPayload } from '@/types'
+import { createExpenseInstallment } from '@/api/installments'
+import { formatAccountDisplayName } from '@/utils/accountDisplay'
+import type { Account, CreateTransactionPayload, CreateExpenseInstallmentPayload } from '@/types'
 import { t } from '@/i18n'
 
 const route = useRoute()
@@ -237,10 +319,17 @@ const date = ref<string>('')
 const time = ref<string>('')
 
 // 账户列表
-const accounts = ref<AccountOption[]>([])
+const accounts = ref<Account[]>([])
 
 // 提交状态
 const submitting = ref<boolean>(false)
+const error = ref<string | null>(null)
+
+// 分期相关状态（仅支出模式）
+const isInstallment = ref<boolean>(false)
+const termMonths = ref<string>('3')
+const feeTotal = ref<string>('0')
+const firstDueDate = ref<string>('')
 
 // 分类列表
 const categories = computed(() => {
@@ -300,9 +389,7 @@ function initDateTime() {
 async function loadAccounts() {
   try {
     const list: Account[] = await getAccounts()
-    accounts.value = list
-      .filter((acc) => !acc.archived)
-      .map((acc) => ({ id: acc.id, name: acc.name }))
+    accounts.value = list.filter((acc) => !acc.archived)
     
     // 设置默认账户
     if (accounts.value.length > 0) {
@@ -317,6 +404,15 @@ async function loadAccounts() {
   } catch (e) {
     console.error('Failed to load accounts:', e)
   }
+}
+
+// 初始化首期扣款日
+function initFirstDueDate() {
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  firstDueDate.value = `${yyyy}-${mm}-${dd}`
 }
 
 // 构建请求 payload
@@ -347,19 +443,90 @@ function buildPayload(): CreateTransactionPayload {
   return payload
 }
 
+// 提交普通交易
+async function submitNormalTransaction() {
+  error.value = null
+  const payload = buildPayload()
+  await createTransaction(payload)
+  alert(t('record.success'))
+  router.back()
+}
+
+// 提交分期支出
+async function submitInstallmentExpense() {
+  error.value = null
+
+  const numericAmount = Number(amount.value)
+  if (!numericAmount || numericAmount <= 0) {
+    error.value = t('record.error.invalidAmount', '请输入有效金额')
+    return
+  }
+
+  const term = Number(termMonths.value)
+  if (!term || term <= 1) {
+    error.value = t('record.error.invalidTerm', '分期期数至少为2期')
+    return
+  }
+
+  const fee = Number(feeTotal.value || '0')
+  if (Number.isNaN(fee) || fee < 0) {
+    error.value = t('record.error.invalidFee', '请输入正确的手续费')
+    return
+  }
+
+  if (!accountId.value) {
+    error.value = t('record.error.invalidAccount', '请选择账户')
+    return
+  }
+
+  if (!firstDueDate.value) {
+    error.value = t('record.error.invalidFirstDueDate', '请选择首期扣款日')
+    return
+  }
+
+  if (!date.value) {
+    error.value = t('record.error.invalidDate', '请选择消费日期')
+    return
+  }
+
+  const payload: CreateExpenseInstallmentPayload = {
+    accountId: accountId.value,
+    totalAmount: numericAmount + fee,
+    principal: numericAmount,
+    feeTotal: fee,
+    termMonths: term,
+    currency: 'CNY',
+    firstDueDate: firstDueDate.value,
+    categoryKey: categoryKey.value || undefined,
+    remark: remark.value || undefined,
+    purchaseDate: date.value,
+  }
+
+  try {
+    await createExpenseInstallment(payload)
+    alert(t('record.success'))
+    router.push('/')
+  } catch (e) {
+    error.value = t('common.error', '保存分期失败，请稍后重试')
+  }
+}
+
 // 提交表单
 async function onSubmit() {
   if (submitting.value) return
 
   submitting.value = true
   try {
-    const payload = buildPayload()
-    await createTransaction(payload)
-    alert(t('record.success'))
-    router.back()
+    if (mode.value === 'expense' && isInstallment.value) {
+      await submitInstallmentExpense()
+    } else {
+      await submitNormalTransaction()
+    }
   } catch (e) {
-    console.error('Failed to create transaction:', e)
-    alert(t('record.error'))
+    console.error('Failed to submit:', e)
+    if (!error.value) {
+      alert(t('record.error'))
+    }
   } finally {
     submitting.value = false
   }
@@ -375,6 +542,7 @@ watch(() => route.query.type, (newType) => {
 onMounted(() => {
   initModeFromRoute()
   initDateTime()
+  initFirstDueDate()
   loadAccounts()
 })
 </script>

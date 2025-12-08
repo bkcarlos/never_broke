@@ -177,6 +177,10 @@ export interface Transaction {
   accountId?: string
   fromAccountId?: string
   toAccountId?: string
+  // 新增：分期关联信息（如果是分期每一期的还款）
+  installmentPlanId?: string
+  installmentPeriod?: number
+  installmentTotal?: number
 }
 
 // ========== 预算相关类型 ==========
@@ -222,6 +226,42 @@ export interface CreateIncomePlanPayload {
   accountId: string
   firstPayDate: string
   endDate?: string
+}
+
+// ========== 分期相关类型 ==========
+
+export type InstallmentPlanStatus = 'active' | 'finished' | 'canceled'
+
+export interface InstallmentPlan {
+  id: string
+  accountId: string
+  totalAmount: number
+  principal: number
+  feeTotal: number
+  termMonths: number
+  monthlyAmount: number
+  currency: string
+  firstDueDate: string
+  status: InstallmentPlanStatus
+  createdAt: string
+}
+
+export interface CreateExpenseInstallmentPayload {
+  accountId: string
+  totalAmount: number
+  principal: number
+  feeTotal: number
+  termMonths: number
+  currency: string
+  firstDueDate: string
+  categoryKey?: string
+  remark?: string
+  purchaseDate: string
+}
+
+export interface CreateExpenseInstallmentResult {
+  plan: InstallmentPlan
+  transactions: Transaction[]
 }
 
 // ========== API 响应通用类型 ==========
