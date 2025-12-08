@@ -96,15 +96,15 @@
         </button>
       </div>
 
-      <!-- 薪资配置 -->
+      <!-- 周期收入配置 -->
       <div class="setting-item bg-white rounded-lg shadow p-4">
         <button 
-          @click="handleSalary"
+          @click="handleRecurringIncome"
           class="w-full flex items-center justify-between"
         >
           <div class="flex items-center gap-3">
             <Icon name="wallet" size="24px" class="text-green-500" />
-            <span class="font-semibold">薪资配置</span>
+            <span class="font-semibold">周期收入配置</span>
           </div>
           <Icon name="add" size="20px" class="text-gray-400" />
         </button>
@@ -209,8 +209,8 @@ function handleImport() {
   router.push('/settings/import-bills')
 }
 
-function handleSalary() {
-  router.push('/settings/salary')
+function handleRecurringIncome() {
+  router.push('/settings/recurring-income')
 }
 
 async function saveSettings() {

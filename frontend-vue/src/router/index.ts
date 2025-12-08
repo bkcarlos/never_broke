@@ -58,6 +58,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/SalarySettingsPage.vue')
   },
   {
+    path: '/settings/recurring-income',
+    name: 'RecurringIncomeSettings',
+    component: () => import('@/views/RecurringIncomeSettingsPage.vue')
+  },
+  {
     path: '/transfer',
     name: 'Transfer',
     component: () => import('@/views/TransferPage.vue')

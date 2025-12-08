@@ -264,6 +264,55 @@ export interface CreateExpenseInstallmentResult {
   transactions: Transaction[]
 }
 
+// ========== 周期收入配置相关类型 ==========
+
+export type RecurringIncomeType = 'salary' | 'rent' | 'side' | 'other'
+
+export type RecurringIncomeFrequency =
+  | 'monthly'
+  | 'weekly'
+  | 'biweekly'
+  | 'yearly'
+
+export interface RecurringIncomePlan {
+  id: string
+  type: RecurringIncomeType
+  label: string
+  accountId: string
+  amount: number
+  currency: string
+  frequency: RecurringIncomeFrequency
+  dayOfMonth?: number
+  weekday?: number
+  nextDueDate: string
+  lastFiredDate?: string
+  active: boolean
+  createdAt: string
+}
+
+export interface UpsertRecurringIncomePayload {
+  id?: string
+  type: RecurringIncomeType
+  label: string
+  accountId: string
+  amount: number
+  currency: string
+  frequency: RecurringIncomeFrequency
+  dayOfMonth?: number
+  weekday?: number
+  nextDueDate: string
+  active: boolean
+}
+
+export interface RecurringIncomeRealizePayload {
+  date?: string // YYYY-MM-DD，可选
+}
+
+export interface RecurringIncomeRealizeResult {
+  plan: RecurringIncomePlan
+  transaction: Transaction
+}
+
 // ========== API 响应通用类型 ==========
 
 export interface ApiResponse<T> {

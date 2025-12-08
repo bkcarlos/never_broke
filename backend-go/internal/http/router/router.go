@@ -9,6 +9,7 @@ import (
 	"neverbroke/internal/incomeplan"
 	"neverbroke/internal/installment"
 	"neverbroke/internal/ledger"
+	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/report"
 	"neverbroke/internal/storage/memory"
 	"neverbroke/internal/user"
@@ -79,6 +80,13 @@ func Setup(store *memory.Store) *gin.Engine {
 		// 分期
 		installmentHandler := installment.NewHandler()
 		v1.POST("/installments/expense", installmentHandler.CreateExpenseInstallmentHandler)
+
+		// 周期收入配置
+		recurringIncomeHandler := recurringincome.NewHandler()
+		v1.GET("/recurring-incomes", recurringIncomeHandler.ListPlansHandler)
+		v1.POST("/recurring-incomes", recurringIncomeHandler.UpsertPlanHandler)
+		v1.GET("/recurring-incomes/due", recurringIncomeHandler.ListDuePlansHandler)
+		v1.POST("/recurring-incomes/:id/realize", recurringIncomeHandler.RealizePlanHandler)
 	}
 
 	return r
