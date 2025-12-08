@@ -42,10 +42,17 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import { t } from '@/i18n'
 import Icon from '@/components/Icon.vue'
 
+const router = useRouter()
+
 function handleAction(action: string) {
+  if (action === 'transfer') {
+    router.push('/transfer')
+    return
+  }
   // TODO: 后续实现具体功能
   console.log('Action clicked:', action)
   const actionName = t(`actions.${action}`)
