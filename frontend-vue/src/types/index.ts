@@ -301,8 +301,10 @@ export type RecurringIncomeType = 'salary' | 'rent' | 'side' | 'other'
 
 export type RecurringIncomeFrequency =
   | 'monthly'
+  | 'bimonthly'
+  | 'quarterly'
+  | 'semiannual'
   | 'weekly'
-  | 'biweekly'
   | 'yearly'
 
 export interface RecurringIncomePlan {
@@ -310,13 +312,14 @@ export interface RecurringIncomePlan {
   type: RecurringIncomeType
   label: string
   accountId: string
-  amount: number
+  amount: number // 工资：税前
   currency: string
   frequency: RecurringIncomeFrequency
   dayOfMonth?: number
   weekday?: number
   nextDueDate: string
   lastFiredDate?: string
+  cityCode?: string // 工资用
   active: boolean
   createdAt: string
 }
@@ -332,6 +335,7 @@ export interface UpsertRecurringIncomePayload {
   dayOfMonth?: number
   weekday?: number
   nextDueDate: string
+  cityCode?: string // 工资用
   active: boolean
 }
 
@@ -342,6 +346,49 @@ export interface RecurringIncomeRealizePayload {
 export interface RecurringIncomeRealizeResult {
   plan: RecurringIncomePlan
   transaction: Transaction
+}
+
+// ========== 工资预览相关类型 ==========
+
+export interface SalaryPreviewRequest {
+  preTaxAmount: number
+  cityCode: string
+  startDate: string // YYYY-MM-DD
+  payDay: number // 1-31
+  frequency: RecurringIncomeFrequency
+  currency: string
+}
+
+export interface SalaryPreviewItem {
+  date: string
+  preTax: number
+  socialSecurity: number
+  taxableIncome: number
+  taxAmount: number
+  postTax: number
+  cumulativePreTax: number
+  cumulativeTax: number
+}
+
+export interface SalaryPreviewResponse {
+  cityCode: string
+  year: number
+  items: SalaryPreviewItem[]
+  totalPreTax: number
+  totalTax: number
+  totalPostTax: number
+}
+
+// ========== 未来明细投射相关类型 ==========
+
+export interface ProjectedTransaction {
+  date: string
+  accountId: string
+  amount: number
+  type: 'income'
+  label: string
+  planId: string
+  isSalary: boolean
 }
 
 // ========== API 响应通用类型 ==========

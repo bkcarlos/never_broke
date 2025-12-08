@@ -5,6 +5,14 @@
       <h1 class="text-lg font-semibold">
         {{ t('recurring.title', '周期收入配置') }}
       </h1>
+      <div class="flex-1" />
+      <button
+        class="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center text-xl shadow-sm"
+        @click="openCreateDialog"
+        aria-label="add recurring income"
+      >
+        +
+      </button>
     </header>
 
     <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32 space-y-4">
@@ -55,150 +63,252 @@
           </div>
         </section>
 
-        <!-- 已配置的计划列表：工资 -->
-        <section v-if="salaryPlans.length" class="space-y-2">
-          <h2 class="text-xs font-medium text-slate-500">
-            {{ t('recurring.section.salary', '工资类收入') }}
+        <!-- 已配置的周期收入预览区 -->
+        <section v-if="activePlans.length" class="space-y-3">
+          <h2 class="text-sm font-medium text-slate-800">
+            {{ t('recurring.section.active', '已配置的周期收入') }}
           </h2>
-          <div class="space-y-2">
-            <div
-              v-for="plan in salaryPlans"
-              :key="plan.id"
-              class="bg-white rounded-2xl shadow-sm p-3"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="text-sm font-semibold text-slate-900">
-                    {{ plan.label }}
-                  </div>
-                  <div class="text-xs text-slate-500 mt-1">
-                    ¥{{ plan.amount.toFixed(2) }}
-                    · {{ t('recurring.next', '下次') }} {{ plan.nextDueDate }}
-                  </div>
+          <div
+            v-for="plan in activePlans"
+            :key="plan.id"
+            class="bg-white rounded-2xl shadow-sm p-4"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <div class="text-sm font-semibold text-slate-900">
+                  {{ plan.label }}
                 </div>
+                <div class="text-xs text-slate-500 mt-1">
+                  {{ getTypeLabel(plan.type) }}
+                  · ¥{{ plan.amount.toFixed(2) }}
+                  · {{ getFrequencyLabel(plan.frequency) }}
+                </div>
+              </div>
+              <button
+                class="text-xs text-indigo-500"
+                @click="editPlan(plan)"
+              >
+                编辑
+              </button>
+            </div>
+            <!-- 未来几次收入预览 -->
+            <div class="space-y-2">
+              <div class="text-xs text-slate-500 mb-2">未来收入预览：</div>
+              <div
+                v-for="(item, idx) in getFutureIncomes(plan, 3)"
+                :key="idx"
+                class="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0"
+              >
+                <span class="text-slate-600">{{ item.date }}</span>
+                <span class="font-medium text-emerald-600">¥{{ item.amount.toFixed(2) }}</span>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- 已配置的计划列表：房租 -->
-        <section v-if="rentPlans.length" class="space-y-2">
-          <h2 class="text-xs font-medium text-slate-500">
-            {{ t('recurring.section.rent', '房租类收入') }}
+        <!-- 工资税前配置 & 预览到年底 -->
+        <section class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+          <h2 class="text-sm font-medium text-slate-800">
+            {{ t('recurring.salary.preview', '工资税前配置 & 预览到年底') }}
           </h2>
-          <div class="space-y-2">
-            <div
-              v-for="plan in rentPlans"
-              :key="plan.id"
-              class="bg-white rounded-2xl shadow-sm p-3"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="text-sm font-semibold text-slate-900">
-                    {{ plan.label }}
-                  </div>
-                  <div class="text-xs text-slate-500 mt-1">
-                    ¥{{ plan.amount.toFixed(2) }}
-                    · {{ t('recurring.next', '下次') }} {{ plan.nextDueDate }}
-                  </div>
+
+          <!-- 配置表单 -->
+          <div class="space-y-3">
+            <div>
+              <div class="text-xs text-slate-500 mb-1">
+                {{ t('recurring.salary.preTax', '税前收入（每期）') }}
+              </div>
+              <input
+                v-model.number="salaryPreviewForm.preTaxAmount"
+                type="number"
+                class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+                placeholder="例如：15000"
+              />
+            </div>
+
+            <div>
+              <div class="text-xs text-slate-500 mb-1">
+                {{ t('recurring.salary.city', '纳税城市') }}
+              </div>
+              <select
+                v-model="salaryPreviewForm.cityCode"
+                class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+              >
+                <option value="beijing">北京</option>
+                <option value="shanghai">上海</option>
+                <option value="guangzhou">广州</option>
+                <option value="shenzhen">深圳</option>
+              </select>
+            </div>
+
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <div class="text-xs text-slate-500 mb-1">
+                  {{ t('recurring.salary.startDate', '开始日期') }}
                 </div>
+                <input
+                  v-model="salaryPreviewForm.startDate"
+                  type="date"
+                  class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+                />
+              </div>
+              <div class="flex-1">
+                <div class="text-xs text-slate-500 mb-1">
+                  {{ t('recurring.salary.payDay', '发薪日（1-31）') }}
+                </div>
+                <input
+                  v-model.number="salaryPreviewForm.payDay"
+                  type="number"
+                  min="1"
+                  max="31"
+                  class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+                  placeholder="10"
+                />
               </div>
             </div>
-          </div>
-        </section>
 
-        <!-- 已配置的计划列表：其他 -->
-        <section v-if="otherPlans.length" class="space-y-2">
-          <h2 class="text-xs font-medium text-slate-500">
-            {{ t('recurring.section.other', '其他固定收入') }}
-          </h2>
-          <div class="space-y-2">
-            <div
-              v-for="plan in otherPlans"
-              :key="plan.id"
-              class="bg-white rounded-2xl shadow-sm p-3"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="text-sm font-semibold text-slate-900">
-                    {{ plan.label }}
-                  </div>
-                  <div class="text-xs text-slate-500 mt-1">
-                    ¥{{ plan.amount.toFixed(2) }}
-                    · {{ t('recurring.next', '下次') }} {{ plan.nextDueDate }}
-                  </div>
-                </div>
+            <div>
+              <div class="text-xs text-slate-500 mb-1">
+                {{ t('recurring.frequency', '频率') }}
               </div>
+              <select
+                v-model="salaryPreviewForm.frequency"
+                class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+              >
+                <option value="monthly">每月</option>
+                <option value="bimonthly">每两个月</option>
+                <option value="quarterly">每季度</option>
+                <option value="semiannual">每半年</option>
+                <option value="weekly">每周</option>
+                <option value="yearly">每年</option>
+              </select>
             </div>
-          </div>
-        </section>
 
-        <!-- 表单：新增/编辑 -->
-        <section class="bg-white rounded-2xl shadow-sm p-4 space-y-3">
-          <div class="flex items-center gap-2 text-sm font-medium text-slate-800">
-            {{ t('recurring.form.title', '新增/编辑周期收入') }}
-          </div>
-
-          <!-- 类型切换 -->
-          <div class="grid grid-cols-4 gap-2 mt-2">
             <button
-              v-for="tType in ['salary', 'rent', 'side', 'other']"
-              :key="tType"
-              class="py-1.5 rounded-xl text-xs border"
-              :class="
-                type === tType
-                  ? 'bg-indigo-500 border-indigo-500 text-white'
-                  : 'bg-slate-50 border-slate-200 text-slate-600'
-              "
-              @click="
-                () => {
-                  type = tType as RecurringIncomeType
-                  label = ''
-                  initFormForType(type)
-                }
-              "
+              class="w-full py-2.5 rounded-full bg-indigo-500 text-white text-sm font-medium disabled:opacity-60"
+              :disabled="previewingSalary || !canPreviewSalary"
+              @click="onPreviewSalary"
             >
-              {{ t('recurring.type.' + tType, tType) }}
+              {{ previewingSalary ? '生成中...' : '生成工资预览' }}
             </button>
+          </div>
+
+          <!-- 预览表格 -->
+          <div v-if="salaryPreview" class="mt-4">
+            <div class="text-xs text-slate-500 mb-2">
+              {{ salaryPreview.year }}年工资预览（共{{ salaryPreview.items.length }}次）
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs text-slate-600">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th class="px-2 py-2 text-left">日期</th>
+                    <th class="px-2 py-2 text-right">税前</th>
+                    <th class="px-2 py-2 text-right">社保</th>
+                    <th class="px-2 py-2 text-right">个税</th>
+                    <th class="px-2 py-2 text-right font-semibold text-emerald-600">到手</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="item in salaryPreview.items"
+                    :key="item.date"
+                    class="border-b border-slate-50"
+                  >
+                    <td class="px-2 py-2">{{ item.date }}</td>
+                    <td class="px-2 py-2 text-right">¥{{ item.preTax.toFixed(2) }}</td>
+                    <td class="px-2 py-2 text-right">¥{{ item.socialSecurity.toFixed(2) }}</td>
+                    <td class="px-2 py-2 text-right">¥{{ item.taxAmount.toFixed(2) }}</td>
+                    <td class="px-2 py-2 text-right font-semibold text-emerald-600">
+                      ¥{{ item.postTax.toFixed(2) }}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot class="bg-slate-50 font-semibold">
+                  <tr>
+                    <td class="px-2 py-2">总计</td>
+                    <td class="px-2 py-2 text-right">¥{{ salaryPreview.totalPreTax.toFixed(2) }}</td>
+                    <td class="px-2 py-2 text-right">-</td>
+                    <td class="px-2 py-2 text-right">¥{{ salaryPreview.totalTax.toFixed(2) }}</td>
+                    <td class="px-2 py-2 text-right text-emerald-600">
+                      ¥{{ salaryPreview.totalPostTax.toFixed(2) }}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+      </template>
+    </main>
+
+    <!-- 新增/编辑周期收入对话框 -->
+    <div
+      v-if="showCreateDialog"
+      class="fixed inset-0 bg-black/50 flex items-end z-50"
+      @click.self="closeCreateDialog"
+    >
+      <div
+        class="w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto"
+        @click.stop
+      >
+        <div class="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+          <h3 class="text-lg font-semibold">
+            {{ editId ? '编辑周期收入' : '新增周期收入' }}
+          </h3>
+          <button class="text-2xl text-slate-400" @click="closeCreateDialog">×</button>
+        </div>
+
+        <div class="p-4 space-y-4">
+          <!-- 类型切换 -->
+          <div>
+            <div class="text-xs text-slate-500 mb-2">收入类型</div>
+            <div class="grid grid-cols-4 gap-2">
+              <button
+                v-for="tType in ['salary', 'rent', 'side', 'other']"
+                :key="tType"
+                class="py-2 rounded-xl text-xs border"
+                :class="
+                  formType === tType
+                    ? 'bg-indigo-500 border-indigo-500 text-white'
+                    : 'bg-slate-50 border-slate-200 text-slate-600'
+                "
+                @click="formType = tType as RecurringIncomeType"
+              >
+                {{ getTypeLabel(tType as RecurringIncomeType) }}
+              </button>
+            </div>
           </div>
 
           <!-- 名称 -->
           <div>
-            <div class="text-xs text-slate-500 mb-1">
-              {{ t('recurring.label', '名称') }}
-            </div>
+            <div class="text-xs text-slate-500 mb-1">名称</div>
             <input
-              v-model="label"
+              v-model="formLabel"
               type="text"
               class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-              :placeholder="t('recurring.label.placeholder', '例如：工资、房租收入')"
+              placeholder="例如：工资、房租收入"
             />
           </div>
 
           <!-- 金额 & 账户 -->
           <div class="flex gap-3">
             <div class="flex-1">
-              <div class="text-xs text-slate-500 mb-1">
-                {{ t('recurring.amount', '金额') }}
-              </div>
+              <div class="text-xs text-slate-500 mb-1">金额</div>
               <input
-                v-model="amount"
+                v-model.number="formAmount"
                 type="number"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-                :placeholder="t('recurring.amount.placeholder', '例如：12000')"
+                placeholder="例如：12000"
               />
             </div>
             <div class="flex-1">
-              <div class="text-xs text-slate-500 mb-1">
-                {{ t('recurring.account', '到账账户') }}
-              </div>
+              <div class="text-xs text-slate-500 mb-1">到账账户</div>
               <select
-                v-model="accountId"
+                v-model="formAccountId"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
               >
-                <option value="" disabled>
-                  {{ t('recurring.account.placeholder', '请选择账户') }}
-                </option>
+                <option value="" disabled>请选择账户</option>
                 <option
                   v-for="acc in accounts"
                   :key="acc.id"
@@ -213,51 +323,61 @@
           <!-- 频率 & 下次日期 -->
           <div class="flex gap-3">
             <div class="flex-1">
-              <div class="text-xs text-slate-500 mb-1">
-                {{ t('recurring.frequency', '频率') }}
-              </div>
+              <div class="text-xs text-slate-500 mb-1">频率</div>
               <select
-                v-model="frequency"
+                v-model="formFrequency"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
               >
-                <option value="monthly">
-                  {{ t('recurring.frequency.monthly', '每月') }}
-                </option>
-                <option value="weekly">
-                  {{ t('recurring.frequency.weekly', '每周') }}
-                </option>
-                <option value="biweekly">
-                  {{ t('recurring.frequency.biweekly', '每两周') }}
-                </option>
-                <option value="yearly">
-                  {{ t('recurring.frequency.yearly', '每年') }}
-                </option>
+                <option value="monthly">每月</option>
+                <option value="bimonthly">每两个月</option>
+                <option value="quarterly">每季度</option>
+                <option value="semiannual">每半年</option>
+                <option value="weekly">每周</option>
+                <option value="yearly">每年</option>
               </select>
             </div>
             <div class="flex-1">
-              <div class="text-xs text-slate-500 mb-1">
-                {{ t('recurring.next', '下次收入日期') }}
-              </div>
+              <div class="text-xs text-slate-500 mb-1">下次收入日期</div>
               <input
-                v-model="nextDueDate"
+                v-model="formNextDueDate"
                 type="date"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
               />
             </div>
           </div>
 
-          <div class="pt-2">
+          <!-- 工资专用：城市代码 -->
+          <div v-if="formType === 'salary'">
+            <div class="text-xs text-slate-500 mb-1">纳税城市</div>
+            <select
+              v-model="formCityCode"
+              class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+            >
+              <option value="beijing">北京</option>
+              <option value="shanghai">上海</option>
+              <option value="guangzhou">广州</option>
+              <option value="shenzhen">深圳</option>
+            </select>
+          </div>
+
+          <div class="pt-2 space-y-2">
             <button
               class="w-full py-2.5 rounded-full bg-indigo-500 text-white text-sm font-medium disabled:opacity-60"
               :disabled="saving"
-              @click="onSave"
+              @click="onSavePlan"
             >
-              {{ t('recurring.save', '保存') }}
+              {{ saving ? '保存中...' : '保存' }}
+            </button>
+            <button
+              class="w-full py-2.5 rounded-full bg-slate-100 text-slate-600 text-sm font-medium"
+              @click="closeCreateDialog"
+            >
+              取消
             </button>
           </div>
-        </section>
-      </template>
-    </main>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -270,12 +390,14 @@ import type {
   RecurringIncomeFrequency,
   UpsertRecurringIncomePayload,
   Account,
+  SalaryPreviewResponse,
 } from '@/types'
 import {
   listRecurringIncomePlans,
   listDueRecurringIncomePlans,
   upsertRecurringIncomePlan,
   realizeRecurringIncome,
+  previewSalaryToYearEnd,
 } from '@/api/recurringIncome'
 import { getAccounts } from '@/api/accounts'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
@@ -289,24 +411,103 @@ const accounts = ref<Account[]>([])
 const loading = ref<boolean>(false)
 const saving = ref<boolean>(false)
 const realizingId = ref<string | null>(null)
+const previewingSalary = ref<boolean>(false)
+const salaryPreview = ref<SalaryPreviewResponse | null>(null)
 
-// 表单
+// 对话框状态
+const showCreateDialog = ref<boolean>(false)
 const editId = ref<string | undefined>(undefined)
-const type = ref<RecurringIncomeType>('salary')
-const label = ref<string>('')
-const amount = ref<string>('')
-const accountId = ref<string>('')
-const frequency = ref<RecurringIncomeFrequency>('monthly')
-const nextDueDate = ref<string>('') // YYYY-MM-DD
 
-function initFormForType(tType: RecurringIncomeType) {
-  type.value = tType
-  if (!label.value) {
-    if (tType === 'salary') label.value = t('recurring.salary.labelDefault', '工资')
-    if (tType === 'rent') label.value = t('recurring.rent.labelDefault', '房租收入')
-    if (tType === 'side') label.value = t('recurring.side.labelDefault', '副业收入')
-    if (tType === 'other') label.value = t('recurring.other.labelDefault', '其他固定收入')
+// 表单数据
+const formType = ref<RecurringIncomeType>('salary')
+const formLabel = ref<string>('')
+const formAmount = ref<number>(0)
+const formAccountId = ref<string>('')
+const formFrequency = ref<RecurringIncomeFrequency>('monthly')
+const formNextDueDate = ref<string>('')
+const formCityCode = ref<string>('beijing')
+
+// 工资预览表单
+const salaryPreviewForm = ref({
+  preTaxAmount: 15000,
+  cityCode: 'beijing',
+  startDate: '',
+  payDay: 10,
+  frequency: 'monthly' as RecurringIncomeFrequency,
+  currency: 'CNY',
+})
+
+const activePlans = computed(() =>
+  plans.value.filter((p) => p.active),
+)
+
+const canPreviewSalary = computed(() => {
+  return (
+    salaryPreviewForm.value.preTaxAmount > 0 &&
+    salaryPreviewForm.value.cityCode !== '' &&
+    salaryPreviewForm.value.startDate !== '' &&
+    salaryPreviewForm.value.payDay >= 1 &&
+    salaryPreviewForm.value.payDay <= 31
+  )
+})
+
+function getTypeLabel(type: RecurringIncomeType): string {
+  const labels: Record<RecurringIncomeType, string> = {
+    salary: '工资',
+    rent: '房租收入',
+    side: '固定副业',
+    other: '其他',
   }
+  return labels[type] || type
+}
+
+function getFrequencyLabel(frequency: RecurringIncomeFrequency): string {
+  const labels: Record<RecurringIncomeFrequency, string> = {
+    monthly: '每月',
+    bimonthly: '每两个月',
+    quarterly: '每季度',
+    semiannual: '每半年',
+    weekly: '每周',
+    yearly: '每年',
+  }
+  return labels[frequency] || frequency
+}
+
+// 计算未来几次收入日期和金额
+function getFutureIncomes(plan: RecurringIncomePlan, count: number): Array<{ date: string; amount: number }> {
+  const result: Array<{ date: string; amount: number }> = []
+  let currentDate = new Date(plan.nextDueDate)
+
+  for (let i = 0; i < count; i++) {
+    result.push({
+      date: currentDate.toISOString().split('T')[0],
+      amount: plan.amount,
+    })
+
+    // 计算下一个日期
+    switch (plan.frequency) {
+      case 'monthly':
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, currentDate.getDate())
+        break
+      case 'bimonthly':
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, currentDate.getDate())
+        break
+      case 'quarterly':
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 3, currentDate.getDate())
+        break
+      case 'semiannual':
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 6, currentDate.getDate())
+        break
+      case 'weekly':
+        currentDate = new Date(currentDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+        break
+      case 'yearly':
+        currentDate = new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate())
+        break
+    }
+  }
+
+  return result
 }
 
 function initDateToday() {
@@ -314,14 +515,15 @@ function initDateToday() {
   const yyyy = now.getFullYear()
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const dd = String(now.getDate()).padStart(2, '0')
-  nextDueDate.value = `${yyyy}-${mm}-${dd}`
+  formNextDueDate.value = `${yyyy}-${mm}-${dd}`
+  salaryPreviewForm.value.startDate = `${yyyy}-${mm}-${dd}`
 }
 
 async function loadAccounts() {
   const list = await getAccounts()
   accounts.value = list.filter((acc) => !acc.archived)
-  if (!accountId.value && accounts.value.length > 0) {
-    accountId.value = accounts.value[0].id
+  if (!formAccountId.value && accounts.value.length > 0) {
+    formAccountId.value = accounts.value[0].id
   }
 }
 
@@ -340,51 +542,59 @@ async function loadDueToday() {
   dueToday.value = list
 }
 
-onMounted(async () => {
-  loading.value = true
-  try {
-    await Promise.all([loadAccounts(), loadPlans(), loadDueToday()])
-    initFormForType('salary')
-    initDateToday()
-  } finally {
-    loading.value = false
-  }
-})
+function openCreateDialog() {
+  editId.value = undefined
+  formType.value = 'salary'
+  formLabel.value = ''
+  formAmount.value = 0
+  formAccountId.value = accounts.value.length > 0 ? accounts.value[0].id : ''
+  formFrequency.value = 'monthly'
+  initDateToday()
+  formCityCode.value = 'beijing'
+  showCreateDialog.value = true
+}
 
-const salaryPlans = computed(() =>
-  plans.value.filter((p) => p.type === 'salary' && p.active),
-)
-const rentPlans = computed(() =>
-  plans.value.filter((p) => p.type === 'rent' && p.active),
-)
-const otherPlans = computed(() =>
-  plans.value.filter((p) => p.type !== 'salary' && p.type !== 'rent' && p.active),
-)
+function closeCreateDialog() {
+  showCreateDialog.value = false
+  editId.value = undefined
+}
 
-async function onSave() {
-  const amt = Number(amount.value)
-  if (!amt || amt <= 0) {
-    alert(t('recurring.error.amount', '请输入正确的金额'))
+function editPlan(plan: RecurringIncomePlan) {
+  editId.value = plan.id
+  formType.value = plan.type
+  formLabel.value = plan.label
+  formAmount.value = plan.amount
+  formAccountId.value = plan.accountId
+  formFrequency.value = plan.frequency
+  formNextDueDate.value = plan.nextDueDate
+  formCityCode.value = plan.cityCode || 'beijing'
+  showCreateDialog.value = true
+}
+
+async function onSavePlan() {
+  if (!formAmount.value || formAmount.value <= 0) {
+    alert('请输入正确的金额')
     return
   }
-  if (!accountId.value) {
-    alert(t('recurring.error.account', '请选择收入到账账户'))
+  if (!formAccountId.value) {
+    alert('请选择收入到账账户')
     return
   }
-  if (!nextDueDate.value) {
-    alert(t('recurring.error.date', '请选择下次收入日期'))
+  if (!formNextDueDate.value) {
+    alert('请选择下次收入日期')
     return
   }
 
   const payload: UpsertRecurringIncomePayload = {
     id: editId.value,
-    type: type.value,
-    label: label.value || t('recurring.label.default', '固定收入'),
-    accountId: accountId.value,
-    amount: amt,
+    type: formType.value,
+    label: formLabel.value || getTypeLabel(formType.value),
+    accountId: formAccountId.value,
+    amount: formAmount.value,
     currency: 'CNY',
-    frequency: frequency.value,
-    nextDueDate: nextDueDate.value,
+    frequency: formFrequency.value,
+    nextDueDate: formNextDueDate.value,
+    cityCode: formType.value === 'salary' ? formCityCode.value : undefined,
     active: true,
   }
 
@@ -397,14 +607,34 @@ async function onSave() {
     } else {
       plans.value.push(saved)
     }
-    // 重置表单为"新增工资"
-    editId.value = undefined
-    amount.value = ''
-    initFormForType('salary')
-    initDateToday()
+    closeCreateDialog()
     await loadDueToday()
   } finally {
     saving.value = false
+  }
+}
+
+async function onPreviewSalary() {
+  if (!canPreviewSalary.value) {
+    alert('请填写完整的工资配置信息')
+    return
+  }
+
+  try {
+    previewingSalary.value = true
+    const result = await previewSalaryToYearEnd({
+      preTaxAmount: salaryPreviewForm.value.preTaxAmount,
+      cityCode: salaryPreviewForm.value.cityCode,
+      startDate: salaryPreviewForm.value.startDate,
+      payDay: salaryPreviewForm.value.payDay,
+      frequency: salaryPreviewForm.value.frequency,
+      currency: salaryPreviewForm.value.currency,
+    })
+    salaryPreview.value = result
+  } catch (error) {
+    alert(error instanceof Error ? error.message : '预览失败')
+  } finally {
+    previewingSalary.value = false
   }
 }
 
@@ -422,10 +652,19 @@ async function onRealize(plan: RecurringIncomePlan) {
     if (idx >= 0) {
       plans.value.splice(idx, 1, result.plan)
     }
-    // 从 dueToday 里移除
     dueToday.value = dueToday.value.filter((p) => p.id !== plan.id)
   } finally {
     realizingId.value = null
   }
 }
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    await Promise.all([loadAccounts(), loadPlans(), loadDueToday()])
+    initDateToday()
+  } finally {
+    loading.value = false
+  }
+})
 </script>

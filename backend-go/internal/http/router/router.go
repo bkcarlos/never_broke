@@ -88,6 +88,8 @@ func Setup(store *memory.Store) *gin.Engine {
 		v1.POST("/recurring-incomes", recurringIncomeHandler.UpsertPlanHandler)
 		v1.GET("/recurring-incomes/due", recurringIncomeHandler.ListDuePlansHandler)
 		v1.POST("/recurring-incomes/:id/realize", recurringIncomeHandler.RealizePlanHandler)
+		v1.POST("/recurring-incomes/salary/preview", recurringincome.SalaryPreviewHandler)
+		v1.GET("/recurring-incomes/projected-transactions", recurringIncomeHandler.ProjectedTransactionsHandler)
 	}
 
 	return r

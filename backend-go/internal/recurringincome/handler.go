@@ -75,6 +75,7 @@ func (h *Handler) UpsertPlanHandler(c *gin.Context) {
 		plan.DayOfMonth = req.DayOfMonth
 		plan.Weekday = req.Weekday
 		plan.NextDueDate = req.NextDueDate
+		plan.CityCode = req.CityCode
 		plan.Active = req.Active
 	} else {
 		// 新建计划
@@ -89,6 +90,7 @@ func (h *Handler) UpsertPlanHandler(c *gin.Context) {
 			DayOfMonth:  req.DayOfMonth,
 			Weekday:     req.Weekday,
 			NextDueDate: req.NextDueDate,
+			CityCode:    req.CityCode,
 			Active:      req.Active,
 			CreatedAt:   time.Now().Format(time.RFC3339),
 		}
@@ -230,4 +232,158 @@ func (h *Handler) RealizePlanHandler(c *gin.Context) {
 		Transaction: tx,
 	}
 	response.OK(c, resp)
+}
+
+// SalaryPreviewHandler 工资预览接口
+func SalaryPreviewHandler(c *gin.Context) {
+	var req SalaryPreviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warn("Invalid request body", zap.Error(err))
+		response.BadRequest(c, "invalid request")
+		return
+	}
+
+	if req.Currency == "" {
+		req.Currency = "CNY"
+	}
+
+	resp, err := PreviewSalaryToYearEnd(req)
+	if err != nil {
+		logger.Warn("Preview salary failed", zap.Error(err))
+		response.BadRequest(c, "preview salary failed")
+		return
+	}
+
+	response.OK(c, resp)
+}
+
+// ProjectedTransactionsHandler 未来明细投射接口
+func (h *Handler) ProjectedTransactionsHandler(c *gin.Context) {
+	from := c.Query("from")
+	to := c.Query("to")
+
+	if from == "" || to == "" {
+		response.BadRequest(c, "from and to parameters are required (YYYY-MM-DD)")
+		return
+	}
+
+	fromDate, err := time.Parse("2006-01-02", from)
+	if err != nil {
+		response.BadRequest(c, "invalid from date format, expected YYYY-MM-DD")
+		return
+	}
+
+	toDate, err := time.Parse("2006-01-02", to)
+	if err != nil {
+		response.BadRequest(c, "invalid to date format, expected YYYY-MM-DD")
+		return
+	}
+
+	if toDate.Before(fromDate) {
+		response.BadRequest(c, "to date must be after from date")
+		return
+	}
+
+	// 获取所有活跃的计划
+	plans := ListPlans()
+	var projected []ProjectedTransaction
+
+	for _, plan := range plans {
+		if !plan.Active {
+			continue
+		}
+
+		// 生成该计划在时间范围内的所有收入日期
+		dates := generateIncomeDates(plan, fromDate, toDate)
+
+		// 对工资类型，需要计算税后金额
+		isSalary := plan.Type == RecurringIncomeTypeSalary
+
+		for _, date := range dates {
+			amount := plan.Amount
+
+			// 如果是工资类型，需要计算税后金额
+			if isSalary && plan.CityCode != "" {
+				// 简化处理：使用工资预览逻辑计算单次税后金额
+				// 这里为了简化，我们使用一个估算值，或者可以调用 PreviewSalaryToYearEnd
+				// 但为了性能，我们使用简化计算
+				socialRate := GetSocialSecurityRate(plan.CityCode)
+				socialSecurity := amount * socialRate
+				taxableIncome := amount - socialSecurity - MonthlyDeduction
+				if taxableIncome > 0 {
+					// 简化：假设单次发薪的个税（不考虑累积）
+					tax := CalculateTax(taxableIncome)
+					amount = amount - socialSecurity - tax
+				} else {
+					amount = amount - socialSecurity
+				}
+			}
+
+			projected = append(projected, ProjectedTransaction{
+				Date:      date.Format("2006-01-02"),
+				AccountID: plan.AccountID,
+				Amount:    amount,
+				Type:      "income",
+				Label:     plan.Label,
+				PlanID:    plan.ID,
+				IsSalary:  isSalary,
+			})
+		}
+	}
+
+	logger.Info("List projected transactions",
+		zap.String("from", from),
+		zap.String("to", to),
+		zap.Int("count", len(projected)),
+	)
+
+	response.OK(c, projected)
+}
+
+// generateIncomeDates 生成计划在指定时间范围内的所有收入日期
+func generateIncomeDates(plan RecurringIncomePlan, fromDate, toDate time.Time) []time.Time {
+	var dates []time.Time
+
+	// 解析 nextDueDate
+	nextDue, err := time.Parse("2006-01-02", plan.NextDueDate)
+	if err != nil {
+		return dates
+	}
+
+	// 如果 nextDueDate 在 fromDate 之前，需要向前推算
+	currentDate := nextDue
+	if currentDate.Before(fromDate) {
+		// 向前推算到 fromDate 之后
+		for currentDate.Before(fromDate) {
+			currentDate = calcNextDate(currentDate, plan.Frequency, plan.DayOfMonth)
+		}
+	}
+
+	// 生成日期列表
+	for !currentDate.After(toDate) {
+		dates = append(dates, currentDate)
+		currentDate = calcNextDate(currentDate, plan.Frequency, plan.DayOfMonth)
+	}
+
+	return dates
+}
+
+// calcNextDate 计算下一个收入日期
+func calcNextDate(current time.Time, frequency RecurringIncomeFrequency, dayOfMonth int) time.Time {
+	switch frequency {
+	case FrequencyMonthly:
+		return AddMonths(current, 1)
+	case FrequencyBimonthly:
+		return AddMonths(current, 2)
+	case FrequencyQuarterly:
+		return AddMonths(current, 3)
+	case FrequencySemiannual:
+		return AddMonths(current, 6)
+	case FrequencyWeekly:
+		return current.AddDate(0, 0, 7)
+	case FrequencyYearly:
+		return current.AddDate(1, 0, 0)
+	default:
+		return AddMonths(current, 1)
+	}
 }

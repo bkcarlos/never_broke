@@ -4,6 +4,9 @@ import type {
   UpsertRecurringIncomePayload,
   RecurringIncomeRealizePayload,
   RecurringIncomeRealizeResult,
+  SalaryPreviewRequest,
+  SalaryPreviewResponse,
+  ProjectedTransaction,
 } from '@/types'
 
 export async function listRecurringIncomePlans(): Promise<RecurringIncomePlan[]> {
@@ -58,5 +61,38 @@ export async function realizeRecurringIncome(
     )
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : 'Failed to realize recurring income')
+  }
+}
+
+export async function previewSalaryToYearEnd(
+  payload: SalaryPreviewRequest,
+): Promise<SalaryPreviewResponse> {
+  try {
+    return await request<SalaryPreviewResponse>(
+      '/recurring-incomes/salary/preview',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+    )
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Failed to preview salary')
+  }
+}
+
+export async function listProjectedRecurringIncomeTransactions(
+  from: string,
+  to: string,
+): Promise<ProjectedTransaction[]> {
+  try {
+    return await request<ProjectedTransaction[]>(
+      `/recurring-incomes/projected-transactions?from=${encodeURIComponent(
+        from,
+      )}&to=${encodeURIComponent(to)}`,
+      { method: 'GET' },
+    )
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Failed to fetch projected incomes')
   }
 }
