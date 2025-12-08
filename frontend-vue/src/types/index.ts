@@ -114,6 +114,13 @@ export interface AccountOption {
   name: string
 }
 
+export interface CreateAccountPayload {
+  name: string
+  type: AccountType
+  currency: string
+  balance: number
+}
+
 // ========== 交易相关类型 ==========
 
 export type TransactionType = 'expense' | 'income' | 'transfer'
@@ -139,6 +146,51 @@ export interface Transaction {
   accountId?: string
   fromAccountId?: string
   toAccountId?: string
+}
+
+// ========== 预算相关类型 ==========
+
+export interface MonthlyBudget {
+  month: string       // 'YYYY-MM'
+  totalBudget: number
+}
+
+// ========== 导入相关类型 ==========
+
+export interface ImportPreviewItem {
+  date: string
+  categoryGuess: string
+  amount: number
+  remark: string
+}
+
+export interface ImportPreviewResult {
+  count: number
+  items: ImportPreviewItem[]
+}
+
+// ========== 收入计划相关类型 ==========
+
+export type IncomeFrequency = 'monthly' | 'weekly' | 'biweekly' | 'yearly'
+
+export interface IncomePlan {
+  id: string
+  name: string
+  amount: number
+  frequency: IncomeFrequency
+  accountId: string
+  firstPayDate: string // YYYY-MM-DD
+  endDate?: string
+  active: boolean
+}
+
+export interface CreateIncomePlanPayload {
+  name: string
+  amount: number
+  frequency: IncomeFrequency
+  accountId: string
+  firstPayDate: string
+  endDate?: string
 }
 
 // ========== API 响应通用类型 ==========

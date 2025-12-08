@@ -45,3 +45,11 @@ func AddToBalance(id string, delta float64) bool {
 	}
 	return false
 }
+
+// AddAccount 添加账户
+func AddAccount(acc Account) Account {
+	mu.Lock()
+	defer mu.Unlock()
+	accounts = append(accounts, acc)
+	return acc
+}

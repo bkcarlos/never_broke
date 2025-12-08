@@ -19,3 +19,11 @@ type Account struct {
 	Balance  float64     `json:"balance"`
 	Archived bool        `json:"archived"`
 }
+
+// CreateAccountRequest 创建账户请求
+type CreateAccountRequest struct {
+	Name     string      `json:"name"`
+	Type     AccountType `json:"type"`
+	Currency string      `json:"currency"`
+	Balance  float64     `json:"balance"`
+}

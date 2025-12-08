@@ -96,6 +96,20 @@
         </button>
       </div>
 
+      <!-- 薪资配置 -->
+      <div class="setting-item bg-white rounded-lg shadow p-4">
+        <button 
+          @click="handleSalary"
+          class="w-full flex items-center justify-between"
+        >
+          <div class="flex items-center gap-3">
+            <Icon name="wallet" size="24px" class="text-green-500" />
+            <span class="font-semibold">薪资配置</span>
+          </div>
+          <Icon name="add" size="20px" class="text-gray-400" />
+        </button>
+      </div>
+
       <!-- 示例金额展示 -->
       <div class="example bg-blue-50 rounded-lg p-4">
         <p class="text-sm text-gray-600 mb-2">{{ t('profile.example') }}</p>
@@ -125,10 +139,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { getUserSettings, updateUserSettings } from '@/api/user'
 import { t, locale, setLocale } from '@/i18n'
 import type { UserSettings, Locale } from '@/types'
 import Icon from '@/components/Icon.vue'
+
+const router = useRouter()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -181,24 +198,19 @@ function toggleShowAmount() {
 }
 
 function handleAddAccount() {
-  // TODO: 后续实现具体功能
-  console.log('Add account clicked')
-  const actionName = t('actions.addAccount')
-  alert(`TODO: ${t('actions.todoAlert').replace('{action}', actionName)}`)
+  router.push('/accounts/new')
 }
 
 function handleSetBudget() {
-  // TODO: 后续实现具体功能
-  console.log('Set budget clicked')
-  const actionName = t('actions.setBudget')
-  alert(`TODO: ${t('actions.todoAlert').replace('{action}', actionName)}`)
+  router.push('/settings/budget')
 }
 
 function handleImport() {
-  // TODO: 后续实现具体功能
-  console.log('Import clicked')
-  const actionName = t('actions.import')
-  alert(`TODO: ${t('actions.todoAlert').replace('{action}', actionName)}`)
+  router.push('/settings/import-bills')
+}
+
+function handleSalary() {
+  router.push('/settings/salary')
 }
 
 async function saveSettings() {

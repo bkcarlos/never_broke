@@ -33,6 +33,26 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ProfilePage.vue')
   },
   {
+    path: '/accounts/new',
+    name: 'NewAccount',
+    component: () => import('@/views/NewAccountPage.vue')
+  },
+  {
+    path: '/settings/budget',
+    name: 'BudgetSettings',
+    component: () => import('@/views/BudgetSettingsPage.vue')
+  },
+  {
+    path: '/settings/import-bills',
+    name: 'ImportBills',
+    component: () => import('@/views/ImportBillsPage.vue')
+  },
+  {
+    path: '/settings/salary',
+    name: 'SalarySettings',
+    component: () => import('@/views/SalarySettingsPage.vue')
+  },
+  {
     path: '/transfer',
     name: 'Transfer',
     component: () => import('@/views/TransferPage.vue')

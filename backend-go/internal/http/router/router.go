@@ -3,7 +3,10 @@ package router
 import (
 	"neverbroke/common/logger"
 	"neverbroke/internal/accounts"
+	"neverbroke/internal/budget"
 	"neverbroke/internal/home"
+	"neverbroke/internal/importer"
+	"neverbroke/internal/incomeplan"
 	"neverbroke/internal/ledger"
 	"neverbroke/internal/report"
 	"neverbroke/internal/storage/memory"
@@ -41,6 +44,7 @@ func Setup(store *memory.Store) *gin.Engine {
 		// 账户
 		accountsHandler := accounts.NewHandler()
 		v1.GET("/accounts", accountsHandler.ListAccountsHandler)
+		v1.POST("/accounts", accountsHandler.CreateAccountHandler)
 
 		// 账本明细
 		ledgerHandler := ledger.NewHandler()
@@ -55,6 +59,20 @@ func Setup(store *memory.Store) *gin.Engine {
 		userHandler := user.NewHandler(store)
 		v1.GET("/user/settings", userHandler.GetSettings)
 		v1.PATCH("/user/settings", userHandler.UpdateSettings)
+
+		// 预算
+		budgetHandler := budget.NewHandler()
+		v1.GET("/budget/monthly", budgetHandler.GetMonthlyBudgetHandler)
+		v1.PUT("/budget/monthly", budgetHandler.PutMonthlyBudgetHandler)
+
+		// 导入
+		importerHandler := importer.NewHandler()
+		v1.POST("/import/preview", importerHandler.PreviewHandler)
+
+		// 收入计划
+		incomePlanHandler := incomeplan.NewHandler()
+		v1.GET("/income-plans", incomePlanHandler.ListIncomePlansHandler)
+		v1.POST("/income-plans", incomePlanHandler.CreateIncomePlanHandler)
 	}
 
 	return r
