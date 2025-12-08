@@ -237,28 +237,46 @@
               </div>
               <div class="flex-1">
                 <div class="text-xs text-slate-500 mb-1">
-                  {{ t('record.installment.fee', '总手续费（可选）') }}
+                  {{ t('record.installment.monthlyRate', '月利率（%）') }}
                 </div>
                 <input
-                  v-model="feeTotal"
+                  v-model="monthlyRatePercent"
                   type="number"
                   min="0"
                   step="0.01"
                   class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-                  :placeholder="t('record.installment.feePlaceholder', '没有可填 0')"
+                  :placeholder="t('record.installment.monthlyRatePlaceholder', '例如 0.5')"
                 />
               </div>
             </div>
 
-            <div>
-              <div class="text-xs text-slate-500 mb-1">
-                {{ t('record.installment.firstDueDate', '首期扣款日') }}
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <div class="text-xs text-slate-500 mb-1">
+                  {{ t('record.installment.repayMethod', '还款方式') }}
+                </div>
+                <select
+                  v-model="repayMethod"
+                  class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+                >
+                  <option value="equal_principal">
+                    {{ t('record.installment.repayMethod.equalPrincipal', '等额本金') }}
+                  </option>
+                  <option value="equal_payment">
+                    {{ t('record.installment.repayMethod.equalPayment', '等额本息') }}
+                  </option>
+                </select>
               </div>
-              <input
-                v-model="firstDueDate"
-                type="date"
-                class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-              />
+              <div class="flex-1">
+                <div class="text-xs text-slate-500 mb-1">
+                  {{ t('record.installment.firstDueDate', '首期扣款日') }}
+                </div>
+                <input
+                  v-model="firstDueDate"
+                  type="date"
+                  class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
+                />
+              </div>
             </div>
 
             <div class="text-[11px] text-slate-400">
@@ -292,7 +310,12 @@ import { getAccounts } from '@/api/accounts'
 import { createTransaction } from '@/api/ledger'
 import { createExpenseInstallment } from '@/api/installments'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
-import type { Account, CreateTransactionPayload, CreateExpenseInstallmentPayload } from '@/types'
+import type {
+  Account,
+  CreateTransactionPayload,
+  CreateExpenseInstallmentPayload,
+  InstallmentRepayMethod
+} from '@/types'
 import { t } from '@/i18n'
 
 const route = useRoute()
@@ -328,7 +351,8 @@ const error = ref<string | null>(null)
 // 分期相关状态（仅支出模式）
 const isInstallment = ref<boolean>(false)
 const termMonths = ref<string>('3')
-const feeTotal = ref<string>('0')
+const monthlyRatePercent = ref<string>('0')
+const repayMethod = ref<InstallmentRepayMethod>('equal_principal')
 const firstDueDate = ref<string>('')
 
 // 分类列表
@@ -468,9 +492,9 @@ async function submitInstallmentExpense() {
     return
   }
 
-  const fee = Number(feeTotal.value || '0')
-  if (Number.isNaN(fee) || fee < 0) {
-    error.value = t('record.error.invalidFee', '请输入正确的手续费')
+  const rate = Number(monthlyRatePercent.value || '0')
+  if (Number.isNaN(rate) || rate < 0) {
+    error.value = t('record.error.invalidRate', '请输入正确的月利率')
     return
   }
 
@@ -491,12 +515,12 @@ async function submitInstallmentExpense() {
 
   const payload: CreateExpenseInstallmentPayload = {
     accountId: accountId.value,
-    totalAmount: numericAmount + fee,
     principal: numericAmount,
-    feeTotal: fee,
     termMonths: term,
-    currency: 'CNY',
+    monthlyRatePercent: rate,
+    repayMethod: repayMethod.value,
     firstDueDate: firstDueDate.value,
+    currency: 'CNY',
     categoryKey: categoryKey.value || undefined,
     remark: remark.value || undefined,
     purchaseDate: date.value,

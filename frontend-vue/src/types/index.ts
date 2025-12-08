@@ -232,14 +232,45 @@ export interface CreateIncomePlanPayload {
 
 export type InstallmentPlanStatus = 'active' | 'finished' | 'canceled'
 
+export type InstallmentRepayMethod = 'equal_principal' | 'equal_payment'
+
+export interface InstallmentPreviewItem {
+  period: number
+  dueDate: string
+  principal: number
+  interest: number
+  total: number
+  remainingPrincipal: number
+}
+
+export interface InstallmentPreviewResult {
+  principal: number
+  totalInterest: number
+  totalAmount: number
+  termMonths: number
+  monthlyRate: number
+  repayMethod: InstallmentRepayMethod
+  schedule: InstallmentPreviewItem[]
+}
+
+export interface PreviewInstallmentPayload {
+  principal: number
+  termMonths: number
+  monthlyRatePercent: number
+  repayMethod: InstallmentRepayMethod
+  firstDueDate: string
+  currency: string
+}
+
 export interface InstallmentPlan {
   id: string
   accountId: string
   totalAmount: number
   principal: number
-  feeTotal: number
+  totalInterest: number
   termMonths: number
-  monthlyAmount: number
+  monthlyRate: number
+  repayMethod: InstallmentRepayMethod
   currency: string
   firstDueDate: string
   status: InstallmentPlanStatus
@@ -248,12 +279,12 @@ export interface InstallmentPlan {
 
 export interface CreateExpenseInstallmentPayload {
   accountId: string
-  totalAmount: number
   principal: number
-  feeTotal: number
   termMonths: number
-  currency: string
+  monthlyRatePercent: number
+  repayMethod: InstallmentRepayMethod
   firstDueDate: string
+  currency: string
   categoryKey?: string
   remark?: string
   purchaseDate: string

@@ -19,6 +19,25 @@ func NewHandler() *Handler {
 	return &Handler{}
 }
 
+// PreviewInstallmentHandler 预览分期
+func (h *Handler) PreviewInstallmentHandler(c *gin.Context) {
+	var req PreviewInstallmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warn("Invalid request body", zap.Error(err))
+		response.BadRequest(c, "invalid request")
+		return
+	}
+
+	resp, err := BuildSchedule(req)
+	if err != nil {
+		logger.Warn("Build schedule failed", zap.Error(err))
+		response.BadRequest(c, "build schedule failed")
+		return
+	}
+
+	response.OK(c, resp)
+}
+
 // CreateExpenseInstallmentHandler 创建支出分期
 func (h *Handler) CreateExpenseInstallmentHandler(c *gin.Context) {
 	var req CreateExpenseInstallmentRequest
@@ -28,7 +47,7 @@ func (h *Handler) CreateExpenseInstallmentHandler(c *gin.Context) {
 		return
 	}
 
-	if req.AccountID == "" || req.TotalAmount <= 0 || req.TermMonths <= 1 {
+	if req.AccountID == "" || req.Principal <= 0 || req.TermMonths <= 1 {
 		response.BadRequest(c, "invalid params")
 		return
 	}
@@ -37,22 +56,32 @@ func (h *Handler) CreateExpenseInstallmentHandler(c *gin.Context) {
 		req.Currency = "CNY"
 	}
 
-	if req.Principal <= 0 {
-		req.Principal = req.TotalAmount
+	previewReq := PreviewInstallmentRequest{
+		Principal:          req.Principal,
+		TermMonths:         req.TermMonths,
+		MonthlyRatePercent: req.MonthlyRatePercent,
+		RepayMethod:        req.RepayMethod,
+		FirstDueDate:       req.FirstDueDate,
+		Currency:           req.Currency,
 	}
 
-	// 计算每期金额（简单平均，最后一期补差）
-	monthly := req.TotalAmount / float64(req.TermMonths)
+	scheduleResp, err := BuildSchedule(previewReq)
+	if err != nil {
+		logger.Warn("Build schedule failed", zap.Error(err))
+		response.BadRequest(c, "build schedule failed")
+		return
+	}
 
 	now := time.Now().UTC()
 	plan := InstallmentPlan{
 		ID:            uuid.NewString(),
 		AccountID:     req.AccountID,
-		TotalAmount:   req.TotalAmount,
-		Principal:     req.Principal,
-		FeeTotal:      req.FeeTotal,
-		TermMonths:    req.TermMonths,
-		MonthlyAmount: monthly,
+		Principal:     scheduleResp.Principal,
+		TotalInterest: scheduleResp.TotalInterest,
+		TotalAmount:   scheduleResp.TotalAmount,
+		TermMonths:    scheduleResp.TermMonths,
+		MonthlyRate:   scheduleResp.MonthlyRate,
+		RepayMethod:   scheduleResp.RepayMethod,
 		Currency:      req.Currency,
 		FirstDueDate:  req.FirstDueDate,
 		Status:        InstallmentStatusActive,
@@ -60,40 +89,28 @@ func (h *Handler) CreateExpenseInstallmentHandler(c *gin.Context) {
 	}
 	plan = AddPlan(plan)
 
-	// 生成每期还款交易
+	// 生成每期交易
 	var txs []ledger.Transaction
-	dueDate, err := time.Parse("2006-01-02", req.FirstDueDate)
-	if err != nil {
-		logger.Warn("Invalid firstDueDate format", zap.Error(err))
-		response.BadRequest(c, "invalid firstDueDate format, expected YYYY-MM-DD")
-		return
-	}
-
-	totalAssigned := 0.0
-
-	for i := 0; i < req.TermMonths; i++ {
-		amount := monthly
-		if i == req.TermMonths-1 {
-			// 最后一期用总额减已分配，避免小数误差
-			amount = req.TotalAmount - totalAssigned
+	for _, item := range scheduleResp.Schedule {
+		occ, err := time.Parse("2006-01-02", item.DueDate)
+		if err != nil {
+			logger.Warn("Invalid dueDate format", zap.String("dueDate", item.DueDate), zap.Error(err))
+			continue
 		}
-		totalAssigned += amount
-
-		occ := dueDate.AddDate(0, i, 0) // 每期加一个月
 
 		tx := ledger.Transaction{
 			ID: uuid.NewString(),
 			CreateTransactionRequest: ledger.CreateTransactionRequest{
 				Type:        ledger.TransactionTypeExpense,
-				Amount:      amount,
+				Amount:      item.Total,
 				CategoryKey: req.CategoryKey,
 				Remark:      req.Remark,
 				OccurredAt:  occ.Format(time.RFC3339),
 				AccountID:   req.AccountID,
 			},
 			InstallmentPlanID: plan.ID,
-			InstallmentPeriod: i + 1,
-			InstallmentTotal:  req.TermMonths,
+			InstallmentPeriod: item.Period,
+			InstallmentTotal:  scheduleResp.TermMonths,
 		}
 
 		// TODO: 存入交易存储（如有），目前可以先只返回
@@ -113,6 +130,7 @@ func (h *Handler) CreateExpenseInstallmentHandler(c *gin.Context) {
 	logger.Info("Installment plan created",
 		zap.String("planId", plan.ID),
 		zap.Int("termMonths", req.TermMonths),
+		zap.String("repayMethod", string(req.RepayMethod)),
 		zap.Int("transactionsCount", len(txs)),
 	)
 

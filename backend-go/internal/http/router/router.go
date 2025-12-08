@@ -79,6 +79,7 @@ func Setup(store *memory.Store) *gin.Engine {
 
 		// 分期
 		installmentHandler := installment.NewHandler()
+		v1.POST("/installments/preview", installmentHandler.PreviewInstallmentHandler)
 		v1.POST("/installments/expense", installmentHandler.CreateExpenseInstallmentHandler)
 
 		// 周期收入配置
