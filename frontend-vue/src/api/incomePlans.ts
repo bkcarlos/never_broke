@@ -22,3 +22,4 @@ export async function createIncomePlan(payload: CreateIncomePlanPayload): Promis
     throw new Error(error instanceof Error ? error.message : 'Failed to create income plan')
   }
 }
+

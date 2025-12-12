@@ -31,3 +31,4 @@ type CreateIncomePlanRequest struct {
 	FirstPayDate string          `json:"firstPayDate"`
 	EndDate      string          `json:"endDate"`
 }
+

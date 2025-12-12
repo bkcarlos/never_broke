@@ -85,3 +85,4 @@ func (h *Handler) CreateIncomePlanHandler(c *gin.Context) {
 	logger.Info("Income plan created", zap.String("id", result.ID), zap.String("name", result.Name))
 	response.OK(c, result)
 }
+

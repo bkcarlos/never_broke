@@ -22,3 +22,4 @@ func UpsertMonthlyBudget(b MonthlyBudget) MonthlyBudget {
 	records[b.Month] = b
 	return b
 }
+

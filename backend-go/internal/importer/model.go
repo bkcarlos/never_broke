@@ -18,3 +18,4 @@ type ImportPreviewResponse struct {
 type ImportPreviewRequest struct {
 	Raw string `json:"raw"`
 }
+

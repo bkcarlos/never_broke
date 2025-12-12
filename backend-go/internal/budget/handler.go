@@ -63,3 +63,4 @@ func (h *Handler) PutMonthlyBudgetHandler(c *gin.Context) {
 	logger.Info("Monthly budget updated", zap.String("month", result.Month), zap.Float64("totalBudget", result.TotalBudget))
 	response.OK(c, result)
 }
+

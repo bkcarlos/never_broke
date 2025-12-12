@@ -30,3 +30,4 @@ export async function saveMonthlyBudget(payload: MonthlyBudget): Promise<Monthly
     throw new Error(error instanceof Error ? error.message : 'Failed to save monthly budget')
   }
 }
+
