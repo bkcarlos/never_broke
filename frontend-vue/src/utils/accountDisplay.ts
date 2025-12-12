@@ -66,17 +66,20 @@ export function formatAccountDisplayName(account: Account): string {
     return typeLabel
   }
 
-  // 所有账户类型统一格式：账户类型(尾号)
-  // 如果有卡号尾号，显示为 "类型(尾号)"
-  if (account.cardLast4 && account.cardLast4.length > 0) {
-    return `${typeLabel}(${account.cardLast4})`
-  }
-
-  // 如果没有尾号但有机构，显示为 "机构 类型"
+  // 统一格式：机构 + 类型(尾号)
+  const parts: string[] = []
+  
+  // 1. 添加机构/平台（如果有）
   if (institutionLabel) {
-    return `${institutionLabel}${typeLabel}`
+    parts.push(institutionLabel)
   }
 
-  // 否则只显示类型
-  return typeLabel || t('account.display.unnamed', '未配置账户')
+  // 2. 添加账户类型(尾号)
+  if (account.cardLast4 && account.cardLast4.length > 0) {
+    parts.push(`${typeLabel}(${account.cardLast4})`)
+  } else {
+    parts.push(typeLabel)
+  }
+
+  return parts.length > 0 ? parts.join(' ') : t('account.display.unnamed', '未配置账户')
 }
