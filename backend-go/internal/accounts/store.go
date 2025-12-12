@@ -71,6 +71,18 @@ func AddToBalance(id string, delta float64) bool {
 	return false
 }
 
+// HasCashAccount 检查是否已存在现金账户
+func HasCashAccount() bool {
+	mu.RLock()
+	defer mu.RUnlock()
+	for i := range accounts {
+		if accounts[i].Type == AccountTypeCash && !accounts[i].Archived {
+			return true
+		}
+	}
+	return false
+}
+
 // AddAccount 添加账户
 func AddAccount(acc Account) Account {
 	mu.Lock()

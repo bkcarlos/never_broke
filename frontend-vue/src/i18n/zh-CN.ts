@@ -179,6 +179,7 @@ export default {
   'account.error.load': '加载账户失败',
   'account.error.invalidCreditLimit': '请输入有效的总额度',
   'account.error.invalidTempLimit': '请输入有效的临时额度',
+  'account.error.cashExists': '现金账户已存在，系统只能有一个现金账户',
   // 账户机构
   'account.institution.icbc': '工行',
   'account.institution.ccb': '建行',

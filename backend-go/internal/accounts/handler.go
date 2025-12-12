@@ -50,7 +50,14 @@ func (h *Handler) CreateAccountHandler(c *gin.Context) {
 	}
 
 	// 根据账户类型校验必填字段
-	if req.Type == AccountTypeBank || req.Type == AccountTypeCredit {
+	switch req.Type {
+	case AccountTypeCash:
+		// cash 时：检查是否已存在现金账户
+		if HasCashAccount() {
+			response.BadRequest(c, "cash account already exists")
+			return
+		}
+	case AccountTypeBank, AccountTypeCredit:
 		// bank/credit 时：institution 必填
 		if req.Institution == "" {
 			response.BadRequest(c, "institution is required for bank/credit accounts")
@@ -64,14 +71,16 @@ func (h *Handler) CreateAccountHandler(c *gin.Context) {
 				return
 			}
 		}
-	} else if req.Type == AccountTypeWallet {
+	case AccountTypeWallet:
 		// wallet 时：institution 必填（wechat/alipay/other）
 		if req.Institution == "" {
 			response.BadRequest(c, "institution is required for wallet accounts")
 			return
 		}
+	default:
+		response.BadRequest(c, "invalid account type")
+		return
 	}
-	// cash 时：institution 可空
 
 	// 生成 ID
 	id := uuid.NewString()

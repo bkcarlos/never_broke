@@ -24,12 +24,21 @@
               v-for="type in accountTypes"
               :key="type.value"
               @click="handleTypeChange(type.value)"
+              :disabled="type.value === 'cash' && hasCashAccount"
               class="px-4 py-3 border-2 rounded-lg font-medium transition-all"
-              :class="form.type === type.value
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-300 text-gray-700 hover:border-gray-400'"
+              :class="[
+                form.type === type.value
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-300 text-gray-700 hover:border-gray-400',
+                type.value === 'cash' && hasCashAccount
+                  ? 'opacity-50 cursor-not-allowed'
+                  : ''
+              ]"
             >
               {{ type.label }}
+              <span v-if="type.value === 'cash' && hasCashAccount" class="text-xs block text-gray-400">
+                (已存在)
+              </span>
             </button>
           </div>
           <p v-if="errors.type" class="mt-1 text-sm text-red-500">{{ errors.type }}</p>
@@ -174,14 +183,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { createAccount } from '@/api/accounts'
+import { createAccount, getAccounts } from '@/api/accounts'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import type { AccountType, AccountInstitution, CreateAccountPayload, Account } from '@/types'
 import Icon from '@/components/Icon.vue'
 
 const router = useRouter()
+
+const existingAccounts = ref<Account[]>([])
+const hasCashAccount = computed(() => 
+  existingAccounts.value.some(acc => acc.type === 'cash' && !acc.archived)
+)
 
 const form = reactive<CreateAccountPayload & { creditLimit?: number; tempLimit?: number }>({
   type: 'cash' as AccountType,
@@ -264,6 +278,12 @@ function validateForm(): boolean {
   // 校验类型
   if (!form.type) {
     errors.type = '请选择账户类型'
+    isValid = false
+  }
+
+  // 检查现金账户是否已存在
+  if (form.type === 'cash' && hasCashAccount.value) {
+    errors.type = '现金账户已存在，系统只能有一个现金账户'
     isValid = false
   }
 
@@ -386,6 +406,14 @@ async function handleSubmit() {
     submitting.value = false
   }
 }
+
+onMounted(async () => {
+  try {
+    existingAccounts.value = await getAccounts()
+  } catch (error) {
+    console.error('Failed to load existing accounts:', error)
+  }
+})
 </script>
 
 <style scoped>

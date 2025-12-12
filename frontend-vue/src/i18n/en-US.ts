@@ -179,6 +179,7 @@ export default {
   'account.error.load': 'Failed to load accounts',
   'account.error.invalidCreditLimit': 'Please enter a valid credit limit',
   'account.error.invalidTempLimit': 'Please enter a valid temp limit',
+  'account.error.cashExists': 'Cash account already exists. Only one cash account is allowed.',
   // Account Institution
   'account.institution.icbc': 'ICBC',
   'account.institution.ccb': 'CCB',
