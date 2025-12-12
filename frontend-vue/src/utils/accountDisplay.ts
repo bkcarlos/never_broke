@@ -60,42 +60,23 @@ function getTypeLabel(type: AccountType): string {
 export function formatAccountDisplayName(account: Account): string {
   const institutionLabel = getInstitutionLabel(account.institution)
   const typeLabel = getTypeLabel(account.type)
-  const parts: string[] = []
 
   // 现金类型：只显示类型
   if (account.type === 'cash') {
-    parts.push(typeLabel)
-    return parts.join(' ')
+    return typeLabel
   }
 
-  // 钱包类型：显示机构（平台）+ 类型，不显示尾号
-  if (account.type === 'wallet') {
-    if (institutionLabel) {
-      parts.push(institutionLabel)
-    }
-    parts.push(typeLabel)
-    return parts.join(' ')
+  // 所有账户类型统一格式：账户类型(尾号)
+  // 如果有卡号尾号，显示为 "类型(尾号)"
+  if (account.cardLast4 && account.cardLast4.length > 0) {
+    return `${typeLabel}(${account.cardLast4})`
   }
 
-  // 银行卡和信用卡：显示机构 + 类型 + 尾号
-  // 1. 机构（如果有）
+  // 如果没有尾号但有机构，显示为 "机构 类型"
   if (institutionLabel) {
-    parts.push(institutionLabel)
+    return `${institutionLabel}${typeLabel}`
   }
 
-  // 2. 账户类型（必定有）
-  parts.push(typeLabel)
-
-  // 3. 尾号（仅 bank 和 credit 类型显示）
-  if ((account.type === 'bank' || account.type === 'credit') && account.cardLast4 && account.cardLast4.length > 0) {
-    parts.push(
-      t('account.display.last4', '尾号{last4}').replace('{last4}', account.cardLast4)
-    )
-  }
-
-  if (parts.length === 0) {
-    return t('account.display.unnamed', '未配置账户')
-  }
-
-  return parts.join(' ')
+  // 否则只显示类型
+  return typeLabel || t('account.display.unnamed', '未配置账户')
 }
