@@ -6,3 +6,4 @@ type MonthlyBudget struct {
 	TotalBudget float64 `json:"totalBudget"` // 当月总预算
 }
 
+

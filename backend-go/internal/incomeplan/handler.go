@@ -86,3 +86,4 @@ func (h *Handler) CreateIncomePlanHandler(c *gin.Context) {
 	response.OK(c, result)
 }
 
+

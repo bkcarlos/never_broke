@@ -28,3 +28,4 @@ func OpenPostgres(cfg dbconfig.DBConfig) (*sql.DB, error) {
 	return db, nil
 }
 
+

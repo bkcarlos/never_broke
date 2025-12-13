@@ -32,3 +32,4 @@ type CreateIncomePlanRequest struct {
 	EndDate      string          `json:"endDate"`
 }
 
+

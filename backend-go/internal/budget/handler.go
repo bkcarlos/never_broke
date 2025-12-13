@@ -64,3 +64,4 @@ func (h *Handler) PutMonthlyBudgetHandler(c *gin.Context) {
 	response.OK(c, result)
 }
 
+

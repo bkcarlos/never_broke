@@ -50,3 +50,4 @@ type RecurringIncomeRepository interface {
 	Update(ctx context.Context, plan *recurringincome.RecurringIncomePlan) error
 }
 
+
