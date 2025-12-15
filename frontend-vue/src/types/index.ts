@@ -65,6 +65,41 @@ export interface DailyTransactionResponse {
 
 // ========== 报表页相关类型 ==========
 
+export type PeriodType = 'monthly' | 'yearly'
+
+export interface CategorySummary {
+  categoryKey: string
+  amount: number
+  ratio: number
+}
+
+export interface TrendPoint {
+  date: string // YYYY-MM-DD
+  income: number
+  expense: number
+}
+
+export interface CompareSummary {
+  prevYear: number
+  prevMonth: number
+  expenseChange: number
+  expenseChangeRate: number
+}
+
+export interface SummaryReport {
+  period: PeriodType
+  year: number
+  month: number
+  totalIncome: number
+  totalExpense: number
+  netAmount: number
+  categories: CategorySummary[]
+  trend: TrendPoint[]
+  topCategories: CategorySummary[]
+  compareWithPrevMonth?: CompareSummary
+}
+
+// 保留旧类型以兼容现有代码
 export interface CategoryReportItem {
   categoryKey: string
   amount: number
@@ -389,6 +424,50 @@ export interface ProjectedTransaction {
   label: string
   planId: string
   isSalary: boolean
+}
+
+// ========== 时间线相关类型 ==========
+
+export type TimelineMode = 'history' | 'with_future'
+
+export interface DailySummary {
+  date: string
+  income: number
+  expense: number
+  net: number
+  hasFuture: boolean
+}
+
+export interface DailyTimeline {
+  fromDate: string
+  toDate: string
+  mode: TimelineMode
+  days: DailySummary[]
+}
+
+// ========== 现金流预测相关类型 ==========
+
+export type ForecastBase = 'total_assets' | 'account'
+export type ForecastStatus = 'safe' | 'warning' | 'danger'
+
+export interface DailyForecastPoint {
+  date: string           // YYYY-MM-DD
+  openingBalance: number
+  inflow: number
+  outflow: number
+  closingBalance: number
+}
+
+export interface CashflowForecast {
+  startDate: string
+  endDate: string
+  base: ForecastBase
+  accountId?: string
+  safeAmount: number
+  points: DailyForecastPoint[]
+  status: ForecastStatus
+  dangerDates: string[]
+  warningDates: string[]
 }
 
 // ========== API 响应通用类型 ==========

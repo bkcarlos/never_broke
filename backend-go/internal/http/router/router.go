@@ -4,6 +4,7 @@ import (
 	"neverbroke/common/logger"
 	"neverbroke/internal/accounts"
 	"neverbroke/internal/budget"
+	"neverbroke/internal/cashflow"
 	"neverbroke/internal/home"
 	"neverbroke/internal/importer"
 	"neverbroke/internal/incomeplan"
@@ -11,7 +12,10 @@ import (
 	"neverbroke/internal/ledger"
 	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/report"
+	"neverbroke/internal/reports"
+	"neverbroke/internal/repository/memoryadapter"
 	"neverbroke/internal/storage/memory"
+	"neverbroke/internal/timeline"
 	"neverbroke/internal/user"
 
 	"github.com/gin-contrib/cors"
@@ -90,6 +94,17 @@ func Setup(store *memory.Store) *gin.Engine {
 		v1.POST("/recurring-incomes/:id/realize", recurringIncomeHandler.RealizePlanHandler)
 		v1.POST("/recurring-incomes/salary/preview", recurringincome.SalaryPreviewHandler)
 		v1.GET("/recurring-incomes/projected-transactions", recurringIncomeHandler.ProjectedTransactionsHandler)
+
+		// 现金流预测
+		memoryStoreAdapter := memoryadapter.NewMemoryStoreAdapter()
+		v1.GET("/cashflow/forecast", cashflow.ForecastHandler(memoryStoreAdapter))
+
+		// 报表分析
+		v1.GET("/reports/monthly-summary", reports.MonthlySummaryHandler(memoryStoreAdapter))
+
+		// 时间线
+		v1.GET("/timeline/daily-summary", timeline.DailySummaryHandler(memoryStoreAdapter))
+		v1.GET("/timeline/daily-detail", timeline.DailyDetailHandler(memoryStoreAdapter))
 	}
 
 	return r

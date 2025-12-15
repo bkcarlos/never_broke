@@ -100,6 +100,13 @@ export default {
   'reports.dailyTrend': '每日趋势',
   'reports.income': '收',
   'reports.expense': '支',
+  'reports.compareWithPrevMonth': '与上月对比',
+  'reports.expenseUp': '比上月增加 {percent}%',
+  'reports.expenseDown': '比上月减少 {percent}%',
+  'reports.expenseSame': '与上月持平',
+  'reports.summary': '支出总结',
+  'reports.topCategoriesDesc': '本月前三大支出分类：',
+  'reports.suggestion': '建议：合理控制支出，保持收支平衡。',
 
   // 我的页面
   'profile.title': '我的',
@@ -208,6 +215,44 @@ export default {
   'account.display.last4': '尾号{last4}',
   'account.display.unnamed': '未配置账户',
 
+  // 现金流预测
+  'cashflow.title': '现金流预测',
+  'cashflow.filterTitle': '预测设置',
+  'cashflow.timeRange': '时间范围',
+  'cashflow.days': '天',
+  'cashflow.base': '预测基准',
+  'cashflow.totalAssets': '所有账户合计',
+  'cashflow.singleAccount': '指定账户',
+  'cashflow.selectAccount': '选择账户',
+  'cashflow.pleaseSelect': '请选择账户',
+  'cashflow.safeAmount': '安全垫金额',
+  'cashflow.safeAmountPlaceholder': '建议设置为月支出的1-2倍',
+  'cashflow.refresh': '刷新预测',
+  'cashflow.overview': '预测概览',
+  'cashflow.statusSafe': '资金安全',
+  'cashflow.statusWarning': '资金预警',
+  'cashflow.statusDanger': '资金危险',
+  'cashflow.minBalance': '最低余额',
+  'cashflow.dangerDays': '危险天数',
+  'cashflow.warningDays': '预警天数',
+  'cashflow.balanceTrend': '余额趋势',
+  'cashflow.balance': '余额',
+  'cashflow.safeLine': '安全线',
+  'cashflow.pressureDays': '资金压力日',
+  'cashflow.danger': '危险',
+  'cashflow.warning': '预警',
+  'cashflow.expectedBalance': '预计余额',
+  'cashflow.pleaseSelectAccount': '请选择账户',
+
+  // 时间线
+  'timeline.title': '时间线',
+  'timeline.mode': '查看模式',
+  'timeline.history': '仅历史',
+  'timeline.withFuture': '含未来',
+  'timeline.calendar': '日历视图',
+  'timeline.detail': '明细',
+  'timeline.projected': '预计',
+
   // 通用
   'common.loading': '加载中...',
   'common.error': '出错了',
@@ -215,6 +260,7 @@ export default {
   'common.save': '保存',
   'common.cancel': '取消',
   'common.confirm': '确认',
+  'common.back': '返回',
   'common.year': '年',
   'common.month': '月'
 }

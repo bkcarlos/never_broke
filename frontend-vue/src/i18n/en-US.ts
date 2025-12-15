@@ -100,6 +100,13 @@ export default {
   'reports.dailyTrend': 'Daily Trend',
   'reports.income': 'In',
   'reports.expense': 'Out',
+  'reports.compareWithPrevMonth': 'Compare with Previous Month',
+  'reports.expenseUp': 'Up {percent}% from last month',
+  'reports.expenseDown': 'Down {percent}% from last month',
+  'reports.expenseSame': 'Same as last month',
+  'reports.summary': 'Expense Summary',
+  'reports.topCategoriesDesc': 'Top 3 expense categories this month:',
+  'reports.suggestion': 'Suggestion: Control expenses reasonably and maintain balance.',
 
   // Profile Page
   'profile.title': 'Profile',
@@ -208,6 +215,44 @@ export default {
   'account.display.last4': 'Last4 {last4}',
   'account.display.unnamed': 'Unnamed Account',
 
+  // Cashflow Forecast
+  'cashflow.title': 'Cashflow Forecast',
+  'cashflow.filterTitle': 'Forecast Settings',
+  'cashflow.timeRange': 'Time Range',
+  'cashflow.days': 'Days',
+  'cashflow.base': 'Forecast Base',
+  'cashflow.totalAssets': 'All Accounts',
+  'cashflow.singleAccount': 'Single Account',
+  'cashflow.selectAccount': 'Select Account',
+  'cashflow.pleaseSelect': 'Please select account',
+  'cashflow.safeAmount': 'Safety Cushion',
+  'cashflow.safeAmountPlaceholder': 'Recommend 1-2x monthly expenses',
+  'cashflow.refresh': 'Refresh Forecast',
+  'cashflow.overview': 'Forecast Overview',
+  'cashflow.statusSafe': 'Safe',
+  'cashflow.statusWarning': 'Warning',
+  'cashflow.statusDanger': 'Danger',
+  'cashflow.minBalance': 'Min Balance',
+  'cashflow.dangerDays': 'Danger Days',
+  'cashflow.warningDays': 'Warning Days',
+  'cashflow.balanceTrend': 'Balance Trend',
+  'cashflow.balance': 'Balance',
+  'cashflow.safeLine': 'Safety Line',
+  'cashflow.pressureDays': 'Pressure Days',
+  'cashflow.danger': 'Danger',
+  'cashflow.warning': 'Warning',
+  'cashflow.expectedBalance': 'Expected Balance',
+  'cashflow.pleaseSelectAccount': 'Please select account',
+
+  // Timeline
+  'timeline.title': 'Timeline',
+  'timeline.mode': 'View Mode',
+  'timeline.history': 'History Only',
+  'timeline.withFuture': 'With Future',
+  'timeline.calendar': 'Calendar View',
+  'timeline.detail': 'Detail',
+  'timeline.projected': 'Projected',
+
   // Common
   'common.loading': 'Loading...',
   'common.error': 'Error',
@@ -215,6 +260,7 @@ export default {
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.confirm': 'Confirm',
+  'common.back': 'Back',
   'common.year': '',
   'common.month': ''
 }

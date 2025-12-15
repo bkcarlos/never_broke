@@ -97,3 +97,4 @@ CREATE INDEX IF NOT EXISTS idx_recurring_income_next_due_date
   ON recurring_income_plans(next_due_date) WHERE active = TRUE;
 
 
+

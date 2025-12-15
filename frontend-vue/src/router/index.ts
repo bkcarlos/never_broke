@@ -66,6 +66,16 @@ const routes: RouteRecordRaw[] = [
     path: '/transfer',
     name: 'Transfer',
     component: () => import('@/views/TransferPage.vue')
+  },
+  {
+    path: '/cashflow',
+    name: 'CashflowForecast',
+    component: () => import('@/views/CashflowForecastPage.vue')
+  },
+  {
+    path: '/timeline',
+    name: 'Timeline',
+    component: () => import('@/views/TimelinePage.vue')
   }
 ]
 
