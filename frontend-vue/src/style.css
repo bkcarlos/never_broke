@@ -27,6 +27,8 @@ body {
   scrollbar-width: none;
   /* IE 和 Edge */
   -ms-overflow-style: none;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body::-webkit-scrollbar {
@@ -41,6 +43,7 @@ body::-webkit-scrollbar {
   scrollbar-width: none;
   /* IE 和 Edge */
   -ms-overflow-style: none;
+  width: 100%;
 }
 
 #app::-webkit-scrollbar {
@@ -68,7 +71,7 @@ body::-webkit-scrollbar {
   }
   
   .page-content {
-    @apply p-4 pb-3;
+    @apply pb-3;
   }
 }
 

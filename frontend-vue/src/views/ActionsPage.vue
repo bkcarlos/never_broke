@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-content">
+    <div class="page-content px-4">
     <div class="actions-grid grid grid-cols-2 gap-4">
       <!-- 记支出 -->
       <button 

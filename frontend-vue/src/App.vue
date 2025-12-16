@@ -163,10 +163,10 @@ function handleSelect(action: RadialAction) {
 .app-container {
   min-height: 800px;
   background-color: #f5f5f5;
-  /* 限制最小宽度为手机合理尺寸，最大宽度并居中 */
+  /* 限制最小宽度为手机合理尺寸 */
   min-width: 320px;
-  max-width: 100%;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   position: relative;
 }
 
@@ -174,6 +174,7 @@ function handleSelect(action: RadialAction) {
 @media (min-width: 768px) {
   .app-container {
     max-width: 768px;
+    margin: 0 auto;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
   }
 }
@@ -188,6 +189,17 @@ function handleSelect(action: RadialAction) {
   z-index: 1000;
   /* 确保导航栏始终在最上层 */
   position: fixed;
+  max-width: 768px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 767px) {
+  .bottom-nav {
+    left: 0;
+    right: 0;
+    transform: none;
+  }
 }
 
 /* 全局样式：确保所有下拉框的z-index低于导航栏 */

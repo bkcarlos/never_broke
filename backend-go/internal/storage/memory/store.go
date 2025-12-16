@@ -42,4 +42,3 @@ func (s *Store) UpdateUserSettings(userID string, settings *models.UserSettings)
 	s.userSettings[userID] = settings
 	return nil
 }
-

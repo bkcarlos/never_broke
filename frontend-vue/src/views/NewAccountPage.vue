@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-content">
+    <div class="page-content px-4">
       <!-- 顶部栏 -->
       <div class="flex items-center gap-4 mb-6">
         <button

@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-content">
+    <div class="page-content px-4">
     <!-- 日期选择 -->
     <div class="date-selector bg-white rounded-lg shadow p-4 mb-4">
       <div class="flex items-center justify-between">

@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-content">
+    <div class="page-content px-4">
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
       <p class="text-gray-500">{{ t('common.loading') }}</p>

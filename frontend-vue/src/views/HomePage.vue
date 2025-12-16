@@ -26,12 +26,12 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="flex-1 flex items-center justify-center page-content">
+    <div v-if="loading" class="flex-1 flex items-center justify-center page-content px-4">
       <p class="text-white/90">{{ t('common.loading') }}</p>
     </div>
 
     <!-- 错误状态 -->
-    <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center page-content">
+    <div v-else-if="error" class="flex-1 flex flex-col items-center justify-center page-content px-4">
       <p class="text-white mb-4">{{ t('common.error') }}: {{ error }}</p>
       <button 
         @click="loadData" 
@@ -42,7 +42,7 @@
     </div>
 
     <!-- 主内容区 -->
-    <div v-else-if="data" class="flex-1 page-content">
+    <div v-else-if="data" class="flex-1 page-content px-4">
       <!-- 卡片 1: 资产总览 -->
       <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
         <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.assetSummary') }}</h2>
