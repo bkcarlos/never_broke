@@ -5,6 +5,7 @@ import (
 	"neverbroke/internal/accounts"
 	"neverbroke/internal/budget"
 	"neverbroke/internal/cashflow"
+	"neverbroke/internal/citysocialrate"
 	"neverbroke/internal/home"
 	"neverbroke/internal/importer"
 	"neverbroke/internal/incomeplan"
@@ -94,6 +95,16 @@ func Setup(store *memory.Store) *gin.Engine {
 		v1.POST("/recurring-incomes/:id/realize", recurringIncomeHandler.RealizePlanHandler)
 		v1.POST("/recurring-incomes/salary/preview", recurringincome.SalaryPreviewHandler)
 		v1.GET("/recurring-incomes/projected-transactions", recurringIncomeHandler.ProjectedTransactionsHandler)
+
+		// 城市社保比例
+		citySocialRateHandler := citysocialrate.NewHandler()
+		v1.GET("/city-social-rates", citySocialRateHandler.ListCitySocialRatesHandler)
+		v1.GET("/city-social-rates/:cityCode", citySocialRateHandler.GetCitySocialRateDetailHandler)
+
+		// 薪资控制（我的 -> 薪资控制）
+		v1.GET("/me/salary-plan", recurringIncomeHandler.GetSalaryPlanHandler)
+		v1.POST("/me/salary-plan", recurringIncomeHandler.UpsertSalaryPlanHandler)
+		v1.DELETE("/me/salary-plan/:id", recurringIncomeHandler.DeleteSalaryPlanHandler)
 
 		// 现金流预测
 		memoryStoreAdapter := memoryadapter.NewMemoryStoreAdapter()

@@ -96,6 +96,27 @@
         </button>
       </div>
 
+      <!-- 薪资控制 -->
+      <div class="setting-item bg-white rounded-lg shadow p-4">
+        <button 
+          @click="handleSalaryControl"
+          class="w-full flex items-center justify-between"
+        >
+          <div class="flex items-center gap-3">
+            <Icon name="wallet" size="24px" class="text-emerald-500" />
+            <div class="text-left">
+              <div class="text-sm font-medium text-slate-800">
+                {{ t('me.salary.title', '薪资控制') }}
+              </div>
+              <div class="text-xs text-slate-500">
+                {{ t('me.salary.subtitle', '配置工资方案并预览税后收入') }}
+              </div>
+            </div>
+          </div>
+          <Icon name="add" size="20px" class="text-gray-400" />
+        </button>
+      </div>
+
       <!-- 周期收入配置 -->
       <div class="setting-item bg-white rounded-lg shadow p-4">
         <button 
@@ -207,6 +228,10 @@ function handleSetBudget() {
 
 function handleImport() {
   router.push('/settings/import-bills')
+}
+
+function handleSalaryControl() {
+  router.push('/me/salary')
 }
 
 function handleRecurringIncome() {

@@ -28,7 +28,7 @@ type RecurringIncomePlan struct {
 	Type          RecurringIncomeType      `json:"type"`        // salary/rent/side/other
 	Label         string                   `json:"label"`       // 展示名称，如"工资""房租"
 	AccountID     string                   `json:"accountId"`   // 收入到账账户
-	Amount        float64                  `json:"amount"`      // 每次收入金额（固定），工资为税前
+	Amount        float64                  `json:"amount"`      // 每次收入金额（固定），工资为税后
 	Currency      string                   `json:"currency"`    // CNY
 	Frequency     RecurringIncomeFrequency `json:"frequency"`   // monthly/weekly/...
 	DayOfMonth    int                      `json:"dayOfMonth"`  // 月频率时使用：1-31
@@ -38,6 +38,13 @@ type RecurringIncomePlan struct {
 	CityCode      string                   `json:"cityCode,omitempty"` // 薪资：纳税城市，如 "shanghai"
 	Active        bool                     `json:"active"`
 	CreatedAt     string                   `json:"createdAt"`
+
+	// 薪资专用配置（可选）
+	SalaryPreTaxMonthly   float64 `json:"salaryPreTaxMonthly,omitempty"`
+	SalarySocialRate      float64 `json:"salarySocialRate,omitempty"`
+	SalaryExtraDeductions float64 `json:"salaryExtraDeductions,omitempty"`
+	SalaryPayDay          int     `json:"salaryPayDay,omitempty"`
+	SalaryStartDate       string  `json:"salaryStartDate,omitempty"` // YYYY-MM-DD
 }
 
 // UpsertRecurringIncomeRequest 新建/更新请求
@@ -58,12 +65,14 @@ type UpsertRecurringIncomeRequest struct {
 
 // SalaryPreviewRequest 工资预览请求：从 startDate 到当年年底
 type SalaryPreviewRequest struct {
-	PreTaxAmount float64                  `json:"preTaxAmount"` // 每次发薪税前金额
-	CityCode     string                   `json:"cityCode"`     // 纳税城市，如 "beijing", "shanghai"
-	StartDate    string                   `json:"startDate"`    // 开始执行日期 YYYY-MM-DD
-	PayDay       int                      `json:"payDay"`       // 发薪日（1-31）
-	Frequency    RecurringIncomeFrequency `json:"frequency"`    // 常用为 monthly
-	Currency     string                   `json:"currency"`     // CNY
+	PreTaxAmount    float64                  `json:"preTaxAmount"`              // 每次发薪税前金额
+	CityCode        string                   `json:"cityCode"`                  // 纳税城市，如 "beijing", "shanghai"
+	StartDate       string                   `json:"startDate"`                 // 开始执行日期 YYYY-MM-DD
+	PayDay          int                      `json:"payDay"`                    // 发薪日（1-31）
+	Frequency       RecurringIncomeFrequency `json:"frequency"`                 // 常用为 monthly
+	Currency        string                   `json:"currency"`                  // CNY
+	SocialRate      *float64                 `json:"socialRate,omitempty"`      // 自定义社保比例（覆盖城市默认值）
+	ExtraDeductions float64                  `json:"extraDeductions,omitempty"` // 专项附加扣除
 }
 
 // SalaryPreviewItem 单次发薪预览
@@ -97,4 +106,27 @@ type ProjectedTransaction struct {
 	Label     string  `json:"label"`  // 来源，如"工资""房租收入"等
 	PlanID    string  `json:"planId"` // 对应周期计划ID
 	IsSalary  bool    `json:"isSalary"`
+}
+
+// UpsertSalaryPlanRequest 保存工资方案请求
+type UpsertSalaryPlanRequest struct {
+	PreTaxMonthly   float64 `json:"preTaxMonthly"`
+	CityCode        string  `json:"cityCode"`
+	StartDate       string  `json:"startDate"`
+	PayDay          int     `json:"payDay"`
+	SocialRate      float64 `json:"socialRate"`
+	ExtraDeductions float64 `json:"extraDeductions"`
+	AccountID       string  `json:"accountId"`
+	Currency        string  `json:"currency"`
+}
+
+// UpsertSalaryPlanResponse 保存工资方案响应
+type UpsertSalaryPlanResponse struct {
+	Plan    RecurringIncomePlan   `json:"plan"`
+	Preview SalaryPreviewResponse `json:"preview"`
+}
+
+// GetSalaryPlanResponse 获取工资方案响应
+type GetSalaryPlanResponse struct {
+	Plan *RecurringIncomePlan `json:"plan"`
 }

@@ -9,7 +9,7 @@
         >
           <Icon name="arrow-left" size="24px" class="text-gray-700" />
         </button>
-        <h1 class="text-2xl font-bold text-gray-900">新增账户</h1>
+        <h1 class="text-2xl font-bold text-gray-900">{{ t('newAccount.title') }}</h1>
       </div>
 
       <!-- 表单卡片 -->
@@ -17,7 +17,7 @@
         <!-- 账户类型 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            账户类型 <span class="text-red-500">*</span>
+            {{ t('newAccount.type') }} <span class="text-red-500">{{ t('common.required') }}</span>
           </label>
           <div class="grid grid-cols-2 gap-3">
             <button
@@ -35,9 +35,9 @@
                   : ''
               ]"
             >
-              {{ type.label }}
+              {{ t(`account.type.${type.value}`) }}
               <span v-if="type.value === 'cash' && hasCashAccount" class="text-xs block text-gray-400">
-                (已存在)
+                {{ t('newAccount.cashExists') }}
               </span>
             </button>
           </div>
@@ -47,22 +47,22 @@
         <!-- 机构选择（bank/credit/wallet 必填） -->
         <div v-if="form.type === 'bank' || form.type === 'credit' || form.type === 'wallet'">
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            <span v-if="form.type === 'bank' || form.type === 'credit'">银行</span>
-            <span v-else>平台</span>
-            <span class="text-red-500">*</span>
+            <span v-if="form.type === 'bank' || form.type === 'credit'">{{ t('newAccount.institution') }}</span>
+            <span v-else>{{ t('newAccount.platform') }}</span>
+            <span class="text-red-500">{{ t('common.required') }}</span>
           </label>
           <select
             v-model="form.institution"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             :class="{ 'border-red-500': errors.institution }"
           >
-            <option value="">请选择</option>
+            <option value="">{{ form.type === 'wallet' ? t('newAccount.selectPlatform') : t('newAccount.selectInstitution') }}</option>
             <option
               v-for="inst in availableInstitutions"
               :key="inst.value"
               :value="inst.value"
             >
-              {{ inst.label }}
+              {{ t(`account.institution.${inst.value}`) }}
             </option>
           </select>
           <p v-if="errors.institution" class="mt-1 text-sm text-red-500">{{ errors.institution }}</p>
@@ -71,32 +71,32 @@
         <!-- 卡片尾号（bank/credit 必填） -->
         <div v-if="form.type === 'bank' || form.type === 'credit'">
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            卡片尾号 <span class="text-red-500">*</span>
+            {{ t('newAccount.cardLast4') }} <span class="text-red-500">{{ t('common.required') }}</span>
           </label>
           <input
             v-model="form.cardLast4"
             type="text"
             maxlength="4"
-            placeholder="2-4位数字"
+            :placeholder="t('newAccount.cardLast4Placeholder')"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             :class="{ 'border-red-500': errors.cardLast4 }"
             @input="form.cardLast4 = form.cardLast4.replace(/\D/g, '')"
           />
           <p v-if="errors.cardLast4" class="mt-1 text-sm text-red-500">{{ errors.cardLast4 }}</p>
-          <p class="mt-1 text-xs text-gray-500">请输入2-4位数字</p>
+          <p class="mt-1 text-xs text-gray-500">{{ t('newAccount.cardLast4Hint') }}</p>
         </div>
 
         <!-- 信用卡额度（仅 credit 类型） -->
         <template v-if="form.type === 'credit'">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              总额度
+              {{ t('newAccount.creditLimit') }}
             </label>
             <input
               v-model.number="form.creditLimit"
               type="number"
               step="0.01"
-              placeholder="例如 20000"
+              :placeholder="t('newAccount.creditLimitPlaceholder')"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               :class="{ 'border-red-500': errors.creditLimit }"
             />
@@ -104,13 +104,13 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              临时额度
+              {{ t('newAccount.tempLimit') }}
             </label>
             <input
               v-model.number="form.tempLimit"
               type="number"
               step="0.01"
-              placeholder="没有可留空"
+              :placeholder="t('newAccount.tempLimitHint')"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               :class="{ 'border-red-500': errors.tempLimit }"
             />
@@ -121,28 +121,28 @@
         <!-- 初始余额 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            <span v-if="form.type === 'credit'">已用额度</span>
-            <span v-else>初始余额</span>
+            <span v-if="form.type === 'credit'">{{ t('newAccount.usedAmount') }}</span>
+            <span v-else>{{ t('newAccount.balance') }}</span>
           </label>
           <input
             v-model.number="form.balance"
             type="number"
             step="0.01"
-            placeholder="0.00"
+            :placeholder="t('newAccount.balancePlaceholder')"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             :class="{ 'border-red-500': errors.balance }"
           />
           <p v-if="errors.balance" class="mt-1 text-sm text-red-500">{{ errors.balance }}</p>
           <p class="mt-1 text-xs text-gray-500">
-            <span v-if="form.type === 'credit'">信用卡已使用的额度</span>
-            <span v-else>可以为 0 或正数，允许为负</span>
+            <span v-if="form.type === 'credit'">{{ t('newAccount.creditBalanceHint') }}</span>
+            <span v-else>{{ t('newAccount.balanceHint') }}</span>
           </p>
         </div>
 
         <!-- 币种 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            币种
+            {{ t('newAccount.currency') }}
           </label>
           <select
             v-model="form.currency"
@@ -158,7 +158,7 @@
 
         <!-- 预览 -->
         <div class="pt-4 border-t border-gray-200">
-          <p class="text-sm text-gray-600 mb-2">预览：</p>
+          <p class="text-sm text-gray-600 mb-2">{{ t('newAccount.preview') }}</p>
           <p class="text-lg font-semibold text-gray-900">{{ previewName }}</p>
         </div>
       </div>
@@ -170,7 +170,7 @@
           :disabled="submitting"
           class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
-          {{ submitting ? '创建中...' : '创建账户' }}
+          {{ submitting ? t('newAccount.creating') : t('newAccount.create') }}
         </button>
       </div>
 
@@ -189,6 +189,7 @@ import { createAccount, getAccounts } from '@/api/accounts'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import type { AccountType, AccountInstitution, CreateAccountPayload, Account } from '@/types'
 import Icon from '@/components/Icon.vue'
+import { t } from '@/i18n'
 
 const router = useRouter()
 
@@ -212,35 +213,35 @@ const submitting = ref(false)
 const submitError = ref<string | null>(null)
 
 const accountTypes = [
-  { value: 'cash' as AccountType, label: '现金' },
-  { value: 'bank' as AccountType, label: '银行卡' },
-  { value: 'wallet' as AccountType, label: '钱包' },
-  { value: 'credit' as AccountType, label: '信用卡' }
+  { value: 'cash' as AccountType },
+  { value: 'bank' as AccountType },
+  { value: 'wallet' as AccountType },
+  { value: 'credit' as AccountType }
 ]
 
-const bankInstitutions: Array<{ value: AccountInstitution; label: string }> = [
-  { value: 'icbc', label: '工商银行' },
-  { value: 'ccb', label: '建设银行' },
-  { value: 'abc', label: '农业银行' },
-  { value: 'boc', label: '中国银行' },
-  { value: 'bocom', label: '交通银行' },
-  { value: 'cmb', label: '招商银行' },
-  { value: 'spdb', label: '浦发银行' },
-  { value: 'citic', label: '中信银行' },
-  { value: 'ceb', label: '光大银行' },
-  { value: 'hxb', label: '华夏银行' },
-  { value: 'cmbc', label: '民生银行' },
-  { value: 'cgb', label: '广发银行' },
-  { value: 'pab', label: '平安银行' },
-  { value: 'cib', label: '兴业银行' },
-  { value: 'psbc', label: '邮储银行' },
-  { value: 'other', label: '其他' }
+const bankInstitutions: Array<{ value: AccountInstitution }> = [
+  { value: 'icbc' },
+  { value: 'ccb' },
+  { value: 'abc' },
+  { value: 'boc' },
+  { value: 'bocom' },
+  { value: 'cmb' },
+  { value: 'spdb' },
+  { value: 'citic' },
+  { value: 'ceb' },
+  { value: 'hxb' },
+  { value: 'cmbc' },
+  { value: 'cgb' },
+  { value: 'pab' },
+  { value: 'cib' },
+  { value: 'psbc' },
+  { value: 'other' }
 ]
 
-const walletInstitutions: Array<{ value: AccountInstitution; label: string }> = [
-  { value: 'wechat', label: '微信' },
-  { value: 'alipay', label: '支付宝' },
-  { value: 'other', label: '其他' }
+const walletInstitutions: Array<{ value: AccountInstitution }> = [
+  { value: 'wechat' },
+  { value: 'alipay' },
+  { value: 'other' }
 ]
 
 const availableInstitutions = computed(() => {
@@ -277,53 +278,53 @@ function validateForm(): boolean {
 
   // 校验类型
   if (!form.type) {
-    errors.type = '请选择账户类型'
+    errors.type = t('newAccount.error.type')
     isValid = false
   }
 
   // 检查现金账户是否已存在
   if (form.type === 'cash' && hasCashAccount.value) {
-    errors.type = '现金账户已存在，系统只能有一个现金账户'
+    errors.type = t('account.error.cashExists')
     isValid = false
   }
 
   // 根据类型校验必填字段
   if (form.type === 'bank' || form.type === 'credit') {
     if (!form.institution) {
-      errors.institution = '请选择银行'
+      errors.institution = t('newAccount.error.institution')
       isValid = false
     }
     if (!form.cardLast4 || form.cardLast4.length < 2 || form.cardLast4.length > 4) {
-      errors.cardLast4 = '请输入2-4位卡片尾号'
+      errors.cardLast4 = t('newAccount.error.cardLast4')
       isValid = false
     }
   } else if (form.type === 'wallet') {
     if (!form.institution) {
-      errors.institution = '请选择平台'
+      errors.institution = t('newAccount.error.platform')
       isValid = false
     }
   }
 
   // 校验币种
   if (!form.currency) {
-    errors.currency = '请选择币种'
+    errors.currency = t('newAccount.error.currency')
     isValid = false
   }
 
   // 校验余额格式
   if (isNaN(form.balance)) {
-    errors.balance = '请输入有效的金额'
+    errors.balance = t('newAccount.error.balance')
     isValid = false
   }
 
   // 校验信用卡额度
   if (form.type === 'credit') {
     if (form.creditLimit !== undefined && form.creditLimit < 0) {
-      errors.creditLimit = '总额度不能为负数'
+      errors.creditLimit = t('newAccount.error.creditLimit')
       isValid = false
     }
     if (form.tempLimit !== undefined && form.tempLimit < 0) {
-      errors.tempLimit = '临时额度不能为负数'
+      errors.tempLimit = t('newAccount.error.tempLimit')
       isValid = false
     }
   }
@@ -398,10 +399,10 @@ async function handleSubmit() {
 
     await createAccount(payload)
 
-    alert('创建成功')
+    alert(t('newAccount.success'))
     router.push('/accounts')
   } catch (error) {
-    submitError.value = error instanceof Error ? error.message : '创建账户失败'
+    submitError.value = error instanceof Error ? error.message : t('newAccount.error.create')
   } finally {
     submitting.value = false
   }

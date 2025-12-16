@@ -63,6 +63,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/RecurringIncomeSettingsPage.vue')
   },
   {
+    path: '/me/salary',
+    name: 'MeSalary',
+    component: () => import('@/views/MeSalaryPage.vue')
+  },
+  {
     path: '/transfer',
     name: 'Transfer',
     component: () => import('@/views/TransferPage.vue')

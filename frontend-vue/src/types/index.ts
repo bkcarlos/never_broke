@@ -347,7 +347,7 @@ export interface RecurringIncomePlan {
   type: RecurringIncomeType
   label: string
   accountId: string
-  amount: number // 工资：税前
+  amount: number // 工资：税后
   currency: string
   frequency: RecurringIncomeFrequency
   dayOfMonth?: number
@@ -357,6 +357,13 @@ export interface RecurringIncomePlan {
   cityCode?: string // 工资用
   active: boolean
   createdAt: string
+
+  // 薪资专用字段
+  salaryPreTaxMonthly?: number
+  salarySocialRate?: number
+  salaryExtraDeductions?: number
+  salaryPayDay?: number
+  salaryStartDate?: string
 }
 
 export interface UpsertRecurringIncomePayload {
@@ -392,6 +399,8 @@ export interface SalaryPreviewRequest {
   payDay: number // 1-31
   frequency: RecurringIncomeFrequency
   currency: string
+  socialRate?: number
+  extraDeductions?: number
 }
 
 export interface SalaryPreviewItem {
@@ -468,6 +477,52 @@ export interface CashflowForecast {
   status: ForecastStatus
   dangerDates: string[]
   warningDates: string[]
+}
+
+// ========== 城市社保比例相关类型 ==========
+
+export interface CitySocialRate {
+  id: string
+  cityCode: string
+  cityName: string
+  effectiveDate: string
+  pensionRate: number
+  medicalRate: number
+  unemploymentRate: number
+  injuryRate: number
+  maternityRate: number
+  housingFundRate: number
+  totalRate: number
+  isActive: boolean
+  remark?: string
+  createdAt: string
+}
+
+export interface SocialRateComponent {
+  name: string
+  rate: number
+}
+
+export interface CitySocialRateDetail {
+  cityCode: string
+  cityName: string
+  totalRate: number
+  components: SocialRateComponent[]
+  effectiveDate: string
+  remark?: string
+}
+
+// ========== 薪资方案配置相关类型 ==========
+
+export interface SalaryPlanConfig {
+  preTaxMonthly: number
+  cityCode: string
+  startDate: string
+  payDay: number
+  socialRate: number
+  extraDeductions: number
+  accountId: string
+  currency: string
 }
 
 // ========== API 响应通用类型 ==========

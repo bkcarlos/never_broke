@@ -9,17 +9,17 @@
         >
           <Icon name="arrow-left" size="24px" class="text-gray-700" />
         </button>
-        <h1 class="text-2xl font-bold text-gray-900">薪资配置</h1>
+        <h1 class="text-2xl font-bold text-gray-900">{{ t('salary.title') }}</h1>
       </div>
 
       <!-- 现有收入计划列表 -->
       <div class="mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">现有收入计划</h2>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ t('salary.existingPlans') }}</h2>
         <div v-if="loading" class="text-center py-8">
-          <p class="text-gray-500">加载中...</p>
+          <p class="text-gray-500">{{ t('salary.loading') }}</p>
         </div>
         <div v-else-if="incomePlans.length === 0" class="bg-gray-50 rounded-lg p-6 text-center">
-          <p class="text-gray-500">你还没有配置固定收入</p>
+          <p class="text-gray-500">{{ t('salary.noPlans') }}</p>
         </div>
         <div v-else class="space-y-3">
           <div
@@ -31,13 +31,13 @@
               <div>
                 <p class="font-semibold text-gray-900">{{ plan.name }}</p>
                 <p class="text-sm text-gray-500 mt-1">
-                  {{ getFrequencyLabel(plan.frequency) }} · ¥{{ plan.amount.toFixed(2) }}
+                  {{ t('salary.frequencyAmount', { frequency: getFrequencyLabel(plan.frequency), amount: plan.amount.toFixed(2) }) }}
                 </p>
                 <p class="text-xs text-gray-400 mt-1">
-                  到账账户：{{ getAccountName(plan.accountId) }}
+                  {{ t('salary.accountInfo', { account: getAccountName(plan.accountId) }) }}
                 </p>
                 <p class="text-xs text-gray-400 mt-1">
-                  首次发薪：{{ plan.firstPayDate }}
+                  {{ t('salary.firstPayInfo', { date: plan.firstPayDate }) }}
                 </p>
               </div>
               <div class="flex gap-2">
@@ -45,13 +45,13 @@
                   @click="handleEdit(plan)"
                   class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
                 >
-                  编辑
+                  {{ t('salary.edit') }}
                 </button>
                 <button
                   @click="handleDelete(plan.id)"
                   class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
                 >
-                  删除
+                  {{ t('salary.delete') }}
                 </button>
               </div>
             </div>
@@ -62,19 +62,19 @@
       <!-- 新增/编辑表单 -->
       <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">
-          {{ editingPlan ? '编辑收入计划' : '新增收入计划' }}
+          {{ editingPlan ? t('salary.editPlan') : t('salary.newPlan') }}
         </h2>
 
         <div class="space-y-4">
           <!-- 名称 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              名称 <span class="text-red-500">*</span>
+              {{ t('salary.name') }} <span class="text-red-500">{{ t('common.required') }}</span>
             </label>
             <input
               v-model="form.name"
               type="text"
-              placeholder="工资 / 副业 / 房租收入"
+              :placeholder="t('salary.namePlaceholder')"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               :class="{ 'border-red-500': errors.name }"
             />
@@ -84,7 +84,7 @@
           <!-- 金额 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              金额 <span class="text-red-500">*</span>
+              {{ t('salary.amount') }} <span class="text-red-500">{{ t('common.required') }}</span>
             </label>
             <input
               v-model.number="form.amount"
@@ -101,17 +101,17 @@
           <!-- 频率 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              频率 <span class="text-red-500">*</span>
+              {{ t('salary.frequency') }} <span class="text-red-500">{{ t('common.required') }}</span>
             </label>
             <select
               v-model="form.frequency"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               :class="{ 'border-red-500': errors.frequency }"
             >
-              <option value="monthly">月</option>
-              <option value="weekly">周</option>
-              <option value="biweekly">双周</option>
-              <option value="yearly">年</option>
+              <option value="monthly">{{ t('salary.frequency.monthly') }}</option>
+              <option value="weekly">{{ t('salary.frequency.weekly') }}</option>
+              <option value="biweekly">{{ t('salary.frequency.biweekly') }}</option>
+              <option value="yearly">{{ t('salary.frequency.yearly') }}</option>
             </select>
             <p v-if="errors.frequency" class="mt-1 text-sm text-red-500">{{ errors.frequency }}</p>
           </div>
@@ -119,14 +119,14 @@
           <!-- 到账账户 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              到账账户 <span class="text-red-500">*</span>
+              {{ t('salary.account') }} <span class="text-red-500">{{ t('common.required') }}</span>
             </label>
             <select
               v-model="form.accountId"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               :class="{ 'border-red-500': errors.accountId }"
             >
-              <option value="">请选择账户</option>
+              <option value="">{{ t('salary.accountPlaceholder') }}</option>
               <option
                 v-for="account in accounts"
                 :key="account.id"
@@ -141,7 +141,7 @@
           <!-- 第一次发薪日期 -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              第一次发薪日期 <span class="text-red-500">*</span>
+              {{ t('salary.firstPayDate') }} <span class="text-red-500">{{ t('common.required') }}</span>
             </label>
             <input
               v-model="form.firstPayDate"
@@ -155,14 +155,14 @@
           <!-- 到期日期（可选） -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
-              到期日期（可选）
+              {{ t('salary.endDate') }}
             </label>
             <input
               v-model="form.endDate"
               type="date"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            <p class="mt-1 text-xs text-gray-500">留空表示长期有效</p>
+            <p class="mt-1 text-xs text-gray-500">{{ t('salary.endDateHint') }}</p>
           </div>
         </div>
 
@@ -173,7 +173,7 @@
             :disabled="submitting"
             class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           >
-            {{ submitting ? '保存中...' : editingPlan ? '更新收入计划' : '添加收入计划' }}
+            {{ submitting ? t('salary.submitting') : editingPlan ? t('salary.update') : t('salary.submit') }}
           </button>
         </div>
 
@@ -193,6 +193,7 @@ import { listIncomePlans, createIncomePlan } from '@/api/incomePlans'
 import { getAccounts } from '@/api/accounts'
 import type { IncomePlan, IncomeFrequency, CreateIncomePlanPayload, Account } from '@/types'
 import Icon from '@/components/Icon.vue'
+import { t } from '@/i18n'
 
 const router = useRouter()
 
@@ -214,15 +215,8 @@ const form = reactive<CreateIncomePlanPayload>({
 
 const errors = reactive<Record<string, string>>({})
 
-const frequencyLabels: Record<IncomeFrequency, string> = {
-  monthly: '月',
-  weekly: '周',
-  biweekly: '双周',
-  yearly: '年'
-}
-
 function getFrequencyLabel(frequency: IncomeFrequency): string {
-  return frequencyLabels[frequency] || frequency
+  return t(`salary.frequency.${frequency}`)
 }
 
 function getAccountName(accountId: string): string {
@@ -238,22 +232,22 @@ function validateForm(): boolean {
   let isValid = true
 
   if (!form.name.trim()) {
-    errors.name = '名称不能为空'
+    errors.name = t('salary.error.name')
     isValid = false
   }
 
   if (form.amount <= 0) {
-    errors.amount = '金额必须大于 0'
+    errors.amount = t('salary.error.amount')
     isValid = false
   }
 
   if (!form.accountId) {
-    errors.accountId = '请选择到账账户'
+    errors.accountId = t('salary.error.account')
     isValid = false
   }
 
   if (!form.firstPayDate) {
-    errors.firstPayDate = '请选择第一次发薪日期'
+    errors.firstPayDate = t('salary.error.firstPayDate')
     isValid = false
   }
 
@@ -274,7 +268,7 @@ function resetForm() {
 }
 
 function handleEdit(plan: IncomePlan) {
-  alert('TODO: 编辑功能待实现')
+  alert(t('salary.todoEdit'))
   // editingPlan.value = plan
   // form.name = plan.name
   // form.amount = plan.amount
@@ -285,7 +279,7 @@ function handleEdit(plan: IncomePlan) {
 }
 
 function handleDelete(id: string) {
-  alert('TODO: 删除功能待实现')
+  alert(t('salary.todoDelete'))
 }
 
 function handleBack() {
@@ -316,9 +310,9 @@ async function handleSubmit() {
     const newPlan = await createIncomePlan(payload)
     incomePlans.value.push(newPlan)
     resetForm()
-    alert('添加成功')
+    alert(t('salary.success'))
   } catch (error) {
-    submitError.value = error instanceof Error ? error.message : '添加收入计划失败'
+    submitError.value = error instanceof Error ? error.message : t('salary.error.create')
   } finally {
     submitting.value = false
   }
@@ -334,7 +328,7 @@ async function loadData() {
     accounts.value = accountsData
     incomePlans.value = plansData
   } catch (error) {
-    submitError.value = error instanceof Error ? error.message : '加载数据失败'
+    submitError.value = error instanceof Error ? error.message : t('salary.error.load')
   } finally {
     loading.value = false
   }

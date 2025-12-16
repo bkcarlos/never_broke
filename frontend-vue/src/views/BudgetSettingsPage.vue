@@ -9,13 +9,13 @@
         >
           <Icon name="arrow-left" size="24px" class="text-gray-700" />
         </button>
-        <h1 class="text-2xl font-bold text-gray-900">预算设置</h1>
+        <h1 class="text-2xl font-bold text-gray-900">{{ t('budget.title') }}</h1>
       </div>
 
       <!-- 当前月份选择 -->
       <div class="bg-white rounded-lg shadow p-6 mb-4">
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          选择月份
+          {{ t('budget.selectMonth') }}
         </label>
         <input
           v-model="selectedMonth"
@@ -28,7 +28,7 @@
       <!-- 预算输入卡片 -->
       <div class="bg-white rounded-lg shadow p-6 mb-4">
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          当月总预算
+          {{ t('budget.totalBudget') }}
         </label>
         <div class="flex items-center gap-2">
           <span class="text-2xl font-bold text-gray-700">¥</span>
@@ -44,13 +44,13 @@
         </div>
         <p v-if="errors.totalBudget" class="mt-1 text-sm text-red-500">{{ errors.totalBudget }}</p>
         <p class="mt-2 text-sm text-gray-500">
-          根据你的预算，我们会在首页给出每日建议可花金额
+          {{ t('budget.description') }}
         </p>
       </div>
 
       <!-- 建议每日可花 -->
       <div class="bg-blue-50 rounded-lg shadow p-6 mb-4">
-        <p class="text-sm text-gray-600 mb-2">建议每日可花</p>
+        <p class="text-sm text-gray-600 mb-2">{{ t('budget.dailySuggestion') }}</p>
         <p class="text-3xl font-bold text-blue-600">
           ¥{{ dailySuggestion.toFixed(2) }}
         </p>
@@ -63,7 +63,7 @@
           :disabled="saving"
           class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
-          {{ saving ? '保存中...' : '保存本月预算' }}
+          {{ saving ? t('budget.saving') : t('budget.save') }}
         </button>
       </div>
 
@@ -80,6 +80,7 @@ import { ref, computed, onMounted, watch, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMonthlyBudget, saveMonthlyBudget } from '@/api/budget'
 import Icon from '@/components/Icon.vue'
+import { t } from '@/i18n'
 
 const router = useRouter()
 
@@ -118,7 +119,7 @@ async function loadBudget() {
     totalBudget.value = budget.totalBudget || 0
     submitError.value = null
   } catch (error) {
-    submitError.value = error instanceof Error ? error.message : '加载预算失败'
+    submitError.value = error instanceof Error ? error.message : t('budget.error.load')
     totalBudget.value = 0
   }
 }
@@ -141,7 +142,7 @@ function validateForm(): boolean {
   let isValid = true
 
   if (totalBudget.value < 0) {
-    errors.totalBudget = '预算金额不能为负数'
+    errors.totalBudget = t('budget.error.negative')
     isValid = false
   }
 
@@ -166,10 +167,10 @@ async function handleSubmit() {
       totalBudget: totalBudget.value
     })
 
-    alert('保存成功')
+    alert(t('budget.success'))
     router.back()
   } catch (error) {
-    submitError.value = error instanceof Error ? error.message : '保存预算失败'
+    submitError.value = error instanceof Error ? error.message : t('budget.error.save')
   } finally {
     saving.value = false
   }

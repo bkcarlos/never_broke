@@ -2,6 +2,7 @@ package recurringincome
 
 import (
 	"math"
+	"neverbroke/internal/citysocialrate"
 	"time"
 )
 
@@ -23,15 +24,6 @@ var annualTaxBrackets = []taxBracket{
 	{Threshold: math.MaxFloat64, Rate: 0.45, QuickDeduct: 181920},
 }
 
-// 城市社保个人部分比例（简化配置）
-var citySocialRate = map[string]float64{
-	"beijing":   0.12,
-	"shanghai":  0.10,
-	"guangzhou": 0.11,
-	"shenzhen":  0.10,
-	"default":   0.11,
-}
-
 // MonthlyDeduction 基本免税额（每月，导出供其他包使用）
 const MonthlyDeduction = 5000.0
 
@@ -46,12 +38,18 @@ func CalculateTax(cumulativeTaxableIncome float64) float64 {
 	return cumulativeTaxableIncome*0.45 - 181920
 }
 
-// GetSocialSecurityRate 获取城市社保个人部分比例（导出供其他包使用）
+// GetSocialSecurityRate 获取城市社保个人部分比例（从 citysocialrate 模块获取）
 func GetSocialSecurityRate(cityCode string) float64 {
-	if rate, ok := citySocialRate[cityCode]; ok {
-		return rate
+	rate := citysocialrate.GetActiveByCityCode(cityCode)
+	if rate != nil {
+		return rate.TotalRate
 	}
-	return citySocialRate["default"]
+	// 如果没找到，返回默认值
+	defaultRate := citysocialrate.GetActiveByCityCode("default")
+	if defaultRate != nil {
+		return defaultRate.TotalRate
+	}
+	return 0.11 // 兜底默认值
 }
 
 // AddMonths 添加月份（处理月末边界情况，导出供其他包使用）
@@ -69,6 +67,7 @@ func AddMonths(t time.Time, months int) time.Time {
 }
 
 // PreviewSalaryToYearEnd 预览工资到年底的明细（按中国个税规则）
+// 支持自定义社保比例和专项附加扣除
 func PreviewSalaryToYearEnd(req SalaryPreviewRequest) (SalaryPreviewResponse, error) {
 	// 解析开始日期
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
@@ -79,8 +78,13 @@ func PreviewSalaryToYearEnd(req SalaryPreviewRequest) (SalaryPreviewResponse, er
 	year := startDate.Year()
 	yearEnd := time.Date(year, 12, 31, 0, 0, 0, 0, startDate.Location())
 
-	// 获取社保比例
-	socialRate := GetSocialSecurityRate(req.CityCode)
+	// 获取社保比例：优先使用自定义比例，否则使用城市默认比例
+	var socialRate float64
+	if req.SocialRate != nil {
+		socialRate = *req.SocialRate
+	} else {
+		socialRate = GetSocialSecurityRate(req.CityCode)
+	}
 
 	// 计算发薪日期列表
 	var payDates []time.Time
@@ -129,7 +133,11 @@ func PreviewSalaryToYearEnd(req SalaryPreviewRequest) (SalaryPreviewResponse, er
 	for _, payDate := range payDates {
 		preTax := req.PreTaxAmount
 		socialSecurity := preTax * socialRate
-		taxableIncome := preTax - socialSecurity - MonthlyDeduction
+		// 应纳税所得额 = 税前 - 社保 - 基本免税额 - 专项附加扣除
+		taxableIncome := preTax - socialSecurity - MonthlyDeduction - req.ExtraDeductions
+		if taxableIncome < 0 {
+			taxableIncome = 0
+		}
 
 		// 累计计算
 		cumulativePreTax += preTax

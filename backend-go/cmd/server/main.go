@@ -2,6 +2,7 @@ package main
 
 import (
 	"neverbroke/common/logger"
+	"neverbroke/internal/citysocialrate"
 	"neverbroke/internal/http/router"
 	"neverbroke/internal/storage/memory"
 
@@ -13,8 +14,8 @@ func main() {
 	if err := logger.Init(logger.Config{
 		Level: "info", // 可配置：debug, info, warn, error
 		OutputPaths: []string{
-			"stdout",          // 输出到控制台
-			"./logs/app.log",  // 同时输出到文件
+			"stdout",         // 输出到控制台
+			"./logs/app.log", // 同时输出到文件
 		},
 		Format: "console", // 可配置：console 或 json
 	}); err != nil {
@@ -26,6 +27,10 @@ func main() {
 		zap.String("version", "v0.1.0"),
 		zap.String("port", "8080"),
 	)
+
+	// 初始化城市社保比例数据
+	citysocialrate.InitDefaultRates()
+	logger.Info("City social rates initialized")
 
 	// 创建内存存储
 	store := memory.NewStore()
@@ -41,4 +46,3 @@ func main() {
 		logger.Fatal("Failed to start server", zap.Error(err))
 	}
 }
-

@@ -88,12 +88,12 @@
                 class="text-xs text-indigo-500"
                 @click="editPlan(plan)"
               >
-                编辑
+                {{ t('recurring.edit') }}
               </button>
             </div>
             <!-- 未来几次收入预览 -->
             <div class="space-y-2">
-              <div class="text-xs text-slate-500 mb-2">未来收入预览：</div>
+              <div class="text-xs text-slate-500 mb-2">{{ t('recurring.futurePreview') }}</div>
               <div
                 v-for="(item, idx) in getFutureIncomes(plan, 3)"
                 :key="idx"
@@ -122,7 +122,7 @@
                 v-model.number="salaryPreviewForm.preTaxAmount"
                 type="number"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-                placeholder="例如：15000"
+                :placeholder="t('recurring.salary.preTaxPlaceholder')"
               />
             </div>
 
@@ -134,10 +134,10 @@
                 v-model="salaryPreviewForm.cityCode"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
               >
-                <option value="beijing">北京</option>
-                <option value="shanghai">上海</option>
-                <option value="guangzhou">广州</option>
-                <option value="shenzhen">深圳</option>
+                <option value="beijing">{{ t('recurring.city.beijing') }}</option>
+                <option value="shanghai">{{ t('recurring.city.shanghai') }}</option>
+                <option value="guangzhou">{{ t('recurring.city.guangzhou') }}</option>
+                <option value="shenzhen">{{ t('recurring.city.shenzhen') }}</option>
               </select>
             </div>
 
@@ -175,12 +175,12 @@
                 v-model="salaryPreviewForm.frequency"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
               >
-                <option value="monthly">每月</option>
-                <option value="bimonthly">每两个月</option>
-                <option value="quarterly">每季度</option>
-                <option value="semiannual">每半年</option>
-                <option value="weekly">每周</option>
-                <option value="yearly">每年</option>
+                <option value="monthly">{{ t('recurring.frequency.monthly') }}</option>
+                <option value="bimonthly">{{ t('recurring.frequency.bimonthly') }}</option>
+                <option value="quarterly">{{ t('recurring.frequency.quarterly') }}</option>
+                <option value="semiannual">{{ t('recurring.frequency.semiannual') }}</option>
+                <option value="weekly">{{ t('recurring.frequency.weekly') }}</option>
+                <option value="yearly">{{ t('recurring.frequency.yearly') }}</option>
               </select>
             </div>
 
@@ -189,24 +189,24 @@
               :disabled="previewingSalary || !canPreviewSalary"
               @click="onPreviewSalary"
             >
-              {{ previewingSalary ? '生成中...' : '生成工资预览' }}
+              {{ previewingSalary ? t('recurring.salary.generating') : t('recurring.salary.generate') }}
             </button>
           </div>
 
           <!-- 预览表格 -->
           <div v-if="salaryPreview" class="mt-4">
             <div class="text-xs text-slate-500 mb-2">
-              {{ salaryPreview.year }}年工资预览（共{{ salaryPreview.items.length }}次）
+              {{ t('recurring.salary.yearPreview', { year: salaryPreview.year, count: salaryPreview.items.length }) }}
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-xs text-slate-600">
                 <thead class="bg-slate-50">
                   <tr>
-                    <th class="px-2 py-2 text-left">日期</th>
-                    <th class="px-2 py-2 text-right">税前</th>
-                    <th class="px-2 py-2 text-right">社保</th>
-                    <th class="px-2 py-2 text-right">个税</th>
-                    <th class="px-2 py-2 text-right font-semibold text-emerald-600">到手</th>
+                    <th class="px-2 py-2 text-left">{{ t('recurring.salary.table.date') }}</th>
+                    <th class="px-2 py-2 text-right">{{ t('recurring.salary.table.preTax') }}</th>
+                    <th class="px-2 py-2 text-right">{{ t('recurring.salary.table.social') }}</th>
+                    <th class="px-2 py-2 text-right">{{ t('recurring.salary.table.tax') }}</th>
+                    <th class="px-2 py-2 text-right font-semibold text-emerald-600">{{ t('recurring.salary.table.postTax') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,7 +226,7 @@
                 </tbody>
                 <tfoot class="bg-slate-50 font-semibold">
                   <tr>
-                    <td class="px-2 py-2">总计</td>
+                    <td class="px-2 py-2">{{ t('recurring.salary.table.total') }}</td>
                     <td class="px-2 py-2 text-right">¥{{ salaryPreview.totalPreTax.toFixed(2) }}</td>
                     <td class="px-2 py-2 text-right">-</td>
                     <td class="px-2 py-2 text-right">¥{{ salaryPreview.totalTax.toFixed(2) }}</td>
@@ -254,7 +254,7 @@
       >
         <div class="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
           <h3 class="text-lg font-semibold">
-            {{ editId ? '编辑周期收入' : '新增周期收入' }}
+            {{ editId ? t('recurring.dialog.title.edit') : t('recurring.dialog.title.new') }}
           </h3>
           <button class="text-2xl text-slate-400" @click="closeCreateDialog">×</button>
         </div>
@@ -262,7 +262,7 @@
         <div class="p-4 space-y-4">
           <!-- 类型切换 -->
           <div>
-            <div class="text-xs text-slate-500 mb-2">收入类型</div>
+            <div class="text-xs text-slate-500 mb-2">{{ t('recurring.type') }}</div>
             <div class="grid grid-cols-4 gap-2">
               <button
                 v-for="tType in ['salary', 'rent', 'side', 'other']"
@@ -282,33 +282,33 @@
 
           <!-- 名称 -->
           <div>
-            <div class="text-xs text-slate-500 mb-1">名称</div>
+            <div class="text-xs text-slate-500 mb-1">{{ t('recurring.name') }}</div>
             <input
               v-model="formLabel"
               type="text"
               class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-              placeholder="例如：工资、房租收入"
+              :placeholder="t('recurring.namePlaceholder')"
             />
           </div>
 
           <!-- 金额 & 账户 -->
           <div class="flex gap-3">
             <div class="flex-1">
-              <div class="text-xs text-slate-500 mb-1">金额</div>
+              <div class="text-xs text-slate-500 mb-1">{{ t('recurring.amountLabel') }}</div>
               <input
                 v-model.number="formAmount"
                 type="number"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-                placeholder="例如：12000"
+                :placeholder="t('recurring.amountPlaceholder')"
               />
             </div>
             <div class="flex-1">
-              <div class="text-xs text-slate-500 mb-1">到账账户</div>
+              <div class="text-xs text-slate-500 mb-1">{{ t('recurring.accountLabel') }}</div>
               <select
                 v-model="formAccountId"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
               >
-                <option value="" disabled>请选择账户</option>
+                <option value="" disabled>{{ t('recurring.accountPlaceholder') }}</option>
                 <option
                   v-for="acc in accounts"
                   :key="acc.id"
@@ -323,21 +323,21 @@
           <!-- 频率 & 下次日期 -->
           <div class="flex gap-3">
             <div class="flex-1">
-              <div class="text-xs text-slate-500 mb-1">频率</div>
+              <div class="text-xs text-slate-500 mb-1">{{ t('recurring.frequencyLabel') }}</div>
               <select
                 v-model="formFrequency"
                 class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
               >
-                <option value="monthly">每月</option>
-                <option value="bimonthly">每两个月</option>
-                <option value="quarterly">每季度</option>
-                <option value="semiannual">每半年</option>
-                <option value="weekly">每周</option>
-                <option value="yearly">每年</option>
+                <option value="monthly">{{ t('recurring.frequency.monthly') }}</option>
+                <option value="bimonthly">{{ t('recurring.frequency.bimonthly') }}</option>
+                <option value="quarterly">{{ t('recurring.frequency.quarterly') }}</option>
+                <option value="semiannual">{{ t('recurring.frequency.semiannual') }}</option>
+                <option value="weekly">{{ t('recurring.frequency.weekly') }}</option>
+                <option value="yearly">{{ t('recurring.frequency.yearly') }}</option>
               </select>
             </div>
             <div class="flex-1">
-              <div class="text-xs text-slate-500 mb-1">下次收入日期</div>
+              <div class="text-xs text-slate-500 mb-1">{{ t('recurring.nextDueDate') }}</div>
               <input
                 v-model="formNextDueDate"
                 type="date"
@@ -348,15 +348,15 @@
 
           <!-- 工资专用：城市代码 -->
           <div v-if="formType === 'salary'">
-            <div class="text-xs text-slate-500 mb-1">纳税城市</div>
+            <div class="text-xs text-slate-500 mb-1">{{ t('recurring.cityLabel') }}</div>
             <select
               v-model="formCityCode"
               class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
             >
-              <option value="beijing">北京</option>
-              <option value="shanghai">上海</option>
-              <option value="guangzhou">广州</option>
-              <option value="shenzhen">深圳</option>
+              <option value="beijing">{{ t('recurring.city.beijing') }}</option>
+              <option value="shanghai">{{ t('recurring.city.shanghai') }}</option>
+              <option value="guangzhou">{{ t('recurring.city.guangzhou') }}</option>
+              <option value="shenzhen">{{ t('recurring.city.shenzhen') }}</option>
             </select>
           </div>
 
@@ -366,13 +366,13 @@
               :disabled="saving"
               @click="onSavePlan"
             >
-              {{ saving ? '保存中...' : '保存' }}
+              {{ saving ? t('recurring.saving') : t('recurring.save') }}
             </button>
             <button
               class="w-full py-2.5 rounded-full bg-slate-100 text-slate-600 text-sm font-medium"
               @click="closeCreateDialog"
             >
-              取消
+              {{ t('recurring.cancel') }}
             </button>
           </div>
         </div>
@@ -452,26 +452,12 @@ const canPreviewSalary = computed(() => {
 })
 
 function getTypeLabel(type: RecurringIncomeType): string {
-  const labels: Record<RecurringIncomeType, string> = {
-    salary: '工资',
-    rent: '房租收入',
-    side: '固定副业',
-    other: '其他',
-  }
-  return labels[type] || type
+  const typeKey = `recurring.type.${type}` as const
+  return t(typeKey, type)
 }
 
 function getFrequencyLabel(frequency: RecurringIncomeFrequency): string {
-  const labels: Record<RecurringIncomeFrequency, string> = {
-    monthly: '每月',
-    bimonthly: '每两个月',
-    quarterly: '每季度',
-    semiannual: '每半年',
-    weekly: '每周',
-    yearly: '每年',
-  }
-  return labels[frequency] || frequency
-}
+  return t(`recurring.frequency.${frequency}`)
 
 // 计算未来几次收入日期和金额
 function getFutureIncomes(plan: RecurringIncomePlan, count: number): Array<{ date: string; amount: number }> {
@@ -573,15 +559,15 @@ function editPlan(plan: RecurringIncomePlan) {
 
 async function onSavePlan() {
   if (!formAmount.value || formAmount.value <= 0) {
-    alert('请输入正确的金额')
+    alert(t('recurring.error.amount'))
     return
   }
   if (!formAccountId.value) {
-    alert('请选择收入到账账户')
+    alert(t('recurring.error.account'))
     return
   }
   if (!formNextDueDate.value) {
-    alert('请选择下次收入日期')
+    alert(t('recurring.error.nextDueDate'))
     return
   }
 
@@ -616,7 +602,7 @@ async function onSavePlan() {
 
 async function onPreviewSalary() {
   if (!canPreviewSalary.value) {
-    alert('请填写完整的工资配置信息')
+    alert(t('recurring.error.salaryConfig'))
     return
   }
 
@@ -632,7 +618,7 @@ async function onPreviewSalary() {
     })
     salaryPreview.value = result
   } catch (error) {
-    alert(error instanceof Error ? error.message : '预览失败')
+    alert(error instanceof Error ? error.message : t('recurring.error.preview'))
   } finally {
     previewingSalary.value = false
   }

@@ -340,6 +340,167 @@ func (h *Handler) ProjectedTransactionsHandler(c *gin.Context) {
 	response.OK(c, projected)
 }
 
+// GetSalaryPlanHandler 获取当前用户的工资方案
+func (h *Handler) GetSalaryPlanHandler(c *gin.Context) {
+	plans := ListPlans()
+
+	// 筛选 Type=salary 且 Active=true 的计划
+	var salaryPlan *RecurringIncomePlan
+	for i := range plans {
+		if plans[i].Type == RecurringIncomeTypeSalary && plans[i].Active {
+			salaryPlan = &plans[i]
+			break // 只返回最新的 active 方案
+		}
+	}
+
+	logger.Info("Get salary plan",
+		zap.Bool("found", salaryPlan != nil),
+	)
+
+	response.OK(c, GetSalaryPlanResponse{
+		Plan: salaryPlan,
+	})
+}
+
+// UpsertSalaryPlanHandler 保存/更新工资方案
+func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
+	var req UpsertSalaryPlanRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warn("Invalid request body", zap.Error(err))
+		response.BadRequest(c, "invalid request")
+		return
+	}
+
+	// 验证必填字段
+	if req.PreTaxMonthly <= 0 {
+		response.BadRequest(c, "preTaxMonthly must be > 0")
+		return
+	}
+	if req.AccountID == "" {
+		response.BadRequest(c, "accountId is required")
+		return
+	}
+	if req.StartDate == "" {
+		response.BadRequest(c, "startDate is required")
+		return
+	}
+	if req.PayDay < 1 || req.PayDay > 31 {
+		response.BadRequest(c, "payDay must be between 1 and 31")
+		return
+	}
+
+	// 验证账户是否存在
+	_, exists := accounts.FindAccountByID(req.AccountID)
+	if !exists {
+		response.BadRequest(c, "account not found")
+		return
+	}
+
+	// 调用薪资预览计算税后金额
+	socialRate := req.SocialRate
+	previewReq := SalaryPreviewRequest{
+		PreTaxAmount:    req.PreTaxMonthly,
+		CityCode:        req.CityCode,
+		StartDate:       req.StartDate,
+		PayDay:          req.PayDay,
+		Frequency:       FrequencyMonthly,
+		Currency:        req.Currency,
+		SocialRate:      &socialRate,
+		ExtraDeductions: req.ExtraDeductions,
+	}
+
+	preview, err := PreviewSalaryToYearEnd(previewReq)
+	if err != nil {
+		logger.Warn("Preview salary failed", zap.Error(err))
+		response.BadRequest(c, "preview salary failed")
+		return
+	}
+
+	// 使用首月税后金额作为 Amount
+	var postTaxAmount float64
+	if len(preview.Items) > 0 {
+		postTaxAmount = preview.Items[0].PostTax
+	} else {
+		response.BadRequest(c, "no preview items generated")
+		return
+	}
+
+	// 查询现有的 active salary 计划，将其设为 inactive
+	plans := ListPlans()
+	for i := range plans {
+		if plans[i].Type == RecurringIncomeTypeSalary && plans[i].Active {
+			plans[i].Active = false
+			SavePlan(plans[i])
+			logger.Info("Deactivated existing salary plan", zap.String("id", plans[i].ID))
+		}
+	}
+
+	// 创建新的工资方案
+	plan := RecurringIncomePlan{
+		ID:          uuid.NewString(),
+		Type:        RecurringIncomeTypeSalary,
+		Label:       "工资",
+		AccountID:   req.AccountID,
+		Amount:      postTaxAmount, // 税后金额
+		Currency:    req.Currency,
+		Frequency:   FrequencyMonthly,
+		DayOfMonth:  req.PayDay,
+		NextDueDate: preview.Items[0].Date,
+		CityCode:    req.CityCode,
+		Active:      true,
+		CreatedAt:   time.Now().Format(time.RFC3339),
+
+		// 薪资专用字段
+		SalaryPreTaxMonthly:   req.PreTaxMonthly,
+		SalarySocialRate:      req.SocialRate,
+		SalaryExtraDeductions: req.ExtraDeductions,
+		SalaryPayDay:          req.PayDay,
+		SalaryStartDate:       req.StartDate,
+	}
+
+	saved := SavePlan(plan)
+	logger.Info("Salary plan saved",
+		zap.String("id", saved.ID),
+		zap.Float64("preTax", req.PreTaxMonthly),
+		zap.Float64("postTax", postTaxAmount),
+	)
+
+	response.OK(c, UpsertSalaryPlanResponse{
+		Plan:    saved,
+		Preview: preview,
+	})
+}
+
+// DeleteSalaryPlanHandler 删除工资方案
+func (h *Handler) DeleteSalaryPlanHandler(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		response.BadRequest(c, "id is required")
+		return
+	}
+
+	plan := GetPlanByID(id)
+	if plan == nil {
+		response.BadRequest(c, "plan not found")
+		return
+	}
+
+	if plan.Type != RecurringIncomeTypeSalary {
+		response.BadRequest(c, "not a salary plan")
+		return
+	}
+
+	// 将计划设为 inactive
+	plan.Active = false
+	SavePlan(*plan)
+
+	logger.Info("Salary plan deleted",
+		zap.String("id", id),
+	)
+
+	response.OK(c, nil)
+}
+
 // generateIncomeDates 生成计划在指定时间范围内的所有收入日期
 func generateIncomeDates(plan RecurringIncomePlan, fromDate, toDate time.Time) []time.Time {
 	var dates []time.Time
