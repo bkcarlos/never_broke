@@ -1,2 +1,4 @@
 backend-go/migrations/0001_init.sql
 backend-go/tmp/*
+backend-go/.env
+.env

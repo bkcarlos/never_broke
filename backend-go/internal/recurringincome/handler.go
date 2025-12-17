@@ -498,7 +498,7 @@ func (h *Handler) DeleteSalaryPlanHandler(c *gin.Context) {
 		zap.String("id", id),
 	)
 
-	response.OK(c, nil)
+	response.OK[any](c, nil)
 }
 
 // generateIncomeDates 生成计划在指定时间范围内的所有收入日期

@@ -64,12 +64,12 @@ func (r *memoryAccountRepository) ListByUser(ctx context.Context, userID string)
 	return result, nil
 }
 
-func (r *memoryAccountRepository) Create(ctx context.Context, acc *accounts.Account) error {
+func (r *memoryAccountRepository) Create(ctx context.Context, userID string, acc *accounts.Account) error {
 	accounts.AddAccount(*acc)
 	return nil
 }
 
-func (r *memoryAccountRepository) Update(ctx context.Context, acc *accounts.Account) error {
+func (r *memoryAccountRepository) Update(ctx context.Context, userID string, acc *accounts.Account) error {
 	// 简化实现：先删除再添加
 	// 实际应该使用 UpdateAccount
 	return nil
@@ -88,12 +88,12 @@ func (r *memoryTransactionRepository) ListByUserBetween(ctx context.Context, use
 	return []*ledger.Transaction{}, nil
 }
 
-func (r *memoryTransactionRepository) Create(ctx context.Context, tx *ledger.Transaction) error {
+func (r *memoryTransactionRepository) Create(ctx context.Context, userID string, tx *ledger.Transaction) error {
 	// 内存存储中没有实现
 	return nil
 }
 
-func (r *memoryTransactionRepository) CreateBatch(ctx context.Context, txs []*ledger.Transaction) error {
+func (r *memoryTransactionRepository) CreateBatch(ctx context.Context, userID string, txs []*ledger.Transaction) error {
 	// 内存存储中没有实现
 	return nil
 }
@@ -118,12 +118,12 @@ func (r *memoryInstallmentRepository) ListByAccount(ctx context.Context, userID,
 	return result, nil
 }
 
-func (r *memoryInstallmentRepository) Create(ctx context.Context, plan *installment.InstallmentPlan) error {
+func (r *memoryInstallmentRepository) Create(ctx context.Context, userID string, plan *installment.InstallmentPlan) error {
 	installment.AddPlan(*plan)
 	return nil
 }
 
-func (r *memoryInstallmentRepository) Update(ctx context.Context, plan *installment.InstallmentPlan) error {
+func (r *memoryInstallmentRepository) Update(ctx context.Context, userID string, plan *installment.InstallmentPlan) error {
 	// 内存存储中没有实现
 	return nil
 }
@@ -148,13 +148,12 @@ func (r *memoryRecurringIncomeRepository) ListByUser(ctx context.Context, userID
 	return result, nil
 }
 
-func (r *memoryRecurringIncomeRepository) Create(ctx context.Context, plan *recurringincome.RecurringIncomePlan) error {
+func (r *memoryRecurringIncomeRepository) Create(ctx context.Context, userID string, plan *recurringincome.RecurringIncomePlan) error {
 	recurringincome.SavePlan(*plan)
 	return nil
 }
 
-func (r *memoryRecurringIncomeRepository) Update(ctx context.Context, plan *recurringincome.RecurringIncomePlan) error {
+func (r *memoryRecurringIncomeRepository) Update(ctx context.Context, userID string, plan *recurringincome.RecurringIncomePlan) error {
 	recurringincome.SavePlan(*plan)
 	return nil
 }
-

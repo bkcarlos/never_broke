@@ -1,21 +1,22 @@
 package postgres
 
 import (
-	"database/sql"
 	"neverbroke/internal/repository"
+
+	"gorm.io/gorm"
 )
 
-// PgStore Postgres 实现的 Store
+// PgStore Postgres 实现的 Store (使用 GORM)
 type PgStore struct {
-	db                  *sql.DB
+	db                  *gorm.DB
 	accountRepo         repository.AccountRepository
 	transactionRepo     repository.TransactionRepository
 	installmentRepo     repository.InstallmentRepository
 	recurringIncomeRepo repository.RecurringIncomeRepository
 }
 
-// NewPgStore 创建新的 Postgres Store
-func NewPgStore(db *sql.DB) *PgStore {
+// NewPgStore 创建新的 Postgres Store (使用 GORM)
+func NewPgStore(db *gorm.DB) *PgStore {
 	return &PgStore{
 		db:                  db,
 		accountRepo:         NewPgAccountRepository(db),
@@ -47,9 +48,9 @@ func (s *PgStore) RecurringIncomes() repository.RecurringIncomeRepository {
 
 // Close 关闭数据库连接
 func (s *PgStore) Close() error {
-	return s.db.Close()
+	sqlDB, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }
-
-
-
-

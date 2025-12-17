@@ -14,7 +14,7 @@ import (
 	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/report"
 	"neverbroke/internal/reports"
-	"neverbroke/internal/repository/memoryadapter"
+	"neverbroke/internal/repository"
 	"neverbroke/internal/storage/memory"
 	"neverbroke/internal/timeline"
 	"neverbroke/internal/user"
@@ -24,7 +24,7 @@ import (
 )
 
 // Setup 设置路由
-func Setup(store *memory.Store) *gin.Engine {
+func Setup(store repository.Store) *gin.Engine {
 	// 创建不带默认中间件的 Gin 引擎
 	r := gin.New()
 
@@ -63,8 +63,9 @@ func Setup(store *memory.Store) *gin.Engine {
 		reportHandler := report.NewHandler()
 		v1.GET("/reports/monthly", reportHandler.GetMonthlyReport)
 
-		// 用户设置
-		userHandler := user.NewHandler(store)
+		// 用户设置 (使用内存存储)
+		memoryStore := memory.NewStore()
+		userHandler := user.NewHandler(memoryStore)
 		v1.GET("/user/settings", userHandler.GetSettings)
 		v1.PATCH("/user/settings", userHandler.UpdateSettings)
 
@@ -107,15 +108,14 @@ func Setup(store *memory.Store) *gin.Engine {
 		v1.DELETE("/me/salary-plan/:id", recurringIncomeHandler.DeleteSalaryPlanHandler)
 
 		// 现金流预测
-		memoryStoreAdapter := memoryadapter.NewMemoryStoreAdapter()
-		v1.GET("/cashflow/forecast", cashflow.ForecastHandler(memoryStoreAdapter))
+		v1.GET("/cashflow/forecast", cashflow.ForecastHandler(store))
 
 		// 报表分析
-		v1.GET("/reports/monthly-summary", reports.MonthlySummaryHandler(memoryStoreAdapter))
+		v1.GET("/reports/monthly-summary", reports.MonthlySummaryHandler(store))
 
 		// 时间线
-		v1.GET("/timeline/daily-summary", timeline.DailySummaryHandler(memoryStoreAdapter))
-		v1.GET("/timeline/daily-detail", timeline.DailyDetailHandler(memoryStoreAdapter))
+		v1.GET("/timeline/daily-summary", timeline.DailySummaryHandler(store))
+		v1.GET("/timeline/daily-detail", timeline.DailyDetailHandler(store))
 	}
 
 	return r
