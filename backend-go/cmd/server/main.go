@@ -3,14 +3,17 @@ package main
 import (
 	"bufio"
 	"neverbroke/common/logger"
+	"neverbroke/internal/auth"
 	"neverbroke/internal/citysocialrate"
 	"neverbroke/internal/dbconfig"
 	"neverbroke/internal/http/router"
+	"neverbroke/internal/models"
 	"neverbroke/internal/repository/postgres"
 	"os"
 	"strings"
 
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -57,12 +60,18 @@ func main() {
 	defer sqlDB.Close()
 	logger.Info("✅ Database connected successfully (GORM)")
 
+	// 自动迁移数据库表
+	if err := autoMigrate(db); err != nil {
+		logger.Fatal("Failed to run auto migrations", zap.Error(err))
+	}
+	logger.Info("✅ Database tables migrated successfully")
+
 	// 创建 PostgreSQL 存储
 	store := postgres.NewPgStore(db)
 	logger.Info("PostgreSQL store initialized (GORM)")
 
-	// 设置路由
-	r := router.Setup(store)
+	// 设置路由（传入 db 用于认证系统）
+	r := router.Setup(store, db)
 	logger.Info("Router setup completed")
 
 	// 启动服务
@@ -96,6 +105,22 @@ func loadEnvFile(filename string) {
 			os.Setenv(key, value)
 		}
 	}
+}
+
+// autoMigrate 自动迁移数据库表
+func autoMigrate(db *gorm.DB) error {
+	return db.AutoMigrate(
+		// 认证模型（Token 方案）
+		&auth.User{},
+		&auth.RefreshToken{},
+		&auth.OAuthIdentity{},
+		&auth.OAuthState{},
+		// 业务模型
+		&models.Account{},
+		&models.Transaction{},
+		&models.InstallmentPlan{},
+		&models.RecurringIncomePlan{},
+	)
 }
 
 // maskPassword 隐藏 DSN 中的密码用于日志输出

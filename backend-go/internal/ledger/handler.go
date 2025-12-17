@@ -1,22 +1,33 @@
 package ledger
 
 import (
+	"context"
 	"neverbroke/common/logger"
 	"neverbroke/internal/accounts"
 	"neverbroke/internal/http/response"
 	"neverbroke/internal/storage/models"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
+// TransactionStore 交易存储接口（避免循环依赖）
+type TransactionStore interface {
+	ListByUserBetween(ctx context.Context, userID, from, to string) ([]*Transaction, error)
+}
+
 // Handler 账本处理器
-type Handler struct{}
+type Handler struct {
+	txStore TransactionStore
+}
 
 // NewHandler 创建账本处理器
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(txStore TransactionStore) *Handler {
+	return &Handler{
+		txStore: txStore,
+	}
 }
 
 // GetDailyTransactions 获取每日账单
@@ -28,49 +39,68 @@ func (h *Handler) GetDailyTransactions(c *gin.Context) {
 		return
 	}
 
-	logger.Debug("Fetching daily transactions", zap.String("date", date))
+	// 使用固定用户 ID
+	userID := "demo"
+	ctx := context.Background()
 
-	// Mock 数据
+	logger.Debug("Fetching daily transactions",
+		zap.String("date", date),
+		zap.String("userID", userID))
+
+	// 解析日期
+	dayStart, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		logger.Warn("Invalid date format", zap.String("date", date), zap.Error(err))
+		response.BadRequest(c, "invalid date format, expected YYYY-MM-DD")
+		return
+	}
+	dayEnd := dayStart.AddDate(0, 0, 1).Add(-time.Second)
+
+	// 从数据库获取当日交易
+	txs, err := h.txStore.ListByUserBetween(ctx, userID,
+		dayStart.Format(time.RFC3339),
+		dayEnd.Format(time.RFC3339))
+	if err != nil {
+		logger.Error("Failed to fetch daily transactions",
+			zap.String("date", date),
+			zap.Error(err))
+		response.InternalError(c, "Failed to fetch transactions")
+		return
+	}
+
+	// 计算统计数据
+	var totalIncome, totalExpense float64
+	var txList []models.DailyTransaction
+
+	for _, tx := range txs {
+		// 统计收支
+		switch tx.Type {
+		case "income":
+			totalIncome += tx.Amount
+		case "expense":
+			totalExpense += tx.Amount
+		}
+
+		// 转换为响应格式
+		occurredTime, _ := time.Parse(time.RFC3339, tx.OccurredAt)
+
+		txList = append(txList, models.DailyTransaction{
+			ID:          tx.ID,
+			Type:        string(tx.Type),
+			Amount:      tx.Amount,
+			CategoryKey: tx.CategoryKey,
+			Remark:      tx.Remark,
+			Time:        occurredTime.Format("15:04"),
+		})
+	}
+
 	dailyData := models.DailyTransactionResponse{
 		Date: date,
 		Stats: models.DailyStats{
-			TotalIncome:  500.00,
-			TotalExpense: 156.80,
+			TotalIncome:  totalIncome,
+			TotalExpense: totalExpense,
 		},
-		List: []models.DailyTransaction{
-			{
-				ID:          "tx001",
-				Type:        "expense",
-				Amount:      45.50,
-				CategoryKey: "food",
-				Remark:      "午餐",
-				Time:        "12:30",
-			},
-			{
-				ID:          "tx002",
-				Type:        "expense",
-				Amount:      28.00,
-				CategoryKey: "transport",
-				Remark:      "地铁",
-				Time:        "08:15",
-			},
-			{
-				ID:          "tx003",
-				Type:        "expense",
-				Amount:      83.30,
-				CategoryKey: "shopping",
-				Remark:      "日用品",
-				Time:        "19:45",
-			},
-			{
-				ID:          "tx004",
-				Type:        "income",
-				Amount:      500.00,
-				CategoryKey: "salary",
-				Remark:      "工资",
-				Time:        "10:00",
-			},
-		},
+		List: txList,
 	}
 
 	logger.Info("Daily transactions fetched successfully",
