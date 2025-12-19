@@ -62,7 +62,6 @@ export default {
   'actions.title': '快速操作',
   'actions.addExpense': '记支出',
   'actions.addIncome': '记收入',
-  'actions.transfer': '转账',
   'actions.setBudget': '设置预算',
   'actions.addAccount': '新增账户',
   'actions.import': '导入账单',

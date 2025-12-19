@@ -62,7 +62,6 @@ export default {
   'actions.title': 'Quick Actions',
   'actions.addExpense': 'Add Expense',
   'actions.addIncome': 'Add Income',
-  'actions.transfer': 'Transfer',
   'actions.setBudget': 'Set Budget',
   'actions.addAccount': 'Add Account',
   'actions.import': 'Import',
