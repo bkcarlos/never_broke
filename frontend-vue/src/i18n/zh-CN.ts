@@ -1,13 +1,28 @@
 export default {
-  // 底部导航
+  // 导航
   'nav.home': '首页',
   'nav.detail': '明细',
   'nav.actions': '操作',
   'nav.reports': '报表',
   'nav.profile': '我的',
+  'nav.timeline': '时间线',
+  
+  // 应用
+  'app.title': 'NeverBroke',
+  
+  // 侧边栏
+  'sidebar.quickActions': '快捷操作',
+  'sidebar.myAccount': '我的账户',
+  'sidebar.settings': '设置',
+  
+  // 操作
+  'actions.expense': '支出',
+  'actions.income': '收入',
+  'actions.transfer': '转账',
 
   // 首页
   'home.title': '首页',
+  'home.subtitle': '资产概览与预算管理',
   'home.currentBook': '个人账本',
   'home.greeting.morning': '早上好',
   'home.greeting.afternoon': '下午好',
@@ -36,6 +51,7 @@ export default {
 
   // 明细页
   'detail.title': '账单明细',
+  'detail.subtitle': '查看每日收支记录',
   'detail.prevDay': '前一天',
   'detail.nextDay': '后一天',
   'detail.totalIncome': '收入',
@@ -55,6 +71,7 @@ export default {
 
   // 记账表单页
   'record.title': '记账',
+  'record.subtitle': '快速记录收支',
   'record.expense': '支出',
   'record.income': '收入',
   'record.transfer': '转账',
@@ -91,6 +108,7 @@ export default {
 
   // 报表页
   'reports.title': '月度报表',
+  'reports.subtitle': '分析收支趋势',
   'reports.prevMonth': '上月',
   'reports.nextMonth': '下月',
   'reports.totalIncome': '总收入',
@@ -110,6 +128,7 @@ export default {
 
   // 我的页面
   'profile.title': '我的',
+  'profile.subtitle': '个人设置与偏好',
   'profile.settings': '设置',
   'profile.language': '语言',
   'profile.showAmount': '显示金额',
@@ -246,6 +265,7 @@ export default {
 
   // 时间线
   'timeline.title': '时间线',
+  'timeline.subtitle': '查看历史与未来收支',
   'timeline.mode': '查看模式',
   'timeline.history': '仅历史',
   'timeline.withFuture': '含未来',

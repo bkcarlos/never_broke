@@ -1,20 +1,28 @@
 <template>
-  <div class="page-container">
-    <!-- 顶部头部区域 -->
-    <div class="relative px-4 pt-6 pb-4 text-white">
-      <!-- 右上角操作按钮 -->
-      <div class="absolute top-6 right-4 flex gap-3">
-        <button 
-          @click="toggleShowAmount" 
-          class="hover:scale-110 transition-transform"
-          :title="showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
-        >
-          <Icon :name="showAmount ? 'eye' : 'eye-close'" size="24px" class="text-white" />
-        </button>
+  <div class="home-page">
+    <!-- PC端欢迎头部 -->
+    <div class="welcome-header desktop-only">
+      <div>
+        <p class="greeting-text">{{ greeting }}</p>
+        <div class="welcome-title">
+          <h1>{{ t('app.title') }}</h1>
+          <div class="badge">
+            <span>{{ t('home.keepRecording', { days: String(recordingDays) }) }}</span>
+          </div>
+        </div>
       </div>
+      <button 
+        @click="toggleShowAmount" 
+        class="toggle-btn"
+        :title="showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
+      >
+        <Icon :name="showAmount ? 'eye' : 'eye-close'" size="20px" />
+      </button>
+    </div>
 
-      <!-- 问候语和标题 -->
-      <div class="mt-4">
+    <!-- 移动端头部 -->
+    <div class="mobile-header mobile-only">
+      <div class="mobile-header-content">
         <p class="text-sm text-white/80 mb-1">{{ greeting }}</p>
         <div class="flex items-center gap-3 mb-0">
           <h1 class="text-3xl font-bold">NeverBroke</h1>
@@ -23,6 +31,13 @@
           </div>
         </div>
       </div>
+      <button 
+        @click="toggleShowAmount" 
+        class="absolute top-6 right-4 hover:scale-110 transition-transform"
+        :title="showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
+      >
+        <Icon :name="showAmount ? 'eye' : 'eye-close'" size="24px" class="text-white" />
+      </button>
     </div>
 
     <!-- 加载状态 -->
@@ -42,43 +57,45 @@
     </div>
 
     <!-- 主内容区 -->
-    <div v-else-if="data" class="flex-1 page-content px-4">
-      <!-- 卡片 1: 资产总览 -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.assetSummary') }}</h2>
-        <div class="grid grid-cols-3 gap-4">
-          <div class="text-center">
-            <p class="text-xs text-gray-500 mb-1">{{ t('home.totalAssets') }}</p>
-            <p class="text-lg font-bold text-blue-600">
-              ¥{{ formatMoney(data.assetSummary.totalAssets) }}
-            </p>
-          </div>
-          <div class="text-center">
-            <p class="text-xs text-gray-500 mb-1">{{ t('home.totalLiabilities') }}</p>
-            <p class="text-lg font-bold text-orange-600">
-              ¥{{ formatMoney(data.assetSummary.totalLiabilities) }}
-            </p>
-          </div>
-          <div class="text-center">
-            <p class="text-xs text-gray-500 mb-1">{{ t('home.netAssets') }}</p>
-            <p class="text-lg font-bold text-green-600">
-              ¥{{ formatMoney(data.assetSummary.netAssets) }}
-            </p>
+    <div v-else-if="data" class="content-grid">
+      <!-- PC端：第一行三列布局 -->
+      <div class="stats-row">
+        <!-- 卡片 1: 资产总览 -->
+        <div class="card asset-card">
+          <h2 class="card-title">{{ t('home.assetSummary') }}</h2>
+          <div class="asset-stats">
+            <div class="stat-item">
+              <p class="stat-label">{{ t('home.totalAssets') }}</p>
+              <p class="stat-value text-blue-600">
+                ¥{{ formatMoney(data.assetSummary.totalAssets) }}
+              </p>
+            </div>
+            <div class="stat-item">
+              <p class="stat-label">{{ t('home.totalLiabilities') }}</p>
+              <p class="stat-value text-orange-600">
+                ¥{{ formatMoney(data.assetSummary.totalLiabilities) }}
+              </p>
+            </div>
+            <div class="stat-item">
+              <p class="stat-label">{{ t('home.netAssets') }}</p>
+              <p class="stat-value text-green-600">
+                ¥{{ formatMoney(data.assetSummary.netAssets) }}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 卡片 2: 本月预算 -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-800">{{ t('home.monthBudget') }}</h2>
-          <button 
-            @click="$router.push('/reports')" 
-            class="text-sm text-indigo-500 hover:text-indigo-600"
-          >
-            {{ t('home.adjustBudget') }} →
-          </button>
-        </div>
+        <!-- 卡片 2: 本月预算 -->
+        <div class="card budget-card">
+          <div class="card-header">
+            <h2 class="card-title">{{ t('home.monthBudget') }}</h2>
+            <button 
+              @click="$router.push('/reports')" 
+              class="text-sm text-indigo-500 hover:text-indigo-600 font-medium"
+            >
+              {{ t('home.adjustBudget') }} →
+            </button>
+          </div>
         <div class="flex items-center gap-6">
           <!-- 圆形进度 -->
           <div class="relative w-24 h-24 flex-shrink-0">
@@ -130,21 +147,19 @@
         </p>
       </div>
 
-      <!-- 卡片 3: 本周期可自由支配 -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
-        <div class="flex items-center justify-between">
-          <div class="flex-1">
-            <p class="text-sm text-gray-500 mb-1">{{ t('home.freeToSpend') }}</p>
-            <p class="text-3xl font-bold text-indigo-600 mb-2">
-              ¥{{ formatMoney(data.payCycle.freeToSpend) }}
-            </p>
-            <p class="text-xs text-gray-400">
-              {{ t('home.daysToPayday', { days: String(data.payCycle.daysToNextPayday) }) }}
-            </p>
-          </div>
-          <div class="flex-shrink-0 ml-4">
-            <!-- 简单的环形进度 -->
-            <div class="relative w-20 h-20">
+        <!-- 卡片 3: 本周期可自由支配 -->
+        <div class="card cycle-card">
+          <div class="cycle-content">
+            <div class="cycle-info">
+              <p class="stat-label">{{ t('home.freeToSpend') }}</p>
+              <p class="cycle-amount">
+                ¥{{ formatMoney(data.payCycle.freeToSpend) }}
+              </p>
+              <p class="cycle-days">
+                {{ t('home.daysToPayday', { days: String(data.payCycle.daysToNextPayday) }) }}
+              </p>
+            </div>
+            <div class="cycle-progress">
               <svg class="w-full h-full transform -rotate-90">
                 <circle 
                   cx="40" cy="40" r="32" 
@@ -161,7 +176,7 @@
                   class="transition-all duration-500"
                 />
               </svg>
-              <div class="absolute inset-0 flex items-center justify-center">
+              <div class="progress-text">
                 <span class="text-xs font-semibold text-gray-700">
                   {{ Math.round(data.payCycle.cycleUsedPercent) }}%
                 </span>
@@ -171,38 +186,35 @@
         </div>
       </div>
 
-      <!-- 模块 4: 本月消费概览 -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 mb-4">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">{{ t('home.spendOverview') }}</h2>
-        
-        <!-- 左右布局：左边扇形图，右边列表 -->
-        <div class="flex items-center gap-6">
-          <!-- 左侧：扇形图 -->
-          <div class="flex-shrink-0 flex-1">
-            <div ref="pieChartRef" class="w-full aspect-square min-w-32"></div>
-          </div>
+      <!-- PC端：第二行消费概览（全宽） -->
+      <div class="spending-overview">
+        <div class="card spending-card">
+          <h2 class="card-title">{{ t('home.spendOverview') }}</h2>
+          
+          <div class="spending-content">
+            <!-- 左侧：扇形图 -->
+            <div class="chart-container">
+              <div ref="pieChartRef" class="pie-chart"></div>
+            </div>
 
-          <!-- 右侧：TOP3 + 其他 列表 -->
-          <div class="flex-1 space-y-3">
-            <div 
-              v-for="(item, index) in pieChartData" 
-              :key="item.name"
-              class="flex items-center justify-between"
-            >
-              <div class="flex items-center gap-2">
-                <div 
-                  class="w-3 h-3 rounded-full"
-                  :style="{ backgroundColor: item.color }"
-                ></div>
-                <span class="text-sm font-medium text-gray-700">
-                  {{ item.label }}
-                </span>
-              </div>
-              <div class="text-right">
-                <p class="text-sm font-semibold text-gray-800">
-                  ¥{{ formatMoney(item.value) }}
-                </p>
-                <p class="text-xs text-gray-400">{{ item.percent.toFixed(1) }}%</p>
+            <!-- 右侧：TOP3 + 其他 列表 -->
+            <div class="category-list">
+              <div 
+                v-for="(item, index) in pieChartData" 
+                :key="item.name"
+                class="category-item"
+              >
+                <div class="category-info">
+                  <div 
+                    class="category-dot"
+                    :style="{ backgroundColor: item.color }"
+                  ></div>
+                  <span class="category-name">{{ item.label }}</span>
+                </div>
+                <div class="category-stats">
+                  <p class="category-amount">¥{{ formatMoney(item.value) }}</p>
+                  <p class="category-percent">{{ item.percent.toFixed(1) }}%</p>
+                </div>
               </div>
             </div>
           </div>
@@ -520,5 +532,337 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 可选：添加一些自定义动画 */
+.home-page {
+  width: 100%;
+}
+
+/* PC端欢迎头部 */
+.welcome-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem 0;
+}
+
+.greeting-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.welcome-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.welcome-title h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.badge {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.toggle-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: none;
+  background: #f3f4f6;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+  background: #e5e7eb;
+  transform: scale(1.05);
+}
+
+/* 移动端头部 */
+.mobile-header {
+  position: relative;
+  padding: 1.5rem 1rem 1rem;
+  color: white;
+}
+
+.mobile-header-content {
+  padding-right: 3rem;
+}
+
+/* 内容网格 */
+.content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.spending-overview {
+  width: 100%;
+}
+
+/* 卡片样式 */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* 资产卡片 */
+.asset-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* 预算卡片 */
+.budget-card .flex {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* 周期卡片 */
+.cycle-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cycle-info {
+  flex: 1;
+}
+
+.cycle-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4f46e5;
+  margin: 0.5rem 0;
+}
+
+.cycle-days {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.cycle-progress {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 消费概览卡片 */
+.spending-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.chart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pie-chart {
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 1;
+}
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.category-item:hover {
+  background: #f3f4f6;
+  transform: translateX(4px);
+}
+
+.category-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.category-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.category-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.category-stats {
+  text-align: right;
+}
+
+.category-amount {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.category-percent {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* 响应式设计 */
+@media (max-width: 1280px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .spending-content {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-container {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block !important;
+  }
+
+  .content-grid {
+    gap: 1rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .asset-stats {
+    gap: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1rem;
+  }
+
+  .cycle-amount {
+    font-size: 1.5rem;
+  }
+
+  .cycle-progress {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  .desktop-only {
+    display: block !important;
+  }
+}
+
+@media (min-width: 1920px) {
+  .welcome-title h1 {
+    font-size: 2.5rem;
+  }
+
+  .card-title {
+    font-size: 1.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .cycle-amount {
+    font-size: 2.5rem;
+  }
+}
 </style>

@@ -2,17 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 隐藏滚动条但保持滚动功能 */
-html {
-  /* Firefox */
-  scrollbar-width: none;
-  /* IE 和 Edge */
-  -ms-overflow-style: none;
+/* 基础样式重置 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-html::-webkit-scrollbar {
-  /* Chrome, Safari, Edge */
-  display: none;
+html {
+  font-size: 16px;
+  /* PC端使用细滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
 body {
@@ -23,55 +24,188 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Firefox */
-  scrollbar-width: none;
-  /* IE 和 Edge */
-  -ms-overflow-style: none;
   width: 100%;
   overflow-x: hidden;
+  background-color: #f9fafb;
 }
 
-body::-webkit-scrollbar {
-  /* Chrome, Safari, Edge */
-  display: none;
+/* PC端自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 #app {
   min-height: 100vh;
-  background-color: #f5f5f5;
-  /* Firefox */
-  scrollbar-width: none;
-  /* IE 和 Edge */
-  -ms-overflow-style: none;
   width: 100%;
 }
 
-#app::-webkit-scrollbar {
-  /* Chrome, Safari, Edge */
-  display: none;
-}
+/* 移动端隐藏滚动条 */
+@media (max-width: 768px) {
+  html,
+  body,
+  #app,
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
 
-/* 隐藏所有可滚动元素的滚动条 */
-* {
-  /* Firefox */
-  scrollbar-width: none;
-  /* IE 和 Edge */
-  -ms-overflow-style: none;
-}
-
-*::-webkit-scrollbar {
-  /* Chrome, Safari, Edge */
-  display: none;
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #app::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* 通用页面容器样式 */
 @layer components {
+  /* PC端页面容器 */
   .page-container {
-    @apply flex flex-col bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-400 min-h-[calc(100vh-4rem)];
+    @apply bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-400;
+    min-height: calc(100vh - 70px);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 移动端页面容器 */
+  @media (max-width: 768px) {
+    .page-container {
+      min-height: calc(100vh - 4rem);
+      border-radius: 0;
+      padding: 1rem;
+    }
   }
   
   .page-content {
-    @apply pb-3;
+    @apply pb-4;
   }
+
+  /* 卡片样式 */
+  .card {
+    @apply bg-white rounded-2xl shadow-lg p-6 transition-all duration-200;
+  }
+
+  .card:hover {
+    @apply shadow-xl;
+  }
+
+  /* 按钮样式 */
+  .btn-primary {
+    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-6 py-3 rounded-lg transition-all duration-200;
+  }
+
+  /* 输入框样式 */
+  .input-primary {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all;
+  }
+
+  /* 网格布局容器 */
+  .grid-responsive {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  /* PC端特定布局 */
+  @media (min-width: 769px) {
+    .page-content-wrapper {
+      @apply max-w-7xl mx-auto;
+    }
+
+    .card-grid {
+      @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+    }
+  }
+
+  /* 移动端特定布局 */
+  @media (max-width: 768px) {
+    .card-grid {
+      @apply space-y-4;
+    }
+  }
+}
+
+/* 响应式文字大小 */
+@layer utilities {
+  .text-responsive-xl {
+    @apply text-xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-2xl;
+  }
+
+  .text-responsive-3xl {
+    @apply text-3xl;
+  }
+
+  @media (min-width: 1024px) {
+    .text-responsive-xl {
+      @apply text-2xl;
+    }
+
+    .text-responsive-2xl {
+      @apply text-3xl;
+    }
+
+    .text-responsive-3xl {
+      @apply text-4xl;
+    }
+  }
+
+  @media (min-width: 1920px) {
+    .text-responsive-xl {
+      @apply text-2xl;
+    }
+
+    .text-responsive-2xl {
+      @apply text-4xl;
+    }
+
+    .text-responsive-3xl {
+      @apply text-5xl;
+    }
+  }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
 }
 

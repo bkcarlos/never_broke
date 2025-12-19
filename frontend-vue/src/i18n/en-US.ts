@@ -1,13 +1,28 @@
 export default {
-  // Bottom Navigation
+  // Navigation
   'nav.home': 'Home',
   'nav.detail': 'Detail',
   'nav.actions': 'Actions',
   'nav.reports': 'Reports',
   'nav.profile': 'Profile',
+  'nav.timeline': 'Timeline',
+  
+  // App
+  'app.title': 'NeverBroke',
+  
+  // Sidebar
+  'sidebar.quickActions': 'Quick Actions',
+  'sidebar.myAccount': 'My Account',
+  'sidebar.settings': 'Settings',
+  
+  // Actions
+  'actions.expense': 'Expense',
+  'actions.income': 'Income',
+  'actions.transfer': 'Transfer',
 
   // Home Page
   'home.title': 'Home',
+  'home.subtitle': 'Asset overview and budget management',
   'home.currentBook': 'Personal Book',
   'home.greeting.morning': 'Good morning',
   'home.greeting.afternoon': 'Good afternoon',
@@ -36,6 +51,7 @@ export default {
 
   // Detail Page
   'detail.title': 'Transaction Detail',
+  'detail.subtitle': 'View daily transactions',
   'detail.prevDay': 'Previous Day',
   'detail.nextDay': 'Next Day',
   'detail.totalIncome': 'Income',
@@ -55,6 +71,7 @@ export default {
 
   // Record Form Page
   'record.title': 'Record',
+  'record.subtitle': 'Quick record transactions',
   'record.expense': 'Expense',
   'record.income': 'Income',
   'record.transfer': 'Transfer',
@@ -91,6 +108,7 @@ export default {
 
   // Reports Page
   'reports.title': 'Monthly Report',
+  'reports.subtitle': 'Analyze spending trends',
   'reports.prevMonth': 'Previous Month',
   'reports.nextMonth': 'Next Month',
   'reports.totalIncome': 'Total Income',
@@ -110,6 +128,7 @@ export default {
 
   // Profile Page
   'profile.title': 'Profile',
+  'profile.subtitle': 'Personal settings and preferences',
   'profile.settings': 'Settings',
   'profile.language': 'Language',
   'profile.showAmount': 'Show Amount',
@@ -246,6 +265,7 @@ export default {
 
   // Timeline
   'timeline.title': 'Timeline',
+  'timeline.subtitle': 'View historical and future transactions',
   'timeline.mode': 'View Mode',
   'timeline.history': 'History Only',
   'timeline.withFuture': 'With Future',
