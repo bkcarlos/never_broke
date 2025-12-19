@@ -8,6 +8,7 @@
 - ✅ 多级别日志（Debug, Info, Warn, Error, Fatal）
 - ✅ 灵活配置（输出路径、格式、级别）
 - ✅ Gin 中间件集成
+- ✅ GORM 日志集成
 - ✅ 彩色控制台输出
 - ✅ 自动记录调用位置
 - ✅ 性能优化（零内存分配）
@@ -91,6 +92,68 @@ func Setup() *gin.Engine {
 }
 ```
 
+### 4. GORM 日志集成
+
+在 GORM 初始化时使用封装的 logger：
+
+```go
+import (
+    "neverbroke/common/logger"
+    "time"
+    "gorm.io/driver/postgres"
+    "gorm.io/gorm"
+    gormlogger "gorm.io/gorm/logger"
+)
+
+func OpenGorm(dsn string) (*gorm.DB, error) {
+    // 获取全局 logger 并创建 GORM 适配器
+    customLogger := logger.GetLogger()
+    gormLogger := logger.NewGormLogger(customLogger, logger.GormLoggerConfig{
+        SlowThreshold:             200 * time.Millisecond, // 慢查询阈值
+        IgnoreRecordNotFoundError: true,                   // 忽略 RecordNotFound 错误
+        LogLevel:                  gormlogger.Info,        // 日志级别
+    })
+
+    // 配置 GORM
+    gormConfig := &gorm.Config{
+        Logger: gormLogger,
+    }
+
+    // 打开数据库连接
+    db, err := gorm.Open(postgres.Open(dsn), gormConfig)
+    if err != nil {
+        return nil, err
+    }
+
+    return db, nil
+}
+```
+
+**GORM 日志示例输出**：
+
+```json
+{
+  "time": "2024-12-20T10:30:45.123+0800",
+  "level": "DEBUG",
+  "msg": "SQL query",
+  "source": "gorm",
+  "elapsed": "15ms",
+  "sql": "SELECT * FROM users WHERE id = $1",
+  "rows": 1
+}
+
+{
+  "time": "2024-12-20T10:30:46.456+0800",
+  "level": "WARN",
+  "msg": "Slow SQL query",
+  "source": "gorm",
+  "elapsed": "250ms",
+  "sql": "SELECT * FROM orders JOIN users ON ...",
+  "rows": 100,
+  "threshold": "200ms"
+}
+```
+
 ## 配置说明
 
 ### Logger.Config
@@ -107,6 +170,22 @@ type Config struct {
 - 可以同时输出到控制台和文件
 - 控制台输出会自动使用彩色格式
 - 文件输出推荐使用 JSON 格式便于日志分析
+
+### GormLoggerConfig
+
+```go
+type GormLoggerConfig struct {
+    SlowThreshold             time.Duration       // 慢查询阈值（默认 200ms）
+    IgnoreRecordNotFoundError bool                // 是否忽略 RecordNotFound 错误
+    LogLevel                  gormlogger.LogLevel // 日志级别
+}
+```
+
+**GORM 日志级别**：
+- `gormlogger.Silent`: 不记录任何日志
+- `gormlogger.Error`: 只记录错误
+- `gormlogger.Warn`: 记录错误和慢查询
+- `gormlogger.Info`: 记录所有 SQL 查询
 
 ### 日志级别
 
