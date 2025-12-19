@@ -11,6 +11,7 @@
 
 html {
   font-size: 16px;
+  height: 100%;
   /* PC端使用细滚动条 */
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;
@@ -25,6 +26,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   width: 100%;
+  height: 100%;
   overflow-x: hidden;
   background-color: #f9fafb;
 }
@@ -52,6 +54,7 @@ body {
 
 #app {
   min-height: 100vh;
+  height: 100%;
   width: 100%;
 }
 
@@ -75,20 +78,16 @@ body {
 
 /* 通用页面容器样式 */
 @layer components {
-  /* PC端页面容器 */
+  /* PC端页面容器 - 统一浅色背景 */
   .page-container {
-    @apply bg-gradient-to-br from-indigo-500 via-purple-500 to-sky-400;
     min-height: calc(100vh - 70px);
-    border-radius: 16px;
     padding: 2rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
   
   /* 移动端页面容器 */
   @media (max-width: 768px) {
     .page-container {
       min-height: calc(100vh - 4rem);
-      border-radius: 0;
       padding: 1rem;
     }
   }

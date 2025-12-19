@@ -170,6 +170,7 @@ function handleSelect(action: RadialAction) {
 /* PC端布局 */
 .app-container-desktop {
   min-height: 100vh;
+  height: 100%;
   background-color: #f9fafb;
   display: flex;
 }
@@ -193,6 +194,9 @@ function handleSelect(action: RadialAction) {
 .login-container {
   width: 100%;
   min-height: 100vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 移动端底部导航 */

@@ -176,6 +176,7 @@
 <style scoped>
 .login-page {
   min-height: 100vh;
+  height: 100%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
@@ -343,7 +344,7 @@
   padding: 0.5rem;
   display: flex;
   align-items: center;
-  justify-center;
+  justify-content: center;
   transition: color 0.2s;
 }
 
