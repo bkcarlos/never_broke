@@ -40,9 +40,33 @@ func NewRateLimiter(maxAttempts int, window time.Duration) *RateLimiter {
 	return rl
 }
 
-// Allow 检查是否允许请求
+// Check 检查是否允许请求（不记录）
 // key: 通常是 "ip:email" 格式
-func (rl *RateLimiter) Allow(key string) bool {
+func (rl *RateLimiter) Check(key string) bool {
+	rl.mu.RLock()
+	defer rl.mu.RUnlock()
+
+	now := time.Now()
+	cutoff := now.Add(-rl.window)
+
+	record, exists := rl.attempts[key]
+	if !exists {
+		return true
+	}
+
+	// 计算有效的时间戳数量
+	validCount := 0
+	for _, ts := range record.timestamps {
+		if ts.After(cutoff) {
+			validCount++
+		}
+	}
+
+	return validCount < rl.maxAttempts
+}
+
+// RecordFailure 记录失败的尝试
+func (rl *RateLimiter) RecordFailure(key string) {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
@@ -67,15 +91,14 @@ func (rl *RateLimiter) Allow(key string) bool {
 	}
 	record.timestamps = validTimestamps
 
-	// 检查是否超过限制
-	if len(record.timestamps) >= rl.maxAttempts {
-		return false
-	}
-
-	// 记录本次尝试
+	// 记录本次失败尝试
 	record.timestamps = append(record.timestamps, now)
+}
 
-	return true
+// Allow 检查并记录（已废弃，保留用于兼容）
+// key: 通常是 "ip:email" 格式
+func (rl *RateLimiter) Allow(key string) bool {
+	return rl.Check(key)
 }
 
 // Reset 重置某个 key 的限流记录（登录成功后调用）

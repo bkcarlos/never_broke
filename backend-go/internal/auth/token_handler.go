@@ -46,7 +46,7 @@ func (h *TokenHandler) Register(c *gin.Context) {
 
 	// 限流检查
 	rateLimitKey := h.getRateLimitKey(c, req.Email)
-	if !h.rateLimiter.Allow(rateLimitKey) {
+	if !h.rateLimiter.Check(rateLimitKey) {
 		logger.Warn("Rate limit exceeded for register",
 			zap.String("ip", c.ClientIP()),
 			zap.String("email", req.Email),
@@ -64,6 +64,9 @@ func (h *TokenHandler) Register(c *gin.Context) {
 			zap.Error(err),
 			zap.String("email", req.Email),
 		)
+
+		// 记录失败尝试
+		h.rateLimiter.RecordFailure(rateLimitKey)
 
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -125,7 +128,7 @@ func (h *TokenHandler) Login(c *gin.Context) {
 
 	// 限流检查
 	rateLimitKey := h.getRateLimitKey(c, req.Email)
-	if !h.rateLimiter.Allow(rateLimitKey) {
+	if !h.rateLimiter.Check(rateLimitKey) {
 		logger.Warn("Rate limit exceeded for login",
 			zap.String("ip", c.ClientIP()),
 			zap.String("email", req.Email),
@@ -143,6 +146,9 @@ func (h *TokenHandler) Login(c *gin.Context) {
 			zap.Error(err),
 			zap.String("email", req.Email),
 		)
+
+		// 记录失败尝试
+		h.rateLimiter.RecordFailure(rateLimitKey)
 
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "invalid credentials",
