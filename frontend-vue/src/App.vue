@@ -61,7 +61,6 @@
 
     <!-- 圆弧菜单（移动端） -->
     <RadialActionMenu
-      class="mobile-only"
       :visible="isRadialOpen"
       :actions="radialActions"
       @close="isRadialOpen = false"

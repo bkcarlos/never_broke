@@ -1,17 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-content px-4">
-      <!-- 顶部：返回按钮 + 标题 -->
-      <div class="flex items-center gap-3 mb-4">
-        <button
-          @click="$router.back()"
-          class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <Icon name="arrow-left" size="20px" />
-        </button>
-        <h1 class="text-xl font-semibold">{{ t('timeline.title', '时间线') }}</h1>
-      </div>
-
+    <div class="page-content">
       <!-- 模式切换 + 区间选择 -->
       <div class="bg-white rounded-lg shadow p-4 mb-4">
         <!-- 模式切换 -->
@@ -81,7 +70,6 @@
 
       <!-- 日历视图 -->
       <div v-else-if="timeline" class="bg-white rounded-lg shadow p-4 mb-4">
-        <h2 class="text-sm font-semibold text-gray-700 mb-3">{{ t('timeline.calendar', '日历视图') }}</h2>
         <div class="grid grid-cols-7 gap-2">
           <!-- 星期标题 -->
           <div
@@ -125,7 +113,7 @@
       <!-- 当日明细列表 -->
       <div v-if="selectedDate && dailyDetail" class="bg-white rounded-lg shadow p-4">
         <h2 class="text-sm font-semibold text-gray-700 mb-3">
-          {{ selectedDate }} {{ t('timeline.detail', '明细') }}
+          {{ selectedDate }}
         </h2>
         <div v-if="dailyDetail.transactions.length === 0" class="text-center py-8 text-gray-400">
           {{ t('detail.noData') }}
@@ -303,7 +291,7 @@ onMounted(() => {
 }
 
 .page-content {
-  padding: 1rem;
-  max-width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 </style>
