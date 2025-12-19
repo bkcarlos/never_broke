@@ -1,6 +1,6 @@
 import type { ApiResponse } from '@/types'
 
-const BASE_URL = '/api/v1'
+const BASE_URL = '/api'
 
 export class HttpError extends Error {
   constructor(
@@ -19,17 +19,31 @@ export async function request<T>(
   try {
     console.log(`🌐 请求: ${BASE_URL}${url}`)
     
+    // 添加认证头
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options?.headers as Record<string, string> || {})
+    }
+    
+    // 直接从 localStorage 获取 token，避免循环依赖
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
     const response = await fetch(`${BASE_URL}${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers
-      },
+      headers,
       ...options
     })
 
     console.log(`📡 响应状态: ${response.status} ${response.statusText}`)
 
     if (!response.ok) {
+      // 401未授权，跳转到登录页
+      if (response.status === 401) {
+        localStorage.removeItem('access_token')
+        window.location.href = '/login'
+      }
       throw new HttpError(
         response.status,
         `HTTP Error: ${response.status} ${response.statusText}`

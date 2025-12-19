@@ -1,0 +1,145 @@
+# NeverBroke Project - Cursor AI Rules
+
+## Documentation Rules
+
+### Core Principle
+- **ONLY maintain ONE main document**: `FEATURE_DOCUMENTATION.md`
+- **DO NOT create new documentation files for every operation**
+- **ONLY update when necessary** - not every small change needs documentation
+
+### When to Update FEATURE_DOCUMENTATION.md ✅
+
+Update the main documentation ONLY for these significant changes:
+
+1. **New Feature Completed**
+   - New functional module added
+   - New API endpoints created
+   - New database tables or important fields added
+
+2. **Architecture Changes**
+   - System architecture modified
+   - Technology stack changed
+   - Important design patterns updated
+
+3. **Important Feature Modifications**
+   - Core business logic changed
+   - Authentication/authorization mechanism modified
+   - Data flow process updated
+
+4. **Important Configuration Changes**
+   - Environment variables modified
+   - Deployment method changed
+   - Dependencies updated
+
+### When NOT to Update Documentation ❌
+
+DO NOT update documentation for:
+
+1. **Daily Development**
+   - Bug fixes
+   - Code refactoring (without functionality changes)
+   - Style adjustments
+   - Text/copy changes
+
+2. **Temporary Debugging**
+   - Adding console.log statements
+   - Temporary test code
+   - Debug scripts
+
+3. **Small Changes**
+   - Variable renaming
+   - Code formatting
+   - Comment updates
+
+4. **Experimental Code**
+   - Incomplete features
+   - Temporary tests
+   - Proof of concept code
+
+### How to Update Documentation
+
+When an update IS necessary:
+
+1. **Locate the relevant section** in FEATURE_DOCUMENTATION.md
+2. **Update the content** directly (code examples, API endpoints, diagrams)
+3. **Update the "最后更新" (Last Updated) date**
+4. **Keep it concise** - document "what it is" and "how to use", not the history
+
+### Temporary Documentation Cleanup
+
+If temporary documentation files are created during development:
+- Extract valuable content to FEATURE_DOCUMENTATION.md
+- Delete the temporary files immediately
+- Keep the project root directory clean
+
+**DO NOT create files like:**
+- LOGIN_FLOW.md
+- LOGIN_SUMMARY.md
+- LOGIN_IMPLEMENTATION.md
+- FRONTEND_FIX.md
+- FEATURE_SPECIFIC_IMPLEMENTATION.md
+
+**Instead:** Update the relevant section in FEATURE_DOCUMENTATION.md
+
+## Code Style & Best Practices
+
+### Backend (Go)
+- Follow Go standard conventions
+- Use structured logging with Zap
+- Handle errors properly with custom error types
+- Use dependency injection
+- Write unit tests for business logic
+
+### Frontend (Vue 3 + TypeScript)
+- Use Composition API with `<script setup>`
+- Use TypeScript strictly (no `any` types)
+- Follow Vue 3 best practices
+- Use Pinia for state management
+- Use Tailwind CSS for styling
+
+### API Design
+- RESTful conventions
+- Consistent error responses
+- JWT token authentication
+- Proper HTTP status codes
+
+### Database
+- Use migrations for schema changes
+- Follow naming conventions (snake_case)
+- Add proper indexes
+- Use transactions for multi-step operations
+
+## Git Commit Messages
+
+Use conventional commits format:
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `refactor:` - Code refactoring
+- `docs:` - Documentation only
+- `style:` - Code style changes
+- `test:` - Adding tests
+- `chore:` - Maintenance tasks
+
+## Project Structure
+
+```
+backend-go/          # Go backend
+├── cmd/            # Entry points
+├── internal/       # Private application code
+├── common/         # Shared utilities
+└── migrations/     # Database migrations
+
+frontend-vue/       # Vue 3 frontend
+├── src/
+│   ├── api/       # API client
+│   ├── components/ # Vue components
+│   ├── views/     # Page views
+│   ├── stores/    # Pinia stores
+│   └── router/    # Vue Router
+```
+
+## Remember
+
+**Documentation is for understanding the system, not recording history.**
+
+Only update FEATURE_DOCUMENTATION.md when there are significant, user-facing changes that affect how the system works or how developers use it.

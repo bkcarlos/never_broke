@@ -1,11 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { isAuthenticated } from '@/api/auth'
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/LoginPage.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/',
     name: 'Home',
-    component: () => import('@/views/HomePage.vue')
+    component: () => import('@/views/HomePage.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/detail',
@@ -87,6 +95,22 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 路由守卫：检查认证状态
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.meta.requiresAuth !== false // 默认需要认证
+  const authenticated = isAuthenticated()
+
+  if (requiresAuth && !authenticated) {
+    // 需要认证但未登录，跳转到登录页
+    next({ name: 'Login', query: { redirect: to.fullPath } })
+  } else if (to.name === 'Login' && authenticated) {
+    // 已登录用户访问登录页，跳转到首页
+    next({ name: 'Home' })
+  } else {
+    next()
+  }
 })
 
 export default router

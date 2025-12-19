@@ -1,5 +1,16 @@
 <template>
   <div class="page-container">
+    <!-- 顶部标题栏 -->
+    <div class="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
+      <h1 class="text-xl font-bold text-gray-900">{{ t('profile.title') }}</h1>
+      <button
+        @click="handleLogout"
+        class="text-sm text-red-600 hover:text-red-700 font-medium"
+      >
+        {{ t('auth.logout') }}
+      </button>
+    </div>
+
     <div class="page-content px-4">
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
@@ -162,6 +173,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getUserSettings, updateUserSettings } from '@/api/user'
+import { logout, getLocalUserInfo } from '@/api/auth'
 import { t, locale, setLocale } from '@/i18n'
 import type { UserSettings, Locale } from '@/types'
 import Icon from '@/components/Icon.vue'
@@ -254,6 +266,20 @@ async function saveSettings() {
     error.value = e instanceof Error ? e.message : '保存设置失败'
   } finally {
     saving.value = false
+  }
+}
+
+// 退出登录
+async function handleLogout() {
+  if (confirm(t('auth.logoutConfirm'))) {
+    try {
+      await logout()
+      router.push('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // 即使失败也清除本地数据并跳转
+      router.push('/login')
+    }
   }
 }
 
