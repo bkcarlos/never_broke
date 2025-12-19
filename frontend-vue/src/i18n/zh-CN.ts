@@ -501,6 +501,7 @@ export default {
   'auth.privacy': '隐私政策',
   'auth.invalidCredentials': '邮箱或密码错误',
   'auth.emailExists': '该邮箱已被注册',
+  'auth.rateLimitExceeded': '请求过于频繁，请稍后再试',
   'auth.unknownError': '发生未知错误，请稍后重试',
   'auth.oauthNotImplemented': 'OAuth登录功能即将上线',
   'auth.logout': '退出登录',

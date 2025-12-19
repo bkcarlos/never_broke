@@ -501,6 +501,7 @@ export default {
   'auth.privacy': 'Privacy Policy',
   'auth.invalidCredentials': 'Invalid email or password',
   'auth.emailExists': 'Email already exists',
+  'auth.rateLimitExceeded': 'Too many requests, please try again later',
   'auth.unknownError': 'Unknown error occurred',
   'auth.oauthNotImplemented': 'OAuth login coming soon',
   'auth.logout': 'Logout',

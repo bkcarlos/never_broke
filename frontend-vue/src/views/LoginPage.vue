@@ -632,10 +632,12 @@ async function handleSubmit() {
     console.error('Auth error:', error)
     
     // 显示错误信息
-    if (error.code === 401) {
+    if (error.status === 401) {
       errorMessage.value = t('auth.invalidCredentials')
-    } else if (error.code === 409) {
+    } else if (error.status === 409) {
       errorMessage.value = t('auth.emailExists')
+    } else if (error.status === 429) {
+      errorMessage.value = t('auth.rateLimitExceeded')
     } else {
       errorMessage.value = error.message || t('auth.unknownError')
     }

@@ -1,3 +1,11 @@
+// 自定义错误类，包含 HTTP 状态码
+export class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+    this.name = 'HttpError'
+  }
+}
+
 // 生成设备ID（存储在localStorage）
 function getOrCreateDeviceId(): string {
   const key = 'device_id'
@@ -66,7 +74,7 @@ export async function register(payload: RegisterRequest): Promise<AuthResponse> 
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.message || 'Registration failed')
+    throw new HttpError(response.status, error.message || 'Registration failed')
   }
   
   const result = await response.json()
@@ -102,7 +110,7 @@ export async function login(payload: LoginRequest): Promise<AuthResponse> {
   
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.message || 'Login failed')
+    throw new HttpError(response.status, error.message || 'Login failed')
   }
   
   const result = await response.json()
