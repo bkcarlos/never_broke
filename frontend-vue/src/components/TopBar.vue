@@ -96,7 +96,6 @@ function toggleShowAmount() {
 <style scoped>
 .topbar {
   height: 70px;
-  background: white;
   border-bottom: 1px solid #e5e7eb;
   position: fixed;
   top: 0;
@@ -142,8 +141,8 @@ function toggleShowAmount() {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: none;
-  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  background: transparent;
   color: #4b5563;
   display: flex;
   align-items: center;
@@ -153,7 +152,7 @@ function toggleShowAmount() {
 }
 
 .icon-btn:hover {
-  background: #e5e7eb;
+  border-color: #9ca3af;
   transform: translateY(-2px);
 }
 

@@ -93,82 +93,91 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 	// 用户信息路由（需要鉴权）
 	r.GET("/api/me", tokenHandler.AuthMiddleware(), tokenHandler.Me)
 
-	// API v1 路由组
-	v1 := r.Group("/api/v1")
-	{
+	// 创建所有 handlers（复用于 /api 和 /api/v1 路由组）
+	homeHandler := home.NewHandler(store)
+	accountsHandler := accounts.NewHandler()
+	ledgerHandler := ledger.NewHandler(store.Transactions())
+	reportHandler := report.NewHandler(store)
+	memoryStore := memory.NewStore()
+	userHandler := user.NewHandler(memoryStore)
+	budgetHandler := budget.NewHandler()
+	importerHandler := importer.NewHandler()
+	incomePlanHandler := incomeplan.NewHandler()
+	installmentHandler := installment.NewHandler()
+	recurringIncomeHandler := recurringincome.NewHandler()
+	citySocialRateHandler := citysocialrate.NewHandler()
+
+	// 注册路由函数（DRY - Don't Repeat Yourself）
+	registerRoutes := func(group *gin.RouterGroup) {
 		// 首页
-		homeHandler := home.NewHandler(store)
-		v1.GET("/home/overview", homeHandler.GetOverview)
+		group.GET("/home/overview", homeHandler.GetOverview)
 
 		// 账户
-		accountsHandler := accounts.NewHandler()
-		v1.GET("/accounts", accountsHandler.ListAccountsHandler)
-		v1.POST("/accounts", accountsHandler.CreateAccountHandler)
-		v1.PATCH("/accounts/:id/credit-limits", accountsHandler.UpdateCreditLimitsHandler)
+		group.GET("/accounts", accountsHandler.ListAccountsHandler)
+		group.POST("/accounts", accountsHandler.CreateAccountHandler)
+		group.PATCH("/accounts/:id/credit-limits", accountsHandler.UpdateCreditLimitsHandler)
 
 		// 账本明细
-		ledgerHandler := ledger.NewHandler(store.Transactions())
-		v1.GET("/transactions/daily", ledgerHandler.GetDailyTransactions)
-		v1.POST("/transactions", ledgerHandler.CreateTransaction)
+		group.GET("/transactions/daily", ledgerHandler.GetDailyTransactions)
+		group.POST("/transactions", ledgerHandler.CreateTransaction)
 
 		// 报表
-		reportHandler := report.NewHandler(store)
-		v1.GET("/reports/monthly", reportHandler.GetMonthlyReport)
+		group.GET("/reports/monthly", reportHandler.GetMonthlyReport)
 
-		// 用户设置 (使用内存存储)
-		memoryStore := memory.NewStore()
-		userHandler := user.NewHandler(memoryStore)
-		v1.GET("/user/settings", userHandler.GetSettings)
-		v1.PATCH("/user/settings", userHandler.UpdateSettings)
+		// 用户设置
+		group.GET("/user/settings", userHandler.GetSettings)
+		group.PATCH("/user/settings", userHandler.UpdateSettings)
 
 		// 预算
-		budgetHandler := budget.NewHandler()
-		v1.GET("/budget/monthly", budgetHandler.GetMonthlyBudgetHandler)
-		v1.PUT("/budget/monthly", budgetHandler.PutMonthlyBudgetHandler)
+		group.GET("/budget/monthly", budgetHandler.GetMonthlyBudgetHandler)
+		group.PUT("/budget/monthly", budgetHandler.PutMonthlyBudgetHandler)
 
 		// 导入
-		importerHandler := importer.NewHandler()
-		v1.POST("/import/preview", importerHandler.PreviewHandler)
+		group.POST("/import/preview", importerHandler.PreviewHandler)
 
 		// 收入计划
-		incomePlanHandler := incomeplan.NewHandler()
-		v1.GET("/income-plans", incomePlanHandler.ListIncomePlansHandler)
-		v1.POST("/income-plans", incomePlanHandler.CreateIncomePlanHandler)
+		group.GET("/income-plans", incomePlanHandler.ListIncomePlansHandler)
+		group.POST("/income-plans", incomePlanHandler.CreateIncomePlanHandler)
 
 		// 分期
-		installmentHandler := installment.NewHandler()
-		v1.POST("/installments/preview", installmentHandler.PreviewInstallmentHandler)
-		v1.POST("/installments/expense", installmentHandler.CreateExpenseInstallmentHandler)
+		group.POST("/installments/preview", installmentHandler.PreviewInstallmentHandler)
+		group.POST("/installments/expense", installmentHandler.CreateExpenseInstallmentHandler)
 
 		// 周期收入配置
-		recurringIncomeHandler := recurringincome.NewHandler()
-		v1.GET("/recurring-incomes", recurringIncomeHandler.ListPlansHandler)
-		v1.POST("/recurring-incomes", recurringIncomeHandler.UpsertPlanHandler)
-		v1.GET("/recurring-incomes/due", recurringIncomeHandler.ListDuePlansHandler)
-		v1.POST("/recurring-incomes/:id/realize", recurringIncomeHandler.RealizePlanHandler)
-		v1.POST("/recurring-incomes/salary/preview", recurringincome.SalaryPreviewHandler)
-		v1.GET("/recurring-incomes/projected-transactions", recurringIncomeHandler.ProjectedTransactionsHandler)
+		group.GET("/recurring-incomes", recurringIncomeHandler.ListPlansHandler)
+		group.POST("/recurring-incomes", recurringIncomeHandler.UpsertPlanHandler)
+		group.GET("/recurring-incomes/due", recurringIncomeHandler.ListDuePlansHandler)
+		group.POST("/recurring-incomes/:id/realize", recurringIncomeHandler.RealizePlanHandler)
+		group.POST("/recurring-incomes/salary/preview", recurringincome.SalaryPreviewHandler)
+		group.GET("/recurring-incomes/projected-transactions", recurringIncomeHandler.ProjectedTransactionsHandler)
 
 		// 城市社保比例
-		citySocialRateHandler := citysocialrate.NewHandler()
-		v1.GET("/city-social-rates", citySocialRateHandler.ListCitySocialRatesHandler)
-		v1.GET("/city-social-rates/:cityCode", citySocialRateHandler.GetCitySocialRateDetailHandler)
+		group.GET("/city-social-rates", citySocialRateHandler.ListCitySocialRatesHandler)
+		group.GET("/city-social-rates/:cityCode", citySocialRateHandler.GetCitySocialRateDetailHandler)
 
 		// 薪资控制（我的 -> 薪资控制）
-		v1.GET("/me/salary-plan", recurringIncomeHandler.GetSalaryPlanHandler)
-		v1.POST("/me/salary-plan", recurringIncomeHandler.UpsertSalaryPlanHandler)
-		v1.DELETE("/me/salary-plan/:id", recurringIncomeHandler.DeleteSalaryPlanHandler)
+		group.GET("/me/salary-plan", recurringIncomeHandler.GetSalaryPlanHandler)
+		group.POST("/me/salary-plan", recurringIncomeHandler.UpsertSalaryPlanHandler)
+		group.DELETE("/me/salary-plan/:id", recurringIncomeHandler.DeleteSalaryPlanHandler)
 
 		// 现金流预测
-		v1.GET("/cashflow/forecast", cashflow.ForecastHandler(store))
+		group.GET("/cashflow/forecast", cashflow.ForecastHandler(store))
 
 		// 报表分析
-		v1.GET("/reports/monthly-summary", reports.MonthlySummaryHandler(store))
+		group.GET("/reports/monthly-summary", reports.MonthlySummaryHandler(store))
 
 		// 时间线
-		v1.GET("/timeline/daily-summary", timeline.DailySummaryHandler(store))
-		v1.GET("/timeline/daily-detail", timeline.DailyDetailHandler(store))
+		group.GET("/timeline/daily-summary", timeline.DailySummaryHandler(store))
+		group.GET("/timeline/daily-detail", timeline.DailyDetailHandler(store))
 	}
+
+	// API 路由组（不带版本号，与前端兼容）
+	api := r.Group("/api")
+	registerRoutes(api)
+
+	// API v1 路由组（保留用于未来版本管理）
+	v1 := r.Group("/api/v1")
+	registerRoutes(v1)
 
 	return r
 }

@@ -116,14 +116,13 @@ function handleActionClick(action: RadialAction) {
 .sidebar {
   width: 260px;
   height: 100vh;
-  background: linear-gradient(180deg, #4f46e5 0%, #6366f1 100%);
-  color: white;
+  border-right: 1px solid #e5e7eb;
+  color: #374151;
   display: flex;
   flex-direction: column;
   position: fixed;
   left: 0;
   top: 0;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   z-index: 1000;
 }
 
@@ -132,17 +131,18 @@ function handleActionClick(action: RadialAction) {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .logo-icon {
   width: 40px;
   height: 40px;
-  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #6b7280;
 }
 
 .logo-text {
@@ -166,27 +166,27 @@ function handleActionClick(action: RadialAction) {
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #6b7280;
   text-decoration: none;
   transition: all 0.2s;
   font-weight: 500;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: #f3f4f6;
+  color: #374151;
   transform: translateX(4px);
 }
 
 .nav-item.active {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: #f3f4f6;
+  color: #1f2937;
+  font-weight: 600;
 }
 
 .quick-actions {
   padding: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #e5e7eb;
 }
 
 .section-title {
@@ -194,7 +194,7 @@ function handleActionClick(action: RadialAction) {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.6);
+  color: #9ca3af;
   margin-bottom: 0.75rem;
   padding: 0 0.5rem;
 }
@@ -205,10 +205,10 @@ function handleActionClick(action: RadialAction) {
   align-items: center;
   gap: 0.75rem;
   padding: 0.625rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: transparent;
+  color: #4b5563;
   font-weight: 500;
   font-size: 0.875rem;
   transition: all 0.2s;
@@ -217,14 +217,14 @@ function handleActionClick(action: RadialAction) {
 }
 
 .action-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: #f3f4f6;
+  border-color: #9ca3af;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .user-section {
   padding: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #e5e7eb;
 }
 
 .user-profile {
@@ -234,23 +234,24 @@ function handleActionClick(action: RadialAction) {
   padding: 0.75rem;
   border-radius: 10px;
   text-decoration: none;
-  color: white;
+  color: #374151;
   transition: all 0.2s;
 }
 
 .user-profile:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: #f3f4f6;
 }
 
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #6b7280;
 }
 
 .user-info {
@@ -268,7 +269,7 @@ function handleActionClick(action: RadialAction) {
 
 .user-email {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: #9ca3af;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

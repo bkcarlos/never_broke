@@ -206,7 +206,6 @@ function handleSelect(action: RadialAction) {
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
   border-top: 1px solid #e5e7eb;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
   z-index: 1000;
@@ -235,7 +234,8 @@ function handleSelect(action: RadialAction) {
 }
 
 .nav-item.active {
-  color: #4f46e5;
+  color: #1f2937;
+  font-weight: 600;
 }
 
 .nav-item::before {
@@ -246,7 +246,7 @@ function handleSelect(action: RadialAction) {
   transform: translateX(-50%);
   width: 0;
   height: 3px;
-  background: linear-gradient(90deg, #4f46e5, #6366f1);
+  background: #6b7280;
   border-radius: 0 0 3px 3px;
   transition: width 0.3s ease;
 }
@@ -277,22 +277,21 @@ function handleSelect(action: RadialAction) {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5, #6366f1);
-  color: white;
-  border: none;
+  color: #6b7280;
+  border: 2px solid #e5e7eb;
+  background: transparent;
   font-size: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: -24px;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .add-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.5);
+  border-color: #9ca3af;
 }
 
 .add-btn span {

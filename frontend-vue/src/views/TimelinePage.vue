@@ -299,7 +299,6 @@ onMounted(() => {
 <style scoped>
 .page-container {
   min-height: 100vh;
-  background: linear-gradient(to bottom, #6366f1, #8b5cf6);
   padding-bottom: 80px;
 }
 
