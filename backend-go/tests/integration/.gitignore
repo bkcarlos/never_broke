@@ -1,0 +1,5 @@
+# 测试生成的文件
+coverage.out
+coverage.html
+*.test
+*.log
