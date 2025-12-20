@@ -103,3 +103,10 @@ func UpdateAccount(id string, updater func(*Account)) bool {
 	}
 	return false
 }
+
+// ResetAccounts 重置账户列表（仅用于测试）
+func ResetAccounts() {
+	mu.Lock()
+	defer mu.Unlock()
+	accounts = []Account{}
+}

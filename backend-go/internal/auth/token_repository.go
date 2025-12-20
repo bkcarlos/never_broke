@@ -37,6 +37,7 @@ type TokenRepository interface {
 
 	// OAuthState operations
 	CreateOAuthState(state *OAuthState) error
+	SaveOAuthState(state *OAuthState) error
 	GetOAuthState(state string) (*OAuthState, error)
 	DeleteOAuthState(state string) error
 	DeleteExpiredOAuthStates() error
@@ -192,6 +193,11 @@ func (r *GormTokenRepository) GetOAuthIdentitiesByUser(userID int) ([]OAuthIdent
 // CreateOAuthState 创建 OAuth State
 func (r *GormTokenRepository) CreateOAuthState(state *OAuthState) error {
 	return r.db.Create(state).Error
+}
+
+// SaveOAuthState 保存 OAuth State（别名，用于兼容）
+func (r *GormTokenRepository) SaveOAuthState(state *OAuthState) error {
+	return r.CreateOAuthState(state)
 }
 
 // GetOAuthState 获取 OAuth State
