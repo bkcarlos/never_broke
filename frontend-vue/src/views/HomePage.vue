@@ -165,6 +165,20 @@
           <div class="space-y-3">
             <!-- 收支统计 -->
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">💰 本月结余</span>
+              <span 
+                class="font-semibold"
+                :class="{
+                  'text-green-600': monthOverview.monthIncome - monthOverview.monthExpense > 0,
+                  'text-red-500': monthOverview.monthIncome - monthOverview.monthExpense < 0,
+                  'text-gray-600': monthOverview.monthIncome - monthOverview.monthExpense === 0
+                }"
+              >
+                ¥{{ formatMoney(monthOverview.monthIncome - monthOverview.monthExpense) }}
+              </span>
+            </div>
+            
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
               <span class="text-sm text-gray-500">📈 本月收入</span>
               <span class="font-semibold text-green-600">
                 ¥{{ formatMoney(monthOverview.monthIncome) }}
