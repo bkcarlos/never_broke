@@ -1,16 +1,5 @@
 <template>
   <div class="page-container">
-    <!-- 顶部标题栏 -->
-    <div class="bg-white border-b border-gray-200 py-4 flex items-center justify-between">
-      <h1 class="text-xl font-bold text-gray-900">{{ t('profile.title') }}</h1>
-      <button
-        @click="handleLogout"
-        class="text-sm text-red-600 hover:text-red-700 font-medium"
-      >
-        {{ t('auth.logout') }}
-      </button>
-    </div>
-
     <div class="page-content">
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
@@ -142,27 +131,20 @@
         </button>
       </div>
 
-      <!-- 示例金额展示 -->
-      <div class="example bg-blue-50 rounded-lg p-4">
-        <p class="text-sm text-gray-600 mb-2">{{ t('profile.example') }}</p>
-        <p class="text-2xl font-bold">
-          {{ settings.showAmount ? '¥12,345.67' : '¥****' }}
-        </p>
-      </div>
-
-      <!-- 保存按钮 -->
-      <button 
-        v-if="hasChanges"
-        @click="saveSettings"
-        :disabled="saving"
-        class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-      >
-        {{ saving ? t('profile.saving') : t('common.save') }}
-      </button>
-
       <!-- 错误提示 -->
       <div v-if="error" class="p-4 bg-red-50 text-red-600 rounded-lg">
         {{ error }}
+      </div>
+
+      <!-- 退出登录 - 独立栏 -->
+      <div class="mt-8 pt-4 border-t border-gray-200">
+        <button
+          @click="handleLogout"
+          class="w-full py-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center justify-center gap-2 text-red-600 hover:text-red-700 font-semibold"
+        >
+          <Icon name="logout" size="20px" />
+          <span>{{ t('auth.logout') }}</span>
+        </button>
       </div>
     </div>
     </div>
@@ -170,10 +152,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getUserSettings, updateUserSettings } from '@/api/user'
-import { logout, getLocalUserInfo } from '@/api/auth'
+import { logout } from '@/api/auth'
 import { t, locale, setLocale } from '@/i18n'
 import type { UserSettings, Locale } from '@/types'
 import Icon from '@/components/Icon.vue'
@@ -181,7 +163,6 @@ import Icon from '@/components/Icon.vue'
 const router = useRouter()
 
 const loading = ref(false)
-const saving = ref(false)
 const error = ref<string | null>(null)
 
 const settings = ref<UserSettings>({
@@ -195,13 +176,6 @@ const originalSettings = ref<UserSettings>({
 })
 
 const currentLocale = ref<Locale>(locale.value)
-
-const hasChanges = computed(() => {
-  return (
-    settings.value.locale !== originalSettings.value.locale ||
-    settings.value.showAmount !== originalSettings.value.showAmount
-  )
-})
 
 async function loadSettings() {
   loading.value = true
@@ -220,14 +194,36 @@ async function loadSettings() {
   }
 }
 
-function handleLocaleSelect(locale: Locale) {
+async function handleLocaleSelect(locale: Locale) {
   currentLocale.value = locale
   settings.value.locale = locale
   setLocale(locale)
+  
+  // 立即保存语言设置
+  try {
+    const updated = await updateUserSettings({
+      locale: locale,
+      showAmount: settings.value.showAmount
+    })
+    originalSettings.value = { ...updated }
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '保存语言设置失败'
+  }
 }
 
-function toggleShowAmount() {
+async function toggleShowAmount() {
   settings.value.showAmount = !settings.value.showAmount
+  
+  // 立即保存金额显隐设置
+  try {
+    const updated = await updateUserSettings({
+      locale: settings.value.locale,
+      showAmount: settings.value.showAmount
+    })
+    originalSettings.value = { ...updated }
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '保存金额显示设置失败'
+  }
 }
 
 function handleAddAccount() {
@@ -248,25 +244,6 @@ function handleSalaryControl() {
 
 function handleRecurringIncome() {
   router.push('/settings/recurring-income')
-}
-
-async function saveSettings() {
-  saving.value = true
-  error.value = null
-  
-  try {
-    const updated = await updateUserSettings({
-      locale: settings.value.locale,
-      showAmount: settings.value.showAmount
-    })
-    settings.value = { ...updated }
-    originalSettings.value = { ...updated }
-    alert(t('profile.saveSuccess'))
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '保存设置失败'
-  } finally {
-    saving.value = false
-  }
 }
 
 // 退出登录
