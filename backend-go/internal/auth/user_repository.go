@@ -18,6 +18,7 @@ type Repository interface {
 	CreateUser(user *User) error
 	GetUserByEmail(email string) (*User, error)
 	GetUserByID(id int) (*User, error)
+	UpdateUserSettings(userID int, settings *UserSettings) error
 }
 
 // GormRepository GORM 实现的用户仓储
@@ -80,4 +81,19 @@ func (r *GormRepository) GetUserByID(id int) (*User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+// UpdateUserSettings 更新用户设置
+func (r *GormRepository) UpdateUserSettings(userID int, settings *UserSettings) error {
+	result := r.db.Model(&User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"locale":      settings.Locale,
+		"show_amount": settings.ShowAmount,
+	})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
 }

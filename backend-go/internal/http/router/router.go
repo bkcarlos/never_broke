@@ -18,7 +18,6 @@ import (
 	"neverbroke/internal/report"
 	"neverbroke/internal/reports"
 	"neverbroke/internal/repository"
-	"neverbroke/internal/storage/memory"
 	"neverbroke/internal/timeline"
 	"neverbroke/internal/user"
 
@@ -98,8 +97,7 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 	accountsHandler := accounts.NewHandler(db)
 	ledgerHandler := ledger.NewHandler(store.Transactions(), db)
 	reportHandler := report.NewHandler(store)
-	memoryStore := memory.NewStore()
-	userHandler := user.NewHandler(memoryStore)
+	userHandler := user.NewHandler(userRepo)
 	budgetHandler := budget.NewHandler()
 	importerHandler := importer.NewHandler()
 	incomePlanHandler := incomeplan.NewHandler()

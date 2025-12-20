@@ -41,3 +41,11 @@ func InternalError(c *gin.Context, message string) {
 	Error(c, http.StatusInternalServerError, message)
 }
 
+// Unauthorized 401 错误
+func Unauthorized(c *gin.Context, message string) {
+	c.JSON(http.StatusUnauthorized, APIResponse[any]{
+		Code:    http.StatusUnauthorized,
+		Message: message,
+		Data:    nil,
+	})
+}

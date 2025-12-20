@@ -36,7 +36,7 @@ func (h *Handler) ListAccountsHandler(c *gin.Context) {
 	var dbAccounts []dbModels.Account
 	if err := h.db.Where("user_id = ? AND archived = ?", userID.(string), false).Find(&dbAccounts).Error; err != nil {
 		logger.Error("Failed to fetch accounts from database", zap.Error(err))
-		response.InternalServerError(c, "failed to fetch accounts")
+		response.InternalError(c, "failed to fetch accounts")
 		return
 	}
 
@@ -174,7 +174,7 @@ func (h *Handler) CreateAccountHandler(c *gin.Context) {
 	// 保存到数据库
 	if err := h.db.Create(&dbAcc).Error; err != nil {
 		logger.Error("Failed to create account in database", zap.Error(err))
-		response.InternalServerError(c, "failed to create account")
+		response.InternalError(c, "failed to create account")
 		return
 	}
 
@@ -246,14 +246,14 @@ func (h *Handler) UpdateCreditLimitsHandler(c *gin.Context) {
 
 	if err := h.db.Model(&dbAcc).Updates(updates).Error; err != nil {
 		logger.Error("Failed to update account limits", zap.Error(err))
-		response.InternalServerError(c, "failed to update account")
+		response.InternalError(c, "failed to update account")
 		return
 	}
 
 	// 重新查询以获取最新数据
 	if err := h.db.Where("id = ?", id).First(&dbAcc).Error; err != nil {
 		logger.Error("Failed to fetch updated account", zap.Error(err))
-		response.InternalServerError(c, "failed to fetch updated account")
+		response.InternalError(c, "failed to fetch updated account")
 		return
 	}
 

@@ -2,22 +2,168 @@ package cashflow
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"neverbroke/internal/accounts"
+	"neverbroke/internal/installment"
+	"neverbroke/internal/ledger"
+	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/repository"
-	"neverbroke/internal/repository/memoryadapter"
 	"neverbroke/internal/testutil"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
+// mockStore 测试用的 mock store 实现
+type mockStore struct{}
+
+func newMockStore() repository.Store {
+	return &mockStore{}
+}
+
+func (m *mockStore) Accounts() repository.AccountRepository {
+	return &mockAccountRepository{}
+}
+
+func (m *mockStore) Transactions() repository.TransactionRepository {
+	return &mockTransactionRepository{}
+}
+
+func (m *mockStore) Installments() repository.InstallmentRepository {
+	return &mockInstallmentRepository{}
+}
+
+func (m *mockStore) RecurringIncomes() repository.RecurringIncomeRepository {
+	return &mockRecurringIncomeRepository{}
+}
+
+func (m *mockStore) Close() error {
+	return nil
+}
+
+// mockAccountRepository mock 账户仓储
+type mockAccountRepository struct{}
+
+func (r *mockAccountRepository) GetByID(ctx context.Context, userID, id string) (*accounts.Account, error) {
+	acc, ok := accounts.FindAccountByID(id)
+	if !ok {
+		return nil, fmt.Errorf("account not found: %s", id)
+	}
+	return acc, nil
+}
+
+func (r *mockAccountRepository) ListByUser(ctx context.Context, userID string) ([]*accounts.Account, error) {
+	accs := accounts.ListAccounts()
+	result := make([]*accounts.Account, len(accs))
+	for i := range accs {
+		result[i] = &accs[i]
+	}
+	return result, nil
+}
+
+func (r *mockAccountRepository) Create(ctx context.Context, userID string, acc *accounts.Account) error {
+	accounts.AddAccount(*acc)
+	return nil
+}
+
+func (r *mockAccountRepository) Update(ctx context.Context, userID string, acc *accounts.Account) error {
+	return nil
+}
+
+// mockTransactionRepository mock 交易仓储
+type mockTransactionRepository struct{}
+
+func (r *mockTransactionRepository) GetByID(ctx context.Context, userID, id string) (*ledger.Transaction, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (r *mockTransactionRepository) ListByUserBetween(ctx context.Context, userID, from, to string) ([]*ledger.Transaction, error) {
+	return []*ledger.Transaction{}, nil
+}
+
+func (r *mockTransactionRepository) Create(ctx context.Context, userID string, tx *ledger.Transaction) error {
+	return nil
+}
+
+func (r *mockTransactionRepository) CreateBatch(ctx context.Context, userID string, txs []*ledger.Transaction) error {
+	return nil
+}
+
+// mockInstallmentRepository mock 分期仓储
+type mockInstallmentRepository struct{}
+
+func (r *mockInstallmentRepository) GetByID(ctx context.Context, userID, id string) (*installment.InstallmentPlan, error) {
+	plan, ok := installment.FindPlanByID(id)
+	if !ok {
+		return nil, fmt.Errorf("installment plan not found: %s", id)
+	}
+	return plan, nil
+}
+
+func (r *mockInstallmentRepository) ListByAccount(ctx context.Context, userID, accountID string) ([]*installment.InstallmentPlan, error) {
+	plans := installment.ListPlansByAccount(accountID)
+	result := make([]*installment.InstallmentPlan, len(plans))
+	for i := range plans {
+		result[i] = &plans[i]
+	}
+	return result, nil
+}
+
+func (r *mockInstallmentRepository) ListByUser(ctx context.Context, userID string) ([]*installment.InstallmentPlan, error) {
+	plans := installment.ListPlansByAccount("")
+	result := make([]*installment.InstallmentPlan, 0, len(plans))
+	for i := range plans {
+		result = append(result, &plans[i])
+	}
+	return result, nil
+}
+
+func (r *mockInstallmentRepository) Create(ctx context.Context, userID string, plan *installment.InstallmentPlan) error {
+	installment.AddPlan(*plan)
+	return nil
+}
+
+func (r *mockInstallmentRepository) Update(ctx context.Context, userID string, plan *installment.InstallmentPlan) error {
+	return nil
+}
+
+// mockRecurringIncomeRepository mock 周期收入仓储
+type mockRecurringIncomeRepository struct{}
+
+func (r *mockRecurringIncomeRepository) GetByID(ctx context.Context, userID, id string) (*recurringincome.RecurringIncomePlan, error) {
+	plan := recurringincome.GetPlanByID(id)
+	if plan == nil {
+		return nil, fmt.Errorf("recurring income plan not found: %s", id)
+	}
+	return plan, nil
+}
+
+func (r *mockRecurringIncomeRepository) ListByUser(ctx context.Context, userID string) ([]*recurringincome.RecurringIncomePlan, error) {
+	plans := recurringincome.ListPlans()
+	result := make([]*recurringincome.RecurringIncomePlan, len(plans))
+	for i := range plans {
+		result[i] = &plans[i]
+	}
+	return result, nil
+}
+
+func (r *mockRecurringIncomeRepository) Create(ctx context.Context, userID string, plan *recurringincome.RecurringIncomePlan) error {
+	recurringincome.SavePlan(*plan)
+	return nil
+}
+
+func (r *mockRecurringIncomeRepository) Update(ctx context.Context, userID string, plan *recurringincome.RecurringIncomePlan) error {
+	recurringincome.SavePlan(*plan)
+	return nil
+}
+
 func setupCashflowTestRouter() (*gin.Engine, repository.Store) {
 	router := testutil.SetupTestRouter()
-	store := memoryadapter.NewMemoryStoreAdapter()
+	store := newMockStore()
 
 	router.GET("/cashflow/forecast", ForecastHandler(store))
 
@@ -298,7 +444,7 @@ func TestForecastContextCancellation(t *testing.T) {
 }
 
 func TestBuildForecastDirectly(t *testing.T) {
-	store := memoryadapter.NewMemoryStoreAdapter()
+	store := newMockStore()
 	ctx := context.Background()
 
 	// 准备测试账户

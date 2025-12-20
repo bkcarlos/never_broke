@@ -6,7 +6,8 @@ NeverBroke 记账应用的后端服务，使用 Go + Gin 构建。
 
 - Go 1.21+
 - Gin Web Framework
-- 内存存储（可扩展为数据库）
+- PostgreSQL 数据库
+- GORM ORM
 
 ## 项目结构
 
@@ -36,10 +37,8 @@ backend-go/
 │   │   └── router/
 │   │       └── router.go        # 路由配置
 │   └── storage/
-│       ├── models/
-│       │   └── models.go        # 数据模型
-│       └── memory/
-│           └── store.go         # 内存存储实现
+│       └── models/
+│           └── models.go        # 数据模型
 ├── logs/
 │   └── .gitkeep                 # 日志目录
 ├── go.mod

@@ -2,8 +2,8 @@ package user
 
 import (
 	"neverbroke/common/logger"
+	"neverbroke/internal/auth"
 	"neverbroke/internal/http/response"
-	"neverbroke/internal/storage/memory"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -11,54 +11,59 @@ import (
 
 // Handler 用户处理器
 type Handler struct {
-	store *memory.Store
+	userRepo auth.Repository
 }
 
 // NewHandler 创建用户处理器
-func NewHandler(store *memory.Store) *Handler {
+func NewHandler(userRepo auth.Repository) *Handler {
 	return &Handler{
-		store: store,
+		userRepo: userRepo,
 	}
 }
 
 // GetSettings 获取用户设置
 func (h *Handler) GetSettings(c *gin.Context) {
-	// 当前使用固定用户 ID
-	userID := "demo"
-
-	logger.Debug("Fetching user settings", zap.String("userID", userID))
-
-	settings, err := h.store.GetUserSettings(userID)
-	if err != nil {
-		logger.Error("Failed to get user settings",
-			zap.String("userID", userID),
-			zap.Error(err),
-		)
-		response.InternalError(c, "Failed to get user settings")
+	// 从认证中间件获取当前用户
+	userVal, exists := c.Get("user")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
 		return
 	}
 
-	logger.Info("User settings fetched successfully", zap.String("userID", userID))
+	user, ok := userVal.(*auth.User)
+	if !ok {
+		response.InternalError(c, "Invalid user context")
+		return
+	}
+
+	logger.Debug("Fetching user settings", zap.Int("userID", user.ID))
+
+	// 直接从用户对象返回设置
+	settings := &auth.UserSettings{
+		Locale:     user.Locale,
+		ShowAmount: user.ShowAmount,
+	}
+
+	logger.Info("User settings fetched successfully", zap.Int("userID", user.ID))
 	response.OK(c, settings)
 }
 
 // UpdateSettings 更新用户设置
 func (h *Handler) UpdateSettings(c *gin.Context) {
-	// 当前使用固定用户 ID
-	userID := "demo"
-
-	logger.Debug("Updating user settings", zap.String("userID", userID))
-
-	// 获取当前设置
-	currentSettings, err := h.store.GetUserSettings(userID)
-	if err != nil {
-		logger.Error("Failed to get user settings for update",
-			zap.String("userID", userID),
-			zap.Error(err),
-		)
-		response.InternalError(c, "Failed to get user settings")
+	// 从认证中间件获取当前用户
+	userVal, exists := c.Get("user")
+	if !exists {
+		response.Unauthorized(c, "User not authenticated")
 		return
 	}
+
+	user, ok := userVal.(*auth.User)
+	if !ok {
+		response.InternalError(c, "Invalid user context")
+		return
+	}
+
+	logger.Debug("Updating user settings", zap.Int("userID", user.ID))
 
 	// 解析请求体（部分更新）
 	var updates struct {
@@ -68,27 +73,33 @@ func (h *Handler) UpdateSettings(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&updates); err != nil {
 		logger.Warn("Invalid request body for settings update",
-			zap.String("userID", userID),
+			zap.Int("userID", user.ID),
 			zap.Error(err),
 		)
 		response.BadRequest(c, "Invalid request body")
 		return
 	}
 
+	// 构建新的设置（基于当前用户设置）
+	newSettings := &auth.UserSettings{
+		Locale:     user.Locale,
+		ShowAmount: user.ShowAmount,
+	}
+
 	// 应用更新
 	if updates.Locale != nil {
-		currentSettings.Locale = *updates.Locale
+		newSettings.Locale = *updates.Locale
 		logger.Debug("Locale updated", zap.String("locale", *updates.Locale))
 	}
 	if updates.ShowAmount != nil {
-		currentSettings.ShowAmount = *updates.ShowAmount
+		newSettings.ShowAmount = *updates.ShowAmount
 		logger.Debug("ShowAmount updated", zap.Bool("showAmount", *updates.ShowAmount))
 	}
 
-	// 保存设置
-	if err := h.store.UpdateUserSettings(userID, currentSettings); err != nil {
+	// 保存设置到数据库
+	if err := h.userRepo.UpdateUserSettings(user.ID, newSettings); err != nil {
 		logger.Error("Failed to save user settings",
-			zap.String("userID", userID),
+			zap.Int("userID", user.ID),
 			zap.Error(err),
 		)
 		response.InternalError(c, "Failed to update user settings")
@@ -96,10 +107,9 @@ func (h *Handler) UpdateSettings(c *gin.Context) {
 	}
 
 	logger.Info("User settings updated successfully",
-		zap.String("userID", userID),
-		zap.String("locale", currentSettings.Locale),
-		zap.Bool("showAmount", currentSettings.ShowAmount),
+		zap.Int("userID", user.ID),
+		zap.String("locale", newSettings.Locale),
+		zap.Bool("showAmount", newSettings.ShowAmount),
 	)
-	response.OK(c, currentSettings)
+	response.OK(c, newSettings)
 }
-
