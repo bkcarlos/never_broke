@@ -20,7 +20,7 @@ import (
 // 注意：此测试需要实现账户共享功能后才能启用
 func TestRealWorldScenario_FamilySharedAccount(t *testing.T) {
 	t.Skip("Skipping test: shared account feature not yet implemented. Account ownership validation prevents cross-user account access.")
-	
+
 	cleanupTestData(testDB)
 
 	// 模拟场景：夫妻两人共享一个银行账户
@@ -154,7 +154,7 @@ func TestRealWorldScenario_FamilySharedAccount(t *testing.T) {
 // 注意：此测试需要实现账户共享功能后才能启用
 func TestRealWorldScenario_BusinessDayOperations(t *testing.T) {
 	t.Skip("Skipping test: shared account feature not yet implemented. Account ownership validation prevents cross-user account access.")
-	
+
 	cleanupTestData(testDB)
 
 	// 模拟场景：公司的一天
