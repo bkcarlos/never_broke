@@ -461,3 +461,87 @@ func (h *Handler) GetCategoryStats(c *gin.Context) {
 	logger.Info("Category stats fetched successfully", zap.Int("count", len(categoryTop)))
 	response.OK(c, categoryTop)
 }
+
+// GetMonthOverview 获取本月概览
+func (h *Handler) GetMonthOverview(c *gin.Context) {
+	userID := "demo"
+	ctx := context.Background()
+	now := time.Now()
+
+	logger.Debug("Fetching month overview", zap.String("userID", userID))
+
+	// 获取本月起止日期
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	monthEnd := monthStart.AddDate(0, 1, 0).Add(-time.Second)
+
+	// 获取本月交易记录
+	monthTxs, err := h.store.Transactions().ListByUserBetween(ctx, userID,
+		monthStart.Format(time.RFC3339),
+		monthEnd.Format(time.RFC3339))
+	if err != nil {
+		logger.Error("Failed to fetch transactions", zap.String("userID", userID), zap.Error(err))
+		response.InternalError(c, "Failed to fetch month overview")
+		return
+	}
+
+	// 计算收支
+	var monthIncome, monthExpense float64
+	for _, tx := range monthTxs {
+		switch tx.Type {
+		case "income":
+			monthIncome += tx.Amount
+		case "expense":
+			monthExpense += tx.Amount
+		}
+	}
+
+	// 计算收支状态
+	status := calculateStatus(monthIncome, monthExpense)
+
+	// 生成建议
+	suggestion := generateSuggestion(monthIncome, monthExpense)
+
+	overview := MonthOverview{
+		MonthIncome:  monthIncome,
+		MonthExpense: monthExpense,
+		Status:       status,
+		Suggestion:   suggestion,
+	}
+
+	logger.Info("Month overview fetched successfully",
+		zap.Float64("income", monthIncome),
+		zap.Float64("expense", monthExpense),
+		zap.String("status", status),
+	)
+	response.OK(c, overview)
+}
+
+// calculateStatus 计算收支状态
+func calculateStatus(income, expense float64) string {
+	if income > expense {
+		return "surplus" // 盈余
+	} else if income < expense {
+		return "deficit" // 赤字
+	} else {
+		return "balanced" // 平衡
+	}
+}
+
+// generateSuggestion 生成消费建议
+func generateSuggestion(income, expense float64) string {
+	if income == 0 {
+		return "💡 暂无收入记录"
+	}
+
+	ratio := expense / income
+
+	if ratio > 0.9 {
+		return "⚠️ 支出过高（超过90%），建议控制消费"
+	} else if ratio > 0.7 {
+		return "⚡ 支出较高（超过70%），注意理性消费"
+	} else if ratio > 0.5 {
+		return "✅ 收支健康，保持良好习惯"
+	} else {
+		return "💰 储蓄率良好，继续保持"
+	}
+}

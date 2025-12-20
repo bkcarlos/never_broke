@@ -17,6 +17,14 @@ type PayCycleOverview struct {
 	CycleUsedPercent float64 `json:"cycleUsedPercent"`
 }
 
+// MonthOverview 本月概览
+type MonthOverview struct {
+	MonthIncome  float64 `json:"monthIncome"`  // 本月收入
+	MonthExpense float64 `json:"monthExpense"` // 本月支出
+	Status       string  `json:"status"`       // 收支状态：surplus(盈余) / deficit(赤字) / balanced(平衡)
+	Suggestion   string  `json:"suggestion"`   // 消费建议
+}
+
 // AssetSummary 资产总览
 type AssetSummary struct {
 	TotalAssets      float64 `json:"totalAssets"`      // 总资产（不含信用卡）

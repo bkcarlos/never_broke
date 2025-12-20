@@ -139,51 +139,40 @@
         </p>
       </div>
 
-        <!-- 卡片 3: 本月可自由支配 -->
-        <div class="card cycle-card">
-          <h2 class="card-title">本月可自由支配</h2>
-          
-          <div class="flex items-center gap-6">
-            <!-- 圆形进度 -->
-            <div class="relative w-24 h-24 flex-shrink-0">
-              <svg class="w-full h-full transform -rotate-90">
-                <circle 
-                  cx="48" cy="48" r="40" 
-                  stroke="#e5e7eb" 
-                  stroke-width="8" 
-                  fill="none"
-                />
-                <circle 
-                  cx="48" cy="48" r="40" 
-                  stroke="#6366f1" 
-                  stroke-width="8" 
-                  fill="none"
-                  :stroke-dasharray="`${payCycle.cycleUsedPercent * 2.51} 251`"
-                  class="transition-all duration-500"
-                />
-              </svg>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <span class="text-sm font-bold text-gray-700">
-                  {{ Math.round(payCycle.cycleUsedPercent) }}%
-                </span>
-              </div>
+        <!-- 卡片 3: 本月概览 -->
+        <div class="card month-overview-card">
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-2">
+              <h2 class="card-title mb-0">本月概览</h2>
+              <span 
+                class="px-3 py-1 rounded-full text-xs font-medium"
+                :class="{
+                  'bg-green-100 text-green-700': monthOverview.status === 'surplus',
+                  'bg-red-100 text-red-700': monthOverview.status === 'deficit',
+                  'bg-gray-100 text-gray-700': monthOverview.status === 'balanced'
+                }"
+              >
+                {{ getStatusText(monthOverview.status) }}
+              </span>
             </div>
-            <!-- 自由支配详情 -->
-            <div class="flex-1 space-y-2">
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-500">可自由支配</span>
-                <span class="font-semibold text-indigo-600">¥{{ formatMoney(payCycle.freeToSpend) }}</span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-500">距离发薪日</span>
-                <span class="font-semibold">{{ payCycle.daysToNextPayday }} 天</span>
-              </div>
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-500">已用百分比</span>
-                <span class="font-semibold text-orange-500">
-                  {{ Math.round(payCycle.cycleUsedPercent) }}%
-                </span>
-              </div>
+            <!-- 副标题：消费建议 -->
+            <p class="text-xs text-gray-500 mt-1">{{ monthOverview.suggestion }}</p>
+          </div>
+          
+          <div class="space-y-3">
+            <!-- 收支统计 -->
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">📈 本月收入</span>
+              <span class="font-semibold text-green-600">
+                ¥{{ formatMoney(monthOverview.monthIncome) }}
+              </span>
+            </div>
+            
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">📉 本月支出</span>
+              <span class="font-semibold text-red-500">
+                ¥{{ formatMoney(monthOverview.monthExpense) }}
+              </span>
             </div>
           </div>
         </div>
@@ -230,8 +219,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
-import type { AssetSummary, TodayStats, PayCycleOverview, CategoryStat } from '@/types'
-import { getAssetSummary, getBudgetStats, getPayCycle, getCategoryStats } from '@/api/home'
+import type { AssetSummary, TodayStats, MonthOverview, CategoryStat } from '@/types'
+import { getAssetSummary, getBudgetStats, getMonthOverview, getCategoryStats } from '@/api/home'
 import { t } from '@/i18n'
 import { useUserSettingsStore } from '@/stores/userSettings'
 
@@ -253,11 +242,11 @@ const budgetStats = ref<TodayStats>({
   monthBudget: 0,
   monthNet: 0
 })
-const payCycle = ref<PayCycleOverview>({
-  cycleName: '',
-  daysToNextPayday: 0,
-  freeToSpend: 0,
-  cycleUsedPercent: 0
+const monthOverview = ref<MonthOverview>({
+  monthIncome: 0,
+  monthExpense: 0,
+  status: 'balanced',
+  suggestion: ''
 })
 const categoryTop = ref<CategoryStat[]>([])
 
@@ -324,6 +313,20 @@ const daysInMonth = computed(() => {
 function formatMoney(value: number): string {
   if (!userSettingsStore.showAmount) return '***'
   return value.toFixed(2)
+}
+
+// 获取状态文本
+function getStatusText(status: string): string {
+  switch (status) {
+    case 'surplus':
+      return '✅ 收支盈余'
+    case 'deficit':
+      return '⚠️ 支出超标'
+    case 'balanced':
+      return '⚖️ 收支平衡'
+    default:
+      return '未知'
+  }
 }
 
 function getCategoryDotColor(index: number): string {
@@ -507,22 +510,22 @@ async function loadData() {
   
   try {
     // 并行加载所有数据
-    const [assetData, budgetData, payCycleData, categoryData] = await Promise.all([
+    const [assetData, budgetData, monthData, categoryData] = await Promise.all([
       getAssetSummary(),
       getBudgetStats(),
-      getPayCycle(),
+      getMonthOverview(),
       getCategoryStats()
     ])
     
     console.log('✅ 数据加载成功')
     console.log('资产总览:', assetData)
     console.log('预算统计:', budgetData)
-    console.log('支付周期:', payCycleData)
+    console.log('本月概览:', monthData)
     console.log('分类统计:', categoryData)
     
     assetSummary.value = assetData
     budgetStats.value = budgetData
-    payCycle.value = payCycleData
+    monthOverview.value = monthData
     categoryTop.value = categoryData || []  // 如果为 null，设置为空数组
   } catch (e) {
     console.error('❌ 数据加载失败:', e)

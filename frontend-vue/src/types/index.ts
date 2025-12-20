@@ -15,6 +15,13 @@ export interface PayCycleOverview {
   cycleUsedPercent: number
 }
 
+export interface MonthOverview {
+  monthIncome: number      // 本月收入
+  monthExpense: number     // 本月支出
+  status: string           // 收支状态：surplus(盈余) / deficit(赤字) / balanced(平衡)
+  suggestion: string       // 消费建议
+}
+
 export interface AssetSummary {
   totalAssets: number        // 总资产（不含信用卡）
   availableBalance: number   // 可用余额（总资产+信用卡可用额度）

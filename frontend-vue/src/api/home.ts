@@ -4,6 +4,7 @@ import type {
   AssetSummary, 
   TodayStats, 
   PayCycleOverview, 
+  MonthOverview,
   CategoryStat 
 } from '@/types'
 
@@ -33,6 +34,13 @@ export function getBudgetStats(): Promise<TodayStats> {
  */
 export function getPayCycle(): Promise<PayCycleOverview> {
   return get<PayCycleOverview>('/home/pay-cycle')
+}
+
+/**
+ * 获取本月概览（收支、TOP3大额支出、建议）
+ */
+export function getMonthOverview(): Promise<MonthOverview> {
+  return get<MonthOverview>('/home/month-overview')
 }
 
 /**

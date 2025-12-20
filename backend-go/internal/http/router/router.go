@@ -115,8 +115,9 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 		// 首页 - 独立 API
 		group.GET("/home/asset-summary", homeHandler.GetAssetSummary)   // 资产总览
 		group.GET("/home/budget-stats", homeHandler.GetBudgetStats)     // 本月预算
-		group.GET("/home/pay-cycle", homeHandler.GetPayCycle)           // 支付周期
+		group.GET("/home/month-overview", homeHandler.GetMonthOverview) // 本月概览
 		group.GET("/home/category-stats", homeHandler.GetCategoryStats) // 分类统计
+		group.GET("/home/pay-cycle", homeHandler.GetPayCycle)           // 支付周期（保留用于兼容）
 
 		// 账户
 		group.GET("/accounts", accountsHandler.ListAccountsHandler)
