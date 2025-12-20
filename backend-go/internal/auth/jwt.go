@@ -53,7 +53,8 @@ func NewTokenManager() *TokenManager {
 // 1. 使用 HS256 签名算法
 // 2. 短期有效（10 分钟）
 // 3. 包含用户基本信息（不包含敏感信息）
-func (tm *TokenManager) GenerateAccessToken(user *User) (string, int64, error) {
+// 4. 包含设备ID，用于验证token是否已被撤销
+func (tm *TokenManager) GenerateAccessToken(user *User, deviceID string) (string, int64, error) {
 	now := time.Now()
 	expiresAt := now.Add(AccessTokenDuration)
 
@@ -61,12 +62,14 @@ func (tm *TokenManager) GenerateAccessToken(user *User) (string, int64, error) {
 		UserID:   user.ID,
 		Email:    user.Email,
 		Nickname: user.Nickname,
+		DeviceID: deviceID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
 			Issuer:    "neverbroke-auth",
 			Subject:   fmt.Sprintf("%d", user.ID),
+			ID:        uuid.New().String(), // JTI: 确保每个token唯一
 		},
 	}
 
@@ -79,6 +82,11 @@ func (tm *TokenManager) GenerateAccessToken(user *User) (string, int64, error) {
 	return tokenString, int64(AccessTokenDuration.Seconds()), nil
 }
 
+// generateJTI 生成唯一的JTI
+func generateJTI() string {
+	return uuid.New().String()
+}
+
 // GenerateRefreshToken 生成 Refresh Token
 // 安全说明：
 // 1. 使用 UUID v4 作为 jti（唯一标识）
@@ -86,11 +94,14 @@ func (tm *TokenManager) GenerateAccessToken(user *User) (string, int64, error) {
 // 3. 仅包含 user_id 和 device_id
 // 4. 返回 token 和 jti（用于数据库存储）
 func (tm *TokenManager) GenerateRefreshToken(userID int, deviceID string) (token string, jti string, err error) {
+	jti = generateJTI()
+	return tm.GenerateRefreshTokenWithJTI(userID, deviceID, jti)
+}
+
+// GenerateRefreshTokenWithJTI 使用指定的JTI生成 Refresh Token
+func (tm *TokenManager) GenerateRefreshTokenWithJTI(userID int, deviceID string, jti string) (token string, _ string, err error) {
 	now := time.Now()
 	expiresAt := now.Add(RefreshTokenDuration)
-
-	// 生成唯一 jti
-	jti = uuid.New().String()
 
 	claims := RefreshTokenClaims{
 		UserID:   userID,

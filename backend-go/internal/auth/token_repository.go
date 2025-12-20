@@ -29,6 +29,7 @@ type TokenRepository interface {
 	RevokeAllUserTokens(userID int) error
 	RevokeDeviceTokens(userID int, deviceID string) error
 	DeleteExpiredRefreshTokens() error
+	CountActiveTokensForDevice(userID int, deviceID string) (int64, error)
 
 	// OAuthIdentity operations
 	CreateOAuthIdentity(identity *OAuthIdentity) error
@@ -122,6 +123,7 @@ func (r *GormTokenRepository) UpdateRefreshToken(token *RefreshToken) error {
 }
 
 // RevokeRefreshToken 撤销 Refresh Token
+// 并发安全：只revoke未被撤销的token
 func (r *GormTokenRepository) RevokeRefreshToken(jti string, replacedBy *string) error {
 	now := time.Now()
 	updates := map[string]interface{}{
@@ -132,13 +134,14 @@ func (r *GormTokenRepository) RevokeRefreshToken(jti string, replacedBy *string)
 	}
 
 	result := r.db.Model(&RefreshToken{}).
-		Where("id = ?", jti).
+		Where("id = ? AND revoked_at IS NULL", jti). // 并发安全：只更新未被撤销的token
 		Updates(updates)
 
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
+		// Token已经被撤销或不存在
 		return ErrRefreshTokenNotFound
 	}
 	return nil
@@ -158,6 +161,15 @@ func (r *GormTokenRepository) RevokeDeviceTokens(userID int, deviceID string) er
 	return r.db.Model(&RefreshToken{}).
 		Where("user_id = ? AND device_id = ? AND revoked_at IS NULL", userID, deviceID).
 		Update("revoked_at", now).Error
+}
+
+// CountActiveTokensForDevice 统计设备的活跃token数量
+func (r *GormTokenRepository) CountActiveTokensForDevice(userID int, deviceID string) (int64, error) {
+	var count int64
+	err := r.db.Model(&RefreshToken{}).
+		Where("user_id = ? AND device_id = ? AND revoked_at IS NULL", userID, deviceID).
+		Count(&count).Error
+	return count, err
 }
 
 // DeleteExpiredRefreshTokens 删除过期的 Refresh Token

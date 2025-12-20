@@ -159,7 +159,7 @@ func (s *OAuthService) findOrCreateUserByOAuth(userInfo *OAuthUserInfo) (*User, 
 // issueTokenPair 签发 Token 对（复用 TokenService 的逻辑）
 func (s *OAuthService) issueTokenPair(user *User, deviceID, userAgent, ipAddress string) (*TokenPair, error) {
 	// 1. 生成 Access Token
-	accessToken, expiresIn, err := s.tokenMgr.GenerateAccessToken(user)
+	accessToken, expiresIn, err := s.tokenMgr.GenerateAccessToken(user, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}

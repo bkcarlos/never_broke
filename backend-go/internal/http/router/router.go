@@ -96,7 +96,7 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 	// 创建所有 handlers（复用于 /api 和 /api/v1 路由组）
 	homeHandler := home.NewHandler(store)
 	accountsHandler := accounts.NewHandler()
-	ledgerHandler := ledger.NewHandler(store.Transactions())
+	ledgerHandler := ledger.NewHandler(store.Transactions(), db)
 	reportHandler := report.NewHandler(store)
 	memoryStore := memory.NewStore()
 	userHandler := user.NewHandler(memoryStore)
@@ -172,11 +172,12 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 	}
 
 	// API 路由组（不带版本号，与前端兼容）
-	api := r.Group("/api")
+	// 需要认证的路由
+	api := r.Group("/api", tokenHandler.AuthMiddleware())
 	registerRoutes(api)
 
 	// API v1 路由组（保留用于未来版本管理）
-	v1 := r.Group("/api/v1")
+	v1 := r.Group("/api/v1", tokenHandler.AuthMiddleware())
 	registerRoutes(v1)
 
 	return r

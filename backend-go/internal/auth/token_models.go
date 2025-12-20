@@ -60,6 +60,7 @@ type AccessTokenClaims struct {
 	UserID   int    `json:"user_id"`
 	Email    string `json:"email"`
 	Nickname string `json:"nickname"`
+	DeviceID string `json:"device_id"` // 设备ID，用于验证token是否已被撤销
 	jwt.RegisteredClaims
 }
 

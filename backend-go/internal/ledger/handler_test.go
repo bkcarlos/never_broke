@@ -45,14 +45,26 @@ func (m *MockTransactionStore) ListByUserBetween(ctx context.Context, userID, fr
 	return result, nil
 }
 
+func (m *MockTransactionStore) Create(ctx context.Context, userID string, tx *Transaction) error {
+	m.transactions = append(m.transactions, tx)
+	return nil
+}
+
 func (m *MockTransactionStore) AddTransaction(tx *Transaction) {
 	m.transactions = append(m.transactions, tx)
 }
 
 func setupLedgerTestRouter() (*gin.Engine, *MockTransactionStore) {
 	router := testutil.SetupTestRouter()
+
+	// 添加模拟认证中间件，设置user_id到context
+	router.Use(func(c *gin.Context) {
+		c.Set("user_id", "test-user-123")
+		c.Next()
+	})
+
 	mockStore := NewMockTransactionStore()
-	handler := NewHandler(mockStore)
+	handler := NewHandler(mockStore, nil) // nil DB for unit tests using memory accounts
 
 	router.GET("/ledger/daily", handler.GetDailyTransactions)
 	router.POST("/ledger/transactions", handler.CreateTransaction)

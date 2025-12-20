@@ -13,6 +13,7 @@ import (
 	"neverbroke/internal/auth"
 	"neverbroke/internal/models"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +40,7 @@ func TestTransactionFlow_CreateAndQuery(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(transactionReq)
-		req, _ := http.NewRequest("POST", "/api/ledger/transactions", bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", "/api/transactions", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -49,10 +50,15 @@ func TestTransactionFlow_CreateAndQuery(t *testing.T) {
 		require.Equal(t, http.StatusOK, w.Code, "Create income transaction should succeed")
 
 		var response map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &response)
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err, "Response should be valid JSON")
 
 		// 检查响应格式
-		assert.Contains(t, response, "data")
+		require.Contains(t, response, "data", "Response should contain data field")
+		if response["data"] == nil {
+			t.Logf("Response body: %s", w.Body.String())
+		}
+		require.NotNil(t, response["data"], "Data field should not be nil")
 		data := response["data"].(map[string]interface{})
 		assert.NotEmpty(t, data["id"])
 		assert.Equal(t, "income", data["type"])
@@ -62,15 +68,17 @@ func TestTransactionFlow_CreateAndQuery(t *testing.T) {
 
 		// 验证交易已写入数据库
 		var tx models.Transaction
-		err := testDB.Where("account_id = ? AND type = ?", account.ID, "income").First(&tx).Error
+		err = testDB.Where("account_id = ? AND type = ?", account.ID, "income").First(&tx).Error
 		require.NoError(t, err, "Transaction should be persisted")
 		assert.Equal(t, 5000.0, tx.Amount)
-		assert.Equal(t, "INCOME_SALARY", tx.CategoryKey)
-		assert.Equal(t, "月工资", tx.Remark)
+		require.NotNil(t, tx.CategoryKey, "CategoryKey should not be nil")
+		assert.Equal(t, "INCOME_SALARY", *tx.CategoryKey)
+		require.NotNil(t, tx.Remark, "Remark should not be nil")
+		assert.Equal(t, "月工资", *tx.Remark)
 
 		// 验证账户余额已更新
 		var updatedAccount models.Account
-		testDB.First(&updatedAccount, account.ID)
+		testDB.Where("id = ?", account.ID).First(&updatedAccount)
 		assert.Equal(t, 15000.0, updatedAccount.Balance, "Account balance should increase")
 	})
 
@@ -86,7 +94,7 @@ func TestTransactionFlow_CreateAndQuery(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(transactionReq)
-		req, _ := http.NewRequest("POST", "/api/ledger/transactions", bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", "/api/transactions", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -99,7 +107,7 @@ func TestTransactionFlow_CreateAndQuery(t *testing.T) {
 
 		// 验证账户余额减少
 		var updatedAccount models.Account
-		testDB.First(&updatedAccount, account.ID)
+		testDB.Where("id = ?", account.ID).First(&updatedAccount)
 		assert.Equal(t, 14000.0, updatedAccount.Balance, "Account balance should decrease")
 
 		// 验证交易记录
@@ -111,7 +119,7 @@ func TestTransactionFlow_CreateAndQuery(t *testing.T) {
 	// 4. 查询每日交易
 	t.Run("QueryDailyTransactions", func(t *testing.T) {
 		today := time.Now().Format("2006-01-02")
-		req, _ := http.NewRequest("GET", "/api/ledger/daily?date="+today, nil)
+		req, _ := http.NewRequest("GET", "/api/transactions/daily?date="+today, nil)
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
 		w := httptest.NewRecorder()
@@ -154,7 +162,7 @@ func TestTransactionFlow_TransferBetweenAccounts(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(transferReq)
-		req, _ := http.NewRequest("POST", "/api/ledger/transactions", bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", "/api/transactions", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -167,8 +175,8 @@ func TestTransactionFlow_TransferBetweenAccounts(t *testing.T) {
 
 		// 验证两个账户余额都已更新
 		var acc1, acc2 models.Account
-		testDB.First(&acc1, account1.ID)
-		testDB.First(&acc2, account2.ID)
+		testDB.Where("id = ?", account1.ID).First(&acc1)
+		testDB.Where("id = ?", account2.ID).First(&acc2)
 
 		assert.Equal(t, 8000.0, acc1.Balance, "From account should decrease")
 		assert.Equal(t, 7000.0, acc2.Balance, "To account should increase")
@@ -203,7 +211,7 @@ func TestTransactionFlow_FailureRollback(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(transactionReq)
-		req, _ := http.NewRequest("POST", "/api/ledger/transactions", bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", "/api/transactions", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -217,7 +225,7 @@ func TestTransactionFlow_FailureRollback(t *testing.T) {
 
 		// 验证账户余额（如果交易成功，会是-1000，如果失败，应该还是1000）
 		var updatedAccount models.Account
-		testDB.First(&updatedAccount, account.ID)
+		testDB.Where("id = ?", account.ID).First(&updatedAccount)
 
 		// 根据实际业务逻辑验证
 		if w.Code == http.StatusOK {
@@ -238,7 +246,7 @@ func TestTransactionFlow_FailureRollback(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(transactionReq)
-		req, _ := http.NewRequest("POST", "/api/ledger/transactions", bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", "/api/transactions", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -277,7 +285,7 @@ func TestTransactionFlow_NetworkInterruption(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(transactionReq)
-		req, _ := http.NewRequestWithContext(ctx, "POST", "/api/ledger/transactions", bytes.NewBuffer(body))
+		req, _ := http.NewRequestWithContext(ctx, "POST", "/api/transactions", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -296,7 +304,7 @@ func TestTransactionFlow_NetworkInterruption(t *testing.T) {
 			Count(&txCount)
 
 		var currentAccount models.Account
-		testDB.First(&currentAccount, account.ID)
+		testDB.Where("id = ?", account.ID).First(&currentAccount)
 
 		if txCount > 0 {
 			// 如果交易记录存在，余额应该已更新
@@ -333,7 +341,7 @@ func TestTransactionFlow_ConcurrentTransactions(t *testing.T) {
 				}
 
 				body, _ := json.Marshal(transactionReq)
-				req, _ := http.NewRequest("POST", "/api/ledger/transactions", bytes.NewBuffer(body))
+				req, _ := http.NewRequest("POST", "/api/transactions", bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
 				req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -361,7 +369,7 @@ func TestTransactionFlow_ConcurrentTransactions(t *testing.T) {
 
 		// 验证最终余额是否正确
 		var finalAccount models.Account
-		testDB.First(&finalAccount, account.ID)
+		testDB.Where("id = ?", account.ID).First(&finalAccount)
 
 		// 最终余额应该是 10000 - 10*100 = 9000
 		assert.Equal(t, 9000.0, finalAccount.Balance, "Final balance should be correct after concurrent transactions")
@@ -412,6 +420,7 @@ func loginAndGetToken(t *testing.T, email, password string) string {
 
 func createTestAccount(t *testing.T, userID int, accountType string, initialBalance float64) *models.Account {
 	account := &models.Account{
+		ID:       uuid.New().String(),
 		UserID:   fmt.Sprintf("%d", userID),
 		Type:     accountType,
 		Currency: "CNY",

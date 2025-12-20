@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -414,6 +415,7 @@ func (h *TokenHandler) AuthMiddleware() gin.HandlerFunc {
 
 		// 将用户存入上下文
 		c.Set("user", user)
+		c.Set("user_id", fmt.Sprintf("%d", user.ID))
 		c.Next()
 	}
 }

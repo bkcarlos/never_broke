@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // TokenService Token 服务
@@ -119,10 +121,16 @@ func (s *TokenService) RefreshAccessToken(refreshToken string, userAgent, ipAddr
 		return nil, errors.New("invalid refresh token")
 	}
 
-	// 4. 更新最后使用时间
-	now := time.Now()
-	tokenRecord.LastUsedAt = &now
-	s.tokenRepo.UpdateRefreshToken(tokenRecord)
+	// 4. 并发安全：先撤销旧token（原子操作）
+	// 生成新token的JTI（用于replaced_by字段）
+	newJti := uuid.New().String()
+
+	// 尝试撤销旧token（并发安全：只有一个请求能成功）
+	err = s.tokenRepo.RevokeRefreshToken(tokenRecord.ID, &newJti)
+	if err != nil {
+		// Token已被其他请求使用（并发冲突）
+		return nil, errors.New("token has been used, please try again")
+	}
 
 	// 5. 获取用户信息
 	user, err := s.userRepo.GetUserByID(claims.UserID)
@@ -131,13 +139,13 @@ func (s *TokenService) RefreshAccessToken(refreshToken string, userAgent, ipAddr
 	}
 
 	// 6. 生成新的 Access Token
-	accessToken, expiresIn, err := s.tokenMgr.GenerateAccessToken(user)
+	accessToken, expiresIn, err := s.tokenMgr.GenerateAccessToken(user, claims.DeviceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	// 7. Token Rotation：生成新的 Refresh Token
-	newRefreshToken, newJti, err := s.tokenMgr.GenerateRefreshToken(user.ID, claims.DeviceID)
+	newRefreshToken, _, err := s.tokenMgr.GenerateRefreshTokenWithJTI(user.ID, claims.DeviceID, newJti)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -158,9 +166,6 @@ func (s *TokenService) RefreshAccessToken(refreshToken string, userAgent, ipAddr
 	if err := s.tokenRepo.CreateRefreshToken(newTokenRecord); err != nil {
 		return nil, fmt.Errorf("failed to save refresh token: %w", err)
 	}
-
-	// 9. 撤销旧的 Refresh Token（标记为已替换）
-	s.tokenRepo.RevokeRefreshToken(tokenRecord.ID, &newJti)
 
 	return &TokenPair{
 		AccessToken:  accessToken,
@@ -188,7 +193,20 @@ func (s *TokenService) ValidateAccessToken(token string) (*User, error) {
 		return nil, err
 	}
 
-	// 2. 获取用户（确保用户仍然存在）
+	// 2. 检查该设备是否还有活跃的 refresh token
+	// 如果用户已经logout该设备，refresh token会被撤销，access token也应该失效
+	if claims.DeviceID != "" {
+		activeTokenCount, err := s.tokenRepo.CountActiveTokensForDevice(claims.UserID, claims.DeviceID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check token status: %w", err)
+		}
+
+		if activeTokenCount == 0 {
+			return nil, errors.New("device has been logged out")
+		}
+	}
+
+	// 3. 获取用户（确保用户仍然存在）
 	user, err := s.userRepo.GetUserByID(claims.UserID)
 	if err != nil {
 		return nil, errors.New("user not found")
@@ -200,7 +218,7 @@ func (s *TokenService) ValidateAccessToken(token string) (*User, error) {
 // issueTokenPair 签发 Token 对（Access + Refresh）
 func (s *TokenService) issueTokenPair(user *User, deviceID, userAgent, ipAddress string) (*TokenPair, error) {
 	// 1. 生成 Access Token
-	accessToken, expiresIn, err := s.tokenMgr.GenerateAccessToken(user)
+	accessToken, expiresIn, err := s.tokenMgr.GenerateAccessToken(user, deviceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}

@@ -135,6 +135,16 @@ func (m *MockTokenRepository) DeleteExpiredRefreshTokens() error {
 	return nil
 }
 
+func (m *MockTokenRepository) CountActiveTokensForDevice(userID int, deviceID string) (int64, error) {
+	var count int64
+	for _, token := range m.refreshTokens {
+		if token.UserID == userID && token.DeviceID == deviceID && token.RevokedAt == nil {
+			count++
+		}
+	}
+	return count, nil
+}
+
 func (m *MockTokenRepository) SaveOAuthState(state *OAuthState) error {
 	m.oauthStates[state.State] = state
 	return nil

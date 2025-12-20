@@ -108,40 +108,32 @@ func decodeArgon2Hash(encodedHash string) (salt, hash []byte, params argon2Param
 	}
 
 	// 提取 salt 和 hash
-	parts := []byte(encodedHash)
-	lastDollar := 0
-	dollarCount := 0
-	for i, b := range parts {
+	// 格式: $argon2id$v=19$m=65536,t=1,p=4$<salt>$<hash>
+	// 需要找到第4个和第5个$符号之间的salt，以及第5个$之后的hash
+	dollarPositions := []int{}
+	for i, b := range encodedHash {
 		if b == '$' {
-			dollarCount++
-			if dollarCount == 5 {
-				lastDollar = i
-				break
-			}
+			dollarPositions = append(dollarPositions, i)
 		}
 	}
 
-	saltHashPart := string(parts[lastDollar+1:])
-	saltHashParts := []byte(saltHashPart)
-	dollarPos := 0
-	for i, b := range saltHashParts {
-		if b == '$' {
-			dollarPos = i
-			break
-		}
+	if len(dollarPositions) < 5 {
+		return nil, nil, argon2Params{}, errors.New("invalid hash format: not enough parts")
 	}
 
-	b64Salt := string(saltHashParts[:dollarPos])
-	b64Hash := string(saltHashParts[dollarPos+1:])
+	// salt 在第4个和第5个$之间
+	b64Salt := encodedHash[dollarPositions[3]+1 : dollarPositions[4]]
+	// hash 在第5个$之后
+	b64Hash := encodedHash[dollarPositions[4]+1:]
 
 	salt, err = base64.RawStdEncoding.DecodeString(b64Salt)
 	if err != nil {
-		return nil, nil, argon2Params{}, errors.New("invalid salt encoding")
+		return nil, nil, argon2Params{}, fmt.Errorf("invalid salt encoding: %w", err)
 	}
 
 	hash, err = base64.RawStdEncoding.DecodeString(b64Hash)
 	if err != nil {
-		return nil, nil, argon2Params{}, errors.New("invalid hash encoding")
+		return nil, nil, argon2Params{}, fmt.Errorf("invalid hash encoding: %w", err)
 	}
 
 	params.keyLen = uint32(len(hash))

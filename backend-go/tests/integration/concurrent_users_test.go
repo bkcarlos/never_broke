@@ -93,7 +93,7 @@ func TestMultiUser_SameUserDifferentDevices(t *testing.T) {
 
 		// 获取初始余额
 		var initialAccount models.Account
-		testDB.First(&initialAccount, account.ID)
+		testDB.Where("id = ?", account.ID).First(&initialAccount)
 		initialBalance := initialAccount.Balance
 
 		var wg sync.WaitGroup
@@ -150,7 +150,7 @@ func TestMultiUser_SameUserDifferentDevices(t *testing.T) {
 
 		// 验证最终余额
 		var finalAccount models.Account
-		testDB.First(&finalAccount, account.ID)
+		testDB.Where("id = ?", account.ID).First(&finalAccount)
 
 		// 计算期望余额：初始余额 - (3*100 + 4*50) + (2*500) = 初始余额 - 500 + 1000 = 初始余额 + 500
 		expectedBalance := initialBalance + 500.0
@@ -268,7 +268,7 @@ func TestMultiUser_DifferentUsersConcurrentOperations(t *testing.T) {
 		// 验证每个用户的余额独立更新
 		for _, user := range users {
 			var account models.Account
-			testDB.First(&account, user.account.ID)
+			testDB.Where("id = ?", user.account.ID).First(&account)
 			expectedBalance := 5000.0 - 1000.0 // 初始5000 - 10*100
 			assert.Equal(t, expectedBalance, account.Balance,
 				"User %s balance should be correct", user.email)
@@ -301,7 +301,7 @@ func TestMultiUser_DifferentUsersConcurrentOperations(t *testing.T) {
 		}
 
 		body, _ := json.Marshal(transactionReq)
-		req, _ := http.NewRequest("POST", "/api/ledger/transactions", bytes.NewBuffer(body))
+		req, _ := http.NewRequest("POST", "/api/transactions", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+user1Token)
 
@@ -313,7 +313,7 @@ func TestMultiUser_DifferentUsersConcurrentOperations(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 
 		var user2Account models.Account
-		testDB.First(&user2Account, user2AccountID)
+		testDB.Where("id = ?", user2AccountID).First(&user2Account)
 		assert.Equal(t, 4000.0, user2Account.Balance,
 			"User2's balance should not change when User1 tries to access it")
 	})
@@ -364,7 +364,7 @@ func TestMultiUser_SharedResourceConflict(t *testing.T) {
 
 		// 验证最终状态一致性
 		var finalAccount models.Account
-		testDB.First(&finalAccount, account.ID)
+		testDB.Where("id = ?", account.ID).First(&finalAccount)
 
 		// 根据业务逻辑验证：
 		// 选项1: 两笔都成功，允许负余额（余额 = -200）
@@ -483,7 +483,7 @@ func createTransaction(t *testing.T, token string, accountID string, txType stri
 	}
 
 	body, _ := json.Marshal(transactionReq)
-	req, _ := http.NewRequest("POST", "/api/ledger/transactions", bytes.NewBuffer(body))
+	req, _ := http.NewRequest("POST", "/api/transactions", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 

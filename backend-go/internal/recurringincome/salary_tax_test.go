@@ -1,10 +1,21 @@
 package recurringincome
 
 import (
+	"neverbroke/internal/citysocialrate"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	// 初始化社保费率数据
+	citysocialrate.InitDefaultRates()
+
+	// 运行测试
+	code := m.Run()
+	os.Exit(code)
+}
 
 func TestCalculateTax(t *testing.T) {
 	tests := []struct {
@@ -53,12 +64,12 @@ func TestGetSocialSecurityRate(t *testing.T) {
 		cityCode     string
 		expectedRate float64
 	}{
-		{"beijing", "beijing", 0.12},
-		{"shanghai", "shanghai", 0.10},
-		{"guangzhou", "guangzhou", 0.11},
-		{"shenzhen", "shenzhen", 0.10},
-		{"unknown city", "unknown", 0.11}, // default
-		{"empty city", "", 0.11},          // default
+		{"beijing", "beijing", 0.202},
+		{"shanghai", "shanghai", 0.175},
+		{"guangzhou", "guangzhou", 0.152},
+		{"shenzhen", "shenzhen", 0.155},
+		{"unknown city", "unknown", 0.182}, // default
+		{"empty city", "", 0.182},          // default
 	}
 
 	for _, tt := range tests {
