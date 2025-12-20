@@ -133,37 +133,48 @@
         </p>
       </div>
 
-        <!-- 卡片 3: 本周期可自由支配 -->
+        <!-- 卡片 3: 本月可自由支配 -->
         <div class="card cycle-card">
-          <div class="cycle-content">
-            <div class="cycle-info">
-              <p class="stat-label">{{ t('home.freeToSpend') }}</p>
-              <p class="cycle-amount">
-                ¥{{ formatMoney(data.payCycle.freeToSpend) }}
-              </p>
-              <p class="cycle-days">
-                {{ t('home.daysToPayday', { days: String(data.payCycle.daysToNextPayday) }) }}
-              </p>
-            </div>
-            <div class="cycle-progress">
+          <h2 class="card-title">本月可自由支配</h2>
+          
+          <div class="flex items-center gap-6">
+            <!-- 圆形进度 -->
+            <div class="relative w-24 h-24 flex-shrink-0">
               <svg class="w-full h-full transform -rotate-90">
                 <circle 
-                  cx="40" cy="40" r="32" 
+                  cx="48" cy="48" r="40" 
                   stroke="#e5e7eb" 
-                  stroke-width="6" 
+                  stroke-width="8" 
                   fill="none"
                 />
                 <circle 
-                  cx="40" cy="40" r="32" 
+                  cx="48" cy="48" r="40" 
                   stroke="#6366f1" 
-                  stroke-width="6" 
+                  stroke-width="8" 
                   fill="none"
-                  :stroke-dasharray="`${data.payCycle.cycleUsedPercent * 2.01} 201`"
+                  :stroke-dasharray="`${data.payCycle.cycleUsedPercent * 2.51} 251`"
                   class="transition-all duration-500"
                 />
               </svg>
-              <div class="progress-text">
-                <span class="text-xs font-semibold text-gray-700">
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-sm font-bold text-gray-700">
+                  {{ Math.round(data.payCycle.cycleUsedPercent) }}%
+                </span>
+              </div>
+            </div>
+            <!-- 自由支配详情 -->
+            <div class="flex-1 space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">可自由支配</span>
+                <span class="font-semibold text-indigo-600">¥{{ formatMoney(data.payCycle.freeToSpend) }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">距离发薪日</span>
+                <span class="font-semibold">{{ data.payCycle.daysToNextPayday }} 天</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">已用百分比</span>
+                <span class="font-semibold text-orange-500">
                   {{ Math.round(data.payCycle.cycleUsedPercent) }}%
                 </span>
               </div>
@@ -633,44 +644,6 @@ onBeforeUnmount(() => {
   gap: 1.5rem;
 }
 
-/* 周期卡片 */
-.cycle-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.cycle-info {
-  flex: 1;
-}
-
-.cycle-amount {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #4f46e5;
-  margin: 0.5rem 0;
-}
-
-.cycle-days {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.cycle-progress {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  flex-shrink: 0;
-}
-
-.progress-text {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* 消费概览卡片 */
 .spending-content {
   display: grid;
@@ -854,10 +827,6 @@ onBeforeUnmount(() => {
     font-size: 1.5rem;
   }
 
-  .cycle-amount {
-    font-size: 2.5rem;
-  }
-
   .stats-row {
     grid-template-columns: repeat(3, 1fr);
     gap: 2.5rem;
@@ -914,15 +883,6 @@ onBeforeUnmount(() => {
     font-size: 2rem;
   }
 
-  .cycle-amount {
-    font-size: 3rem;
-  }
-
-  .cycle-progress {
-    width: 100px;
-    height: 100px;
-  }
-
   .stats-row {
     grid-template-columns: repeat(3, 1fr);
     gap: 3rem;
@@ -975,15 +935,6 @@ onBeforeUnmount(() => {
 
   .stat-value {
     font-size: 1rem;
-  }
-
-  .cycle-amount {
-    font-size: 1.5rem;
-  }
-
-  .cycle-progress {
-    width: 60px;
-    height: 60px;
   }
 }
 
