@@ -78,7 +78,7 @@
       <!-- Section 3: 分类饼图 -->
       <div class="bg-white rounded-lg shadow p-4 mb-4">
         <h2 class="text-sm font-semibold text-gray-700 mb-3">{{ t('reports.categoryStats') }}</h2>
-        <div v-if="report.categories.length > 0" class="flex flex-col items-center">
+        <div v-if="report.categories && report.categories.length > 0" class="flex flex-col items-center">
           <canvas ref="pieCanvas" class="w-full h-64 mb-4"></canvas>
           <div class="w-full space-y-2">
             <div 
@@ -119,7 +119,7 @@
       <!-- Section 5: 文案总结 -->
       <div class="bg-white rounded-lg shadow p-4">
         <h2 class="text-sm font-semibold text-gray-700 mb-3">{{ t('reports.summary', '支出总结') }}</h2>
-        <div v-if="report.topCategories.length > 0" class="space-y-2">
+        <div v-if="report.topCategories && report.topCategories.length > 0" class="space-y-2">
           <p class="text-sm text-gray-600 mb-2">
             {{ t('reports.topCategoriesDesc', '本月前三大支出分类：') }}
           </p>
@@ -219,7 +219,7 @@ function changeMonth(months: number) {
 
 // 绘制趋势折线图
 function drawTrendChart() {
-  if (!chartCanvas.value || !report.value || report.value.trend.length === 0) return
+  if (!chartCanvas.value || !report.value || !report.value.trend || report.value.trend.length === 0) return
 
   const canvas = chartCanvas.value
   const ctx = canvas.getContext('2d')
@@ -281,7 +281,7 @@ function drawTrendChart() {
 
 // 绘制分类饼图
 function drawPieChart() {
-  if (!pieCanvas.value || !report.value || report.value.categories.length === 0) return
+  if (!pieCanvas.value || !report.value || !report.value.categories || report.value.categories.length === 0) return
 
   const canvas = pieCanvas.value
   const ctx = canvas.getContext('2d')

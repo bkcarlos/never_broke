@@ -54,6 +54,26 @@ func (r *pgInstallmentRepository) ListByAccount(ctx context.Context, userID, acc
 	return result, nil
 }
 
+func (r *pgInstallmentRepository) ListByUser(ctx context.Context, userID string) ([]*installment.InstallmentPlan, error) {
+	var dbPlans []models.InstallmentPlan
+
+	err := r.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Find(&dbPlans).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*installment.InstallmentPlan, len(dbPlans))
+	for i, dbPlan := range dbPlans {
+		result[i] = toInstallmentModel(&dbPlan)
+	}
+
+	return result, nil
+}
+
 func (r *pgInstallmentRepository) Create(ctx context.Context, userID string, plan *installment.InstallmentPlan) error {
 	dbPlan, err := toDBInstallment(userID, plan)
 	if err != nil {

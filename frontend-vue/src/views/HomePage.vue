@@ -43,7 +43,7 @@
     </div>
 
     <!-- 主内容区 -->
-    <div v-else-if="data" class="content-grid">
+    <div v-else class="content-grid">
       <!-- PC端：第一行三列布局 -->
       <div class="stats-row">
         <!-- 卡片 1: 资产总览 -->
@@ -51,21 +51,27 @@
           <h2 class="card-title">{{ t('home.assetSummary') }}</h2>
           <div class="asset-stats">
             <div class="stat-item">
-              <p class="stat-label">{{ t('home.totalAssets') }}</p>
+              <p class="stat-label">💰 {{ t('home.totalAssets') }}</p>
               <p class="stat-value text-blue-600">
-                ¥{{ formatMoney(data.assetSummary.totalAssets) }}
+                ¥{{ formatMoney(assetSummary.totalAssets) }}
               </p>
             </div>
             <div class="stat-item">
-              <p class="stat-label">{{ t('home.totalLiabilities') }}</p>
+              <p class="stat-label">💳 可用余额</p>
+              <p class="stat-value text-indigo-600">
+                ¥{{ formatMoney(assetSummary.availableBalance) }}
+              </p>
+            </div>
+            <div class="stat-item">
+              <p class="stat-label">💸 {{ t('home.totalLiabilities') }}</p>
               <p class="stat-value text-orange-600">
-                ¥{{ formatMoney(data.assetSummary.totalLiabilities) }}
+                ¥{{ formatMoney(assetSummary.totalLiabilities) }}
               </p>
             </div>
             <div class="stat-item">
-              <p class="stat-label">{{ t('home.netAssets') }}</p>
+              <p class="stat-label">💎 {{ t('home.netAssets') }}</p>
               <p class="stat-value text-green-600">
-                ¥{{ formatMoney(data.assetSummary.netAssets) }}
+                ¥{{ formatMoney(assetSummary.netAssets) }}
               </p>
             </div>
           </div>
@@ -82,7 +88,7 @@
               {{ t('home.adjustBudget') }} →
             </button>
           </div>
-        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-6">
           <!-- 圆形进度 -->
           <div class="relative w-24 h-24 flex-shrink-0">
             <svg class="w-full h-full transform -rotate-90">
@@ -111,16 +117,16 @@
           <div class="flex-1 space-y-2">
             <div class="flex justify-between text-sm">
               <span class="text-gray-500">{{ t('home.monthBudget') }}</span>
-              <span class="font-semibold">¥{{ formatMoney(data.todayStats.monthBudget) }}</span>
+              <span class="font-semibold">¥{{ formatMoney(budgetStats.monthBudget) }}</span>
             </div>
             <div class="flex justify-between text-sm">
               <span class="text-gray-500">{{ t('home.monthUsed') }}</span>
-              <span class="font-semibold text-red-500">¥{{ formatMoney(data.todayStats.monthUsed) }}</span>
+              <span class="font-semibold text-red-500">¥{{ formatMoney(budgetStats.monthUsed) }}</span>
             </div>
             <div class="flex justify-between text-sm">
               <span class="text-gray-500">{{ t('home.remaining') }}</span>
               <span class="font-semibold text-green-500">
-                ¥{{ formatMoney(data.todayStats.monthBudget - data.todayStats.monthUsed) }}
+                ¥{{ formatMoney(budgetStats.monthBudget - budgetStats.monthUsed) }}
               </span>
             </div>
           </div>
@@ -152,13 +158,13 @@
                   stroke="#6366f1" 
                   stroke-width="8" 
                   fill="none"
-                  :stroke-dasharray="`${data.payCycle.cycleUsedPercent * 2.51} 251`"
+                  :stroke-dasharray="`${payCycle.cycleUsedPercent * 2.51} 251`"
                   class="transition-all duration-500"
                 />
               </svg>
               <div class="absolute inset-0 flex items-center justify-center">
                 <span class="text-sm font-bold text-gray-700">
-                  {{ Math.round(data.payCycle.cycleUsedPercent) }}%
+                  {{ Math.round(payCycle.cycleUsedPercent) }}%
                 </span>
               </div>
             </div>
@@ -166,16 +172,16 @@
             <div class="flex-1 space-y-2">
               <div class="flex justify-between text-sm">
                 <span class="text-gray-500">可自由支配</span>
-                <span class="font-semibold text-indigo-600">¥{{ formatMoney(data.payCycle.freeToSpend) }}</span>
+                <span class="font-semibold text-indigo-600">¥{{ formatMoney(payCycle.freeToSpend) }}</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-500">距离发薪日</span>
-                <span class="font-semibold">{{ data.payCycle.daysToNextPayday }} 天</span>
+                <span class="font-semibold">{{ payCycle.daysToNextPayday }} 天</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-500">已用百分比</span>
                 <span class="font-semibold text-orange-500">
-                  {{ Math.round(data.payCycle.cycleUsedPercent) }}%
+                  {{ Math.round(payCycle.cycleUsedPercent) }}%
                 </span>
               </div>
             </div>
@@ -224,15 +230,36 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
-import type { HomeOverview } from '@/types'
-import { getHomeOverview } from '@/api/home'
+import type { AssetSummary, TodayStats, PayCycleOverview, CategoryStat } from '@/types'
+import { getAssetSummary, getBudgetStats, getPayCycle, getCategoryStats } from '@/api/home'
 import { t } from '@/i18n'
 import { useUserSettingsStore } from '@/stores/userSettings'
 
 const userSettingsStore = useUserSettingsStore()
 const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
-const data = ref<HomeOverview | null>(null)
+
+// 独立的数据状态
+const assetSummary = ref<AssetSummary>({
+  totalAssets: 0,
+  availableBalance: 0,
+  totalLiabilities: 0,
+  netAssets: 0
+})
+const budgetStats = ref<TodayStats>({
+  todayExpense: 0,
+  todayAvailable: 0,
+  monthUsed: 0,
+  monthBudget: 0,
+  monthNet: 0
+})
+const payCycle = ref<PayCycleOverview>({
+  cycleName: '',
+  daysToNextPayday: 0,
+  freeToSpend: 0,
+  cycleUsedPercent: 0
+})
+const categoryTop = ref<CategoryStat[]>([])
 
 // 扇形图相关
 const pieChartRef = ref<HTMLElement | null>(null)
@@ -274,8 +301,8 @@ const currentMonth = computed(() => {
 
 // 预算使用百分比
 const budgetUsedPercent = computed(() => {
-  if (!data.value) return 0
-  return (data.value.todayStats.monthUsed / data.value.todayStats.monthBudget) * 100
+  if (!budgetStats.value.monthBudget) return 0
+  return (budgetStats.value.monthUsed / budgetStats.value.monthBudget) * 100
 })
 
 // 预算颜色
@@ -306,13 +333,13 @@ function getCategoryDotColor(index: number): string {
 
 // 扇形图数据
 const pieChartData = computed(() => {
-  if (!data.value || !data.value.categoryTop || data.value.categoryTop.length === 0) {
+  if (!categoryTop.value || categoryTop.value.length === 0) {
     return []
   }
 
-  const top3 = data.value.categoryTop.slice(0, 3)
+  const top3 = categoryTop.value.slice(0, 3)
   const top3PercentTotal = top3.reduce((sum, cat) => sum + cat.percent, 0)
-  const totalExpense = data.value.todayStats.monthUsed
+  const totalExpense = budgetStats.value.monthUsed
   const top3AmountTotal = top3.reduce((sum, cat) => sum + cat.amount, 0)
   
   // 计算"其他"类别：优先使用百分比计算，如果百分比总和小于100%，则显示"其他"
@@ -353,7 +380,7 @@ const pieChartData = computed(() => {
 
 // 初始化扇形图
 function initPieChart() {
-  if (!pieChartRef.value || !data.value) return
+  if (!pieChartRef.value || !categoryTop.value || categoryTop.value.length === 0) return
 
   // 如果已存在实例，先销毁
   if (pieChartInstance) {
@@ -460,9 +487,9 @@ function initPieChart() {
 
 // 监听数据变化，更新图表
 watch(
-  () => [data.value, pieChartData.value],
+  () => [categoryTop.value, pieChartData.value],
   () => {
-    if (data.value && pieChartData.value.length > 0) {
+    if (categoryTop.value && categoryTop.value.length > 0 && pieChartData.value.length > 0) {
       nextTick(() => {
         initPieChart()
       })
@@ -471,7 +498,7 @@ watch(
   { deep: true }
 )
 
-// 加载数据
+// 加载数据 - 使用独立 API
 async function loadData() {
   loading.value = true
   error.value = null
@@ -479,15 +506,30 @@ async function loadData() {
   console.log('🔍 开始加载首页数据...')
   
   try {
-    const result = await getHomeOverview()
-    console.log('✅ 数据加载成功:', result)
-    data.value = result
+    // 并行加载所有数据
+    const [assetData, budgetData, payCycleData, categoryData] = await Promise.all([
+      getAssetSummary(),
+      getBudgetStats(),
+      getPayCycle(),
+      getCategoryStats()
+    ])
+    
+    console.log('✅ 数据加载成功')
+    console.log('资产总览:', assetData)
+    console.log('预算统计:', budgetData)
+    console.log('支付周期:', payCycleData)
+    console.log('分类统计:', categoryData)
+    
+    assetSummary.value = assetData
+    budgetStats.value = budgetData
+    payCycle.value = payCycleData
+    categoryTop.value = categoryData || []  // 如果为 null，设置为空数组
   } catch (e) {
     console.error('❌ 数据加载失败:', e)
     error.value = e instanceof Error ? e.message : t('common.error')
   } finally {
     loading.value = false
-    console.log('📊 当前状态 - loading:', loading.value, 'error:', error.value, 'hasData:', !!data.value)
+    console.log('📊 加载完成')
   }
 }
 
@@ -618,7 +660,7 @@ onBeforeUnmount(() => {
 /* 资产卡片 */
 .asset-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 

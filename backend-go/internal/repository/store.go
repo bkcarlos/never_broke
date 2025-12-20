@@ -38,6 +38,7 @@ type TransactionRepository interface {
 type InstallmentRepository interface {
 	GetByID(ctx context.Context, userID, id string) (*installment.InstallmentPlan, error)
 	ListByAccount(ctx context.Context, userID, accountID string) ([]*installment.InstallmentPlan, error)
+	ListByUser(ctx context.Context, userID string) ([]*installment.InstallmentPlan, error)
 	Create(ctx context.Context, userID string, plan *installment.InstallmentPlan) error
 	Update(ctx context.Context, userID string, plan *installment.InstallmentPlan) error
 }

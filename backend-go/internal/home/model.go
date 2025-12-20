@@ -19,9 +19,10 @@ type PayCycleOverview struct {
 
 // AssetSummary 资产总览
 type AssetSummary struct {
-	TotalAssets      float64 `json:"totalAssets"`
-	TotalLiabilities float64 `json:"totalLiabilities"`
-	NetAssets        float64 `json:"netAssets"`
+	TotalAssets      float64 `json:"totalAssets"`      // 总资产（不含信用卡）
+	AvailableBalance float64 `json:"availableBalance"` // 可用余额（总资产+信用卡可用额度）
+	TotalLiabilities float64 `json:"totalLiabilities"` // 总负债（信用卡待还款）
+	NetAssets        float64 `json:"netAssets"`        // 净资产（总资产-总负债）
 }
 
 // CategoryStat 分类统计
@@ -55,4 +56,3 @@ type HomeOverview struct {
 	CategoryTop  []CategoryStat   `json:"categoryTop"`
 	Hint         HomeHint         `json:"hint"`
 }
-

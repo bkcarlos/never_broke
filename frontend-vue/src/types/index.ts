@@ -16,9 +16,10 @@ export interface PayCycleOverview {
 }
 
 export interface AssetSummary {
-  totalAssets: number
-  totalLiabilities: number
-  netAssets: number
+  totalAssets: number        // 总资产（不含信用卡）
+  availableBalance: number   // 可用余额（总资产+信用卡可用额度）
+  totalLiabilities: number   // 总负债（信用卡待还款）
+  netAssets: number          // 净资产（总资产-总负债）
 }
 
 export interface CategoryStat {

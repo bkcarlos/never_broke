@@ -118,6 +118,16 @@ func (r *memoryInstallmentRepository) ListByAccount(ctx context.Context, userID,
 	return result, nil
 }
 
+func (r *memoryInstallmentRepository) ListByUser(ctx context.Context, userID string) ([]*installment.InstallmentPlan, error) {
+	// 简化实现：返回所有分期计划（内存实现不区分用户）
+	plans := installment.ListPlansByAccount("") // 空字符串返回所有
+	result := make([]*installment.InstallmentPlan, 0, len(plans))
+	for i := range plans {
+		result = append(result, &plans[i])
+	}
+	return result, nil
+}
+
 func (r *memoryInstallmentRepository) Create(ctx context.Context, userID string, plan *installment.InstallmentPlan) error {
 	installment.AddPlan(*plan)
 	return nil
