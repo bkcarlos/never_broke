@@ -11,11 +11,11 @@
           <h1 class="mobile-topbar-title">{{ pageTitle }}</h1>
           <div class="mobile-topbar-actions">
             <button 
-              @click="toggleShowAmount" 
+              @click="userSettingsStore.toggleShowAmount" 
               class="mobile-icon-btn touch-target no-touch-zoom"
-              :title="showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
+              :title="userSettingsStore.showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
             >
-              <Icon :name="showAmount ? 'eye' : 'eye-close'" size="20px" />
+              <Icon :name="userSettingsStore.showAmount ? 'eye' : 'eye-close'" size="20px" />
             </button>
           </div>
         </div>
@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Icon from './components/Icon.vue'
 import Sidebar from './components/Sidebar.vue'
@@ -101,15 +101,16 @@ import RadialActionMenu from './components/RadialActionMenu.vue'
 import { t } from './i18n'
 import type { RadialAction } from './types/actions'
 import { useBreakpoint } from './composables/useBreakpoint'
+import { useUserSettingsStore } from './stores/userSettings'
 
 const route = useRoute()
 const router = useRouter()
+const userSettingsStore = useUserSettingsStore()
 
 // 响应式断点
 const { isMobile, isTablet, currentBreakpoint } = useBreakpoint()
 
 const isRadialOpen = ref<boolean>(false)
-const showAmount = ref<boolean>(true)
 
 // 判断是否是登录页面
 const isLoginPage = computed(() => route.path === '/login')
@@ -141,11 +142,10 @@ watch(() => route.path, () => {
   }
 })
 
-// 初始化金额显隐设置
-const stored = localStorage.getItem('showAmount')
-if (stored !== null) {
-  showAmount.value = stored === 'true'
-}
+// 初始化用户设置
+onMounted(() => {
+  userSettingsStore.initFromLocalStorage()
+})
 
 // 左侧两个 tab (移动端)
 const leftTabs = [
@@ -195,15 +195,6 @@ function handleNavClick() {
   if (isRadialOpen.value) {
     isRadialOpen.value = false
   }
-}
-
-function toggleShowAmount() {
-  showAmount.value = !showAmount.value
-  localStorage.setItem('showAmount', String(showAmount.value))
-  // 触发全局事件通知其他组件
-  window.dispatchEvent(new CustomEvent('toggle-amount-visibility', { 
-    detail: { showAmount: showAmount.value } 
-  }))
 }
 
 function handleSelect(action: RadialAction) {

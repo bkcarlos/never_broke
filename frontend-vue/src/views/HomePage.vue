@@ -3,41 +3,27 @@
     <!-- PC端欢迎头部 -->
     <div class="welcome-header desktop-only">
       <div>
-        <p class="greeting-text">{{ greeting }}</p>
         <div class="welcome-title">
           <h1>{{ t('app.title') }}</h1>
           <div class="badge">
             <span>{{ t('home.keepRecording', { days: String(recordingDays) }) }}</span>
           </div>
         </div>
+        <p class="greeting-text">{{ greeting }}</p>
       </div>
-      <button 
-        @click="userSettingsStore.toggleShowAmount" 
-        class="toggle-btn"
-        :title="userSettingsStore.showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
-      >
-        <Icon :name="userSettingsStore.showAmount ? 'eye' : 'eye-close'" size="20px" />
-      </button>
     </div>
 
     <!-- 移动端头部 -->
     <div class="mobile-header mobile-only">
       <div class="mobile-header-content">
-        <p class="text-sm text-white/80 mb-1">{{ greeting }}</p>
-        <div class="flex items-center gap-3 mb-0">
+        <div class="flex items-center gap-3 mb-1">
           <h1 class="text-3xl font-bold">NeverBroke</h1>
           <div class="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
             <p class="text-xs text-white/90">{{ t('home.keepRecording', { days: String(recordingDays) }) }}</p>
           </div>
         </div>
+        <p class="text-sm text-white/80">{{ greeting }}</p>
       </div>
-      <button 
-        @click="userSettingsStore.toggleShowAmount" 
-        class="absolute top-6 right-4 hover:scale-110 transition-transform"
-        :title="userSettingsStore.showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
-      >
-        <Icon :name="userSettingsStore.showAmount ? 'eye' : 'eye-close'" size="24px" class="text-white" />
-      </button>
     </div>
 
     <!-- 加载状态 -->
@@ -230,7 +216,6 @@ import * as echarts from 'echarts'
 import type { HomeOverview } from '@/types'
 import { getHomeOverview } from '@/api/home'
 import { t } from '@/i18n'
-import Icon from '@/components/Icon.vue'
 import { useUserSettingsStore } from '@/stores/userSettings'
 
 const userSettingsStore = useUserSettingsStore()
@@ -539,7 +524,7 @@ onBeforeUnmount(() => {
 .greeting-text {
   font-size: 0.875rem;
   color: #6b7280;
-  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .welcome-title {
@@ -561,25 +546,6 @@ onBeforeUnmount(() => {
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-}
-
-.toggle-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  border: none;
-  background: #f3f4f6;
-  color: #4b5563;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.toggle-btn:hover {
-  background: #e5e7eb;
-  transform: scale(1.05);
 }
 
 /* 移动端头部 */

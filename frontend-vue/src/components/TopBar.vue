@@ -11,18 +11,18 @@
       <div class="topbar-right">
         <!-- 金额显隐切换 -->
         <button 
-          @click="toggleShowAmount" 
+          @click="userSettingsStore.toggleShowAmount" 
           class="icon-btn"
-          :title="showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
+          :title="userSettingsStore.showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
         >
-          <Icon :name="showAmount ? 'eye' : 'eye-close'" size="20px" />
+          <Icon :name="userSettingsStore.showAmount ? 'eye' : 'eye-close'" size="20px" />
         </button>
 
-        <!-- 通知 -->
-        <button class="icon-btn" title="通知">
+        <!-- 通知 - 暂未实现，已隐藏 -->
+        <!-- <button class="icon-btn" title="通知">
           <Icon name="bell" size="20px" />
           <span class="notification-badge">3</span>
-        </button>
+        </button> -->
 
         <!-- 设置 -->
         <button @click="$router.push('/profile')" class="icon-btn" title="设置">
@@ -34,16 +34,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Icon from './Icon.vue'
 import { t } from '@/i18n'
+import { useUserSettingsStore } from '@/stores/userSettings'
 
 const route = useRoute()
 const router = useRouter()
-
-// 金额显隐
-const showAmount = ref<boolean>(true)
+const userSettingsStore = useUserSettingsStore()
 
 // 页面标题映射
 const pageTitles: Record<string, { title: string; subtitle?: string }> = {
@@ -82,15 +81,6 @@ const pageSubtitle = computed(() => {
   const path = route.path
   return pageTitles[path]?.subtitle
 })
-
-function toggleShowAmount() {
-  showAmount.value = !showAmount.value
-  localStorage.setItem('showAmount', String(showAmount.value))
-  // 触发全局事件通知其他组件
-  window.dispatchEvent(new CustomEvent('toggle-amount-visibility', { 
-    detail: { showAmount: showAmount.value } 
-  }))
-}
 </script>
 
 <style scoped>
