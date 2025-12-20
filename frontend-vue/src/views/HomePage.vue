@@ -517,8 +517,8 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding: 1.5rem 0;
+  /* margin-bottom: 2rem; */
+  padding: 0 0 1.5rem 0;
 }
 
 .greeting-text {
