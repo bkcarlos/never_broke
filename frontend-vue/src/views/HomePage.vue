@@ -71,7 +71,7 @@
               </span>
             </div>
             
-            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+            <div class="flex justify-between items-center py-2">
               <span class="text-sm text-gray-500">💎 {{ t('home.netAssets') }}</span>
               <span class="font-semibold text-green-600">
                 ¥{{ formatMoney(assetSummary.netAssets) }}
@@ -171,7 +171,7 @@
               </span>
             </div>
             
-            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+            <div class="flex justify-between items-center py-2">
               <span class="text-sm text-gray-500">📉 本月支出</span>
               <span class="font-semibold text-red-500">
                 ¥{{ formatMoney(monthOverview.monthExpense) }}
