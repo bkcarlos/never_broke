@@ -95,7 +95,7 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 
 	// 创建所有 handlers（复用于 /api 和 /api/v1 路由组）
 	homeHandler := home.NewHandler(store)
-	accountsHandler := accounts.NewHandler()
+	accountsHandler := accounts.NewHandler(db)
 	ledgerHandler := ledger.NewHandler(store.Transactions(), db)
 	reportHandler := report.NewHandler(store)
 	memoryStore := memory.NewStore()
