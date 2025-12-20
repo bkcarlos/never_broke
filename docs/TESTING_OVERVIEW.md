@@ -165,7 +165,22 @@ User1, User2, User3
 
 ## 🛠️ 一键使用
 
-### 最简单的方式
+### 最简单的方式（使用 Mage 推荐）
+
+```bash
+cd backend-go
+
+# Step 1: 设置测试环境（仅首次）
+mage test:setupDB
+
+# Step 2: 运行所有测试
+mage test:all
+
+# Step 3: 查看覆盖率
+mage test:coverage
+```
+
+### 或使用 Makefile
 
 ```bash
 cd backend-go
@@ -183,12 +198,16 @@ make test-coverage
 ### 体验复杂场景
 
 ```bash
-cd backend-go/tests/integration
+cd backend-go
 
-# 方式1: 演示所有场景
+# 使用 Mage
+mage test:concurrent    # 多用户并发测试
+mage test:stress        # 压力测试
+mage test:demo          # 演示所有场景
+
+# 或使用脚本
+cd tests/integration
 ./demo_test_scenarios.sh
-
-# 方式2: 运行特定场景
 ./run_tests.sh -v -t TestMultiUser          # 多用户测试
 ./run_tests.sh -v -t TestRealWorldScenario  # 真实场景
 ```

@@ -373,7 +373,34 @@ assert.Equal(t, expectedBalance, account.Balance)
 
 ## 🚀 快速使用指南
 
-### 方式1: 使用 Makefile（最简单）
+### 方式1: 使用 Mage（推荐）
+
+```bash
+cd backend-go
+
+# 运行所有测试
+mage test:all
+
+# 只运行单元测试
+mage test:unit
+
+# 只运行集成测试  
+mage test:integration
+
+# 运行多用户并发测试
+mage test:concurrent
+
+# 运行压力测试
+mage test:stress
+
+# 生成覆盖率报告
+mage test:coverage
+
+# 查看所有命令
+mage -l
+```
+
+### 方式2: 使用 Makefile
 
 ```bash
 cd backend-go
@@ -400,7 +427,7 @@ make test-coverage
 make help
 ```
 
-### 方式2: 使用测试脚本
+### 方式3: 使用测试脚本
 
 ```bash
 cd backend-go/tests/integration
@@ -419,7 +446,7 @@ cd backend-go/tests/integration
 ./demo_test_scenarios.sh
 ```
 
-### 方式3: 使用 go test
+### 方式4: 使用 go test
 
 ```bash
 cd backend-go

@@ -4,10 +4,10 @@
 
 | 文档 | 用途 | 适合人群 |
 |------|------|----------|
-| [**QUICKSTART**](integration/QUICKSTART.md) | 5分钟快速上手 | 新手 👶 |
-| [**TESTING_GUIDE**](TESTING_GUIDE.md) | 完整测试指南 | 开发者 👨‍💻 |
-| [**TEST_SUMMARY**](TEST_SUMMARY.md) | 测试总结报告 | 所有人 📊 |
-| [**COMPLEX_SCENARIOS**](integration/COMPLEX_SCENARIOS.md) | 复杂场景说明 | 高级用户 🎓 |
+| [**QUICKSTART**](../../docs/testing/integration/QUICKSTART.md) | 5分钟快速上手 | 新手 👶 |
+| [**TESTING_GUIDE**](../../docs/testing/TESTING_GUIDE.md) | 完整测试指南 | 开发者 👨‍💻 |
+| [**TEST_SUMMARY**](../../docs/testing/TEST_SUMMARY.md) | 测试总结报告 | 所有人 📊 |
+| [**COMPLEX_SCENARIOS**](../../docs/testing/integration/COMPLEX_SCENARIOS.md) | 复杂场景说明 | 高级用户 🎓 |
 
 ---
 
@@ -194,27 +194,40 @@ cd tests/integration
 
 ## 💬 常用命令
 
+### 使用 Mage（推荐）
+
 ```bash
 # 最简单的方式
-make test-all                    # 运行所有测试
+mage test:all                    # 运行所有测试
 
 # 分类运行
-make test-unit                   # 单元测试
-make test-integration            # 集成测试
-make test-concurrent             # 并发测试
-make test-stress                 # 压力测试
+mage test:unit                   # 单元测试
+mage test:integration            # 集成测试
+mage test:concurrent             # 并发测试
+mage test:stress                 # 压力测试
 
 # 特定模块
-make test-auth                   # 认证测试
-make test-ledger                 # 账本测试
+mage test:auth                   # 认证测试
+mage test:ledger                 # 账本测试
 
 # 高级选项
-make test-coverage               # 覆盖率报告
-make test-race                   # 竞态检测
+mage test:coverage               # 覆盖率报告
+mage test:race                   # 竞态检测
 
 # 查看帮助
+mage -l                          # 列出所有命令
+```
+
+### 使用 Makefile
+
+```bash
+make test-all                    # 运行所有测试
+make test-unit                   # 单元测试
+make test-integration            # 集成测试
 make help                        # 所有可用命令
 ```
+
+> 💡 **提示**: 我们推荐使用 Mage，它更现代、跨平台且功能更强大。查看 [Mage 使用指南](../MAGE_GUIDE.md) 了解更多。
 
 ---
 

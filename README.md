@@ -1,6 +1,27 @@
 # NeverBroke - 认知翻身账
 
-一个快速、简洁的记账应用，帮助你掌控财务，永不破产。
+一个功能完整、测试完善的记账应用，帮助你掌控财务，永不破产。
+
+## ✨ 特点
+
+- 🚀 **完整的后端系统** - Go + Gin + PostgreSQL
+- 🎨 **现代化前端** - Vue 3 + TypeScript + Tailwind CSS
+- 🧪 **完善的测试** - 120+ 测试用例，多用户并发测试
+- 🔨 **现代构建工具** - Mage 构建系统
+- 📚 **完整的文档** - 从入门到精通
+
+## 📚 文档导航
+
+**新手？** 从这里开始：
+- 📖 [文档中心](docs/README.md) - 文档入口
+- 📚 [文档索引](docs/DOCS_INDEX.md) - 完整文档导航
+- ⚡ [后端快速开始](backend-go/README.md) - 5分钟开始开发
+- 🧪 [测试快速开始](docs/testing/integration/QUICKSTART.md) - 5分钟运行测试
+
+**开发者？** 看这些：
+- 🔨 [Mage 构建工具](docs/mage/MAGE_GUIDE.md) - 所有构建命令
+- 📋 [功能文档](docs/FEATURE_DOCUMENTATION.md) - 完整功能说明
+- 🧪 [测试体系](docs/TESTING_OVERVIEW.md) - 测试架构和场景
 
 ## 技术栈
 
@@ -14,8 +35,11 @@
 
 ### 后端
 - **语言**: Go 1.21+
-- **框架**: Gin
-- **存储**: 内存存储（可扩展为数据库）
+- **框架**: Gin Web Framework
+- **数据库**: PostgreSQL + GORM
+- **认证**: JWT (Token Rotation)
+- **日志**: Zap
+- **构建**: Mage
 
 ## 项目结构
 
@@ -45,7 +69,7 @@ NeverBroke/
     └── logs/             # 日志文件目录
 ```
 
-## 快速开始
+## 🚀 快速开始
 
 ### 前端启动
 
@@ -57,34 +81,50 @@ npm run dev
 
 前端将运行在 `http://localhost:3000`
 
-### 后端启动
+### 后端启动（使用 Mage）
 
 ```bash
 cd backend-go
-go mod download
-go run ./cmd/server
+
+# 安装 Mage
+go install github.com/magefile/mage@latest
+
+# 安装依赖
+mage install
+
+# 启动开发服务器（热重载）
+mage dev
+
+# 或直接运行
+mage run
 ```
 
 后端 API 将运行在 `http://localhost:8080`
 
-## 功能特性
+查看 [后端文档](backend-go/README.md) 和 [构建工具文档](docs/mage/MAGE_QUICKSTART.md) 了解更多。
 
-### 当前版本 (v0.1)
+## 🎯 功能特性
 
-- ✅ **首页概览**: 今日支出、本月预算、资产总览
-- ✅ **账单明细**: 按日期查看收支记录
-- ✅ **操作中心**: 快速记账入口（占位）
-- ✅ **月度报表**: 分类统计、每日趋势
-- ✅ **个人设置**: 多语言切换、金额显隐
+### 核心功能
 
-### 计划功能
+- ✅ **用户认证** - JWT + Token Rotation
+- ✅ **账户管理** - 多账户、多币种、信用卡
+- ✅ **交易记录** - 收入/支出/转账
+- ✅ **预算管理** - 月度预算设置和追踪
+- ✅ **分期计划** - 分期付款管理
+- ✅ **周期收入** - 工资等周期性收入
+- ✅ **现金流预测** - 未来资金预测
+- ✅ **报表分析** - 多维度数据分析
 
-- 🔲 记一笔（支出/收入/转账）
-- 🔲 账户管理
-- 🔲 预算设置
-- 🔲 数据导入导出
-- 🔲 未来现金流预测
-- 🔲 多用户支持
+### 技术特性
+
+- ✅ **完整的测试** - 120+ 测试用例
+- ✅ **多用户并发** - 支持高并发场景
+- ✅ **数据一致性** - 完善的事务处理
+- ✅ **API 文档** - 清晰的接口说明
+- ✅ **日志系统** - 完整的日志追踪
+
+查看 [功能文档](docs/FEATURE_DOCUMENTATION.md) 了解详情。
 
 ## API 接口
 
@@ -101,33 +141,52 @@ go run ./cmd/server
 - `GET /api/v1/user/settings` - 获取用户设置
 - `PATCH /api/v1/user/settings` - 更新用户设置
 
-## 开发说明
+## 🧪 测试
 
-### 前端开发
-
-```bash
-# 开发模式
-npm run dev
-
-# 构建生产版本
-npm run build
-
-# 预览生产版本
-npm run preview
-```
-
-### 后端开发
+项目拥有完整的测试体系：
 
 ```bash
-# 运行服务
-go run ./cmd/server
+cd backend-go
 
-# 构建二进制
-go build -o neverbroke ./cmd/server
+# 运行所有测试
+mage test:all
 
-# 运行测试
-go test ./...
+# 运行单元测试
+mage test:unit
+
+# 运行集成测试
+mage test:integration
+
+# 运行多用户并发测试
+mage test:concurrent
+
+# 运行压力测试（300+ 并发）
+mage test:stress
 ```
+
+查看 [测试体系总览](docs/TESTING_OVERVIEW.md) 了解更多。
+
+## 🔨 构建命令
+
+使用 Mage 构建工具：
+
+```bash
+cd backend-go
+
+# 查看所有命令
+mage -l
+
+# 构建应用
+mage build
+
+# 运行 CI 检查
+mage ci
+
+# 清理构建产物
+mage clean
+```
+
+查看 [Mage 指南](docs/mage/MAGE_GUIDE.md) 了解所有命令。
 
 ## 国际化
 
@@ -140,6 +199,33 @@ go test ./...
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+## 📖 文档
+
+完整的文档体系：
+
+- 📚 [文档中心](docs/README.md) - 文档入口
+- 📋 [功能文档](docs/FEATURE_DOCUMENTATION.md) - 完整功能说明
+- 🧪 [测试体系](docs/TESTING_OVERVIEW.md) - 测试架构
+- 🔨 [Mage 指南](docs/mage/MAGE_GUIDE.md) - 构建工具
+- 🔧 [后端开发](backend-go/README.md) - 后端指南
+- 🎨 [前端开发](frontend-vue/README.md) - 前端指南
+
+## 📊 项目统计
+
+- **代码行数**: ~15,000+ 行
+- **测试用例**: 120+ 个
+- **测试覆盖**: 85%+
+- **文档页数**: 10+ 个主要文档
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+开发前请阅读：
+1. [后端开发指南](backend-go/README.md)
+2. [测试指南](docs/testing/TESTING_GUIDE.md)
+3. 提交前运行 `mage ci` 检查
 
 ## 许可证
 

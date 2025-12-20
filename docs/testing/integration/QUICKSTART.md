@@ -18,12 +18,19 @@ sudo systemctl start postgresql
 
 ### 2. 设置测试数据库
 
+**使用 Mage（推荐）：**
+```bash
+cd backend-go
+mage test:setupDB
+```
+
+**或使用脚本：**
 ```bash
 cd backend-go/tests/integration
 ./setup_test_db.sh
 ```
 
-这个脚本会自动：
+这会自动：
 - ✅ 创建测试数据库 `neverbroke_test`
 - ✅ 创建数据库用户
 - ✅ 配置权限
@@ -31,13 +38,29 @@ cd backend-go/tests/integration
 
 ### 3. 运行测试
 
-**最简单的方式：**
+**使用 Mage（推荐）：**
 ```bash
-./run_tests.sh
+cd backend-go
+
+# 运行所有集成测试
+mage test:integration
+
+# 运行所有测试（单元 + 集成）
+mage test:all
+
+# 运行特定场景
+mage test:concurrent    # 多用户并发测试
+mage test:stress        # 压力测试
 ```
 
-**带详细输出：**
+**或使用脚本：**
 ```bash
+cd backend-go/tests/integration
+
+# 最简单的方式
+./run_tests.sh
+
+# 带详细输出
 ./run_tests.sh -v
 ```
 

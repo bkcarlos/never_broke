@@ -43,8 +43,9 @@ sudo systemctl start postgresql
 ### 2. 创建测试数据库
 
 ```bash
-# 使用提供的脚本
-./tests/integration/setup_test_db.sh
+# 使用 Mage 命令
+cd backend-go
+mage test:setupDB
 
 # 或手动创建
 psql -U postgres
