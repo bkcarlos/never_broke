@@ -49,30 +49,33 @@
         <!-- 卡片 1: 资产总览 -->
         <div class="card asset-card">
           <h2 class="card-title">{{ t('home.assetSummary') }}</h2>
-          <div class="asset-stats">
-            <div class="stat-item">
-              <p class="stat-label">💰 {{ t('home.totalAssets') }}</p>
-              <p class="stat-value text-blue-600">
+          <div class="space-y-3">
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">💰 {{ t('home.totalAssets') }}</span>
+              <span class="font-semibold text-blue-600">
                 ¥{{ formatMoney(assetSummary.totalAssets) }}
-              </p>
+              </span>
             </div>
-            <div class="stat-item">
-              <p class="stat-label">💳 可用余额</p>
-              <p class="stat-value text-indigo-600">
+            
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">💳 可用余额</span>
+              <span class="font-semibold text-indigo-600">
                 ¥{{ formatMoney(assetSummary.availableBalance) }}
-              </p>
+              </span>
             </div>
-            <div class="stat-item">
-              <p class="stat-label">💸 {{ t('home.totalLiabilities') }}</p>
-              <p class="stat-value text-orange-600">
+            
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">💸 {{ t('home.totalLiabilities') }}</span>
+              <span class="font-semibold text-orange-600">
                 ¥{{ formatMoney(assetSummary.totalLiabilities) }}
-              </p>
+              </span>
             </div>
-            <div class="stat-item">
-              <p class="stat-label">💎 {{ t('home.netAssets') }}</p>
-              <p class="stat-value text-green-600">
+            
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">💎 {{ t('home.netAssets') }}</span>
+              <span class="font-semibold text-green-600">
                 ¥{{ formatMoney(assetSummary.netAssets) }}
-              </p>
+              </span>
             </div>
           </div>
         </div>
@@ -660,27 +663,6 @@ onBeforeUnmount(() => {
   margin-bottom: 1rem;
 }
 
-/* 资产卡片 */
-.asset-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-.stat-item {
-  text-align: center;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-bottom: 0.5rem;
-}
-
-.stat-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
 
 /* 预算卡片 */
 .budget-card .flex {
@@ -783,10 +765,6 @@ onBeforeUnmount(() => {
     max-width: 280px;
     margin: 0 auto;
   }
-
-  .asset-stats {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* 大手机/小平板 (640px - 767px) */
@@ -868,10 +846,6 @@ onBeforeUnmount(() => {
     font-size: 1.25rem;
   }
 
-  .stat-value {
-    font-size: 1.5rem;
-  }
-
   .stats-row {
     grid-template-columns: repeat(3, 1fr);
     gap: 2.5rem;
@@ -918,14 +892,6 @@ onBeforeUnmount(() => {
   .card-title {
     font-size: 1.5rem;
     margin-bottom: 1.5rem;
-  }
-
-  .stat-label {
-    font-size: 1rem;
-  }
-
-  .stat-value {
-    font-size: 2rem;
   }
 
   .stats-row {
@@ -976,10 +942,6 @@ onBeforeUnmount(() => {
 
   .card {
     padding: 1rem;
-  }
-
-  .stat-value {
-    font-size: 1rem;
   }
 }
 
