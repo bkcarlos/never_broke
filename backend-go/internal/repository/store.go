@@ -4,17 +4,15 @@ import (
 	"context"
 
 	"neverbroke/internal/accounts"
-	"neverbroke/internal/installment"
+	"neverbroke/internal/budget"
 	"neverbroke/internal/ledger"
-	"neverbroke/internal/recurringincome"
 )
 
 // Store 统一的数据存储接口
 type Store interface {
 	Accounts() AccountRepository
 	Transactions() TransactionRepository
-	Installments() InstallmentRepository
-	RecurringIncomes() RecurringIncomeRepository
+	Budgets() BudgetRepository
 	Close() error
 }
 
@@ -34,19 +32,8 @@ type TransactionRepository interface {
 	CreateBatch(ctx context.Context, userID string, txs []*ledger.Transaction) error
 }
 
-// InstallmentRepository 分期计划仓储接口
-type InstallmentRepository interface {
-	GetByID(ctx context.Context, userID, id string) (*installment.InstallmentPlan, error)
-	ListByAccount(ctx context.Context, userID, accountID string) ([]*installment.InstallmentPlan, error)
-	ListByUser(ctx context.Context, userID string) ([]*installment.InstallmentPlan, error)
-	Create(ctx context.Context, userID string, plan *installment.InstallmentPlan) error
-	Update(ctx context.Context, userID string, plan *installment.InstallmentPlan) error
-}
-
-// RecurringIncomeRepository 周期收入计划仓储接口
-type RecurringIncomeRepository interface {
-	GetByID(ctx context.Context, userID, id string) (*recurringincome.RecurringIncomePlan, error)
-	ListByUser(ctx context.Context, userID string) ([]*recurringincome.RecurringIncomePlan, error)
-	Create(ctx context.Context, userID string, plan *recurringincome.RecurringIncomePlan) error
-	Update(ctx context.Context, userID string, plan *recurringincome.RecurringIncomePlan) error
+// BudgetRepository 预算仓储接口
+type BudgetRepository interface {
+	GetByMonth(ctx context.Context, userID, month string) (*budget.MonthlyBudget, error)
+	Upsert(ctx context.Context, userID string, b *budget.MonthlyBudget) error
 }

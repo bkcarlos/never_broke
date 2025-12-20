@@ -13,8 +13,13 @@ import (
 // ForecastHandler 现金流预测处理器
 func ForecastHandler(store repository.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 当前使用固定用户 ID
-		userID := "demo"
+		// 从上下文获取用户ID
+		userIDVal, exists := c.Get("user_id")
+		if !exists {
+			response.Unauthorized(c, "user not authenticated")
+			return
+		}
+		userID := userIDVal.(string)
 
 		// 从 query 参数读取
 		startDate := c.Query("startDate")
@@ -92,4 +97,3 @@ func ForecastHandler(store repository.Store) gin.HandlerFunc {
 		response.OK(c, result)
 	}
 }
-

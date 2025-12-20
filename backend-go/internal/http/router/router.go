@@ -46,11 +46,6 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 	}))
 
 	// 初始化认证系统（Token 方案）
-	// 安全说明：
-	// 1. JWT 密钥从环境变量读取（JWT_SECRET）
-	// 2. 生产环境必须设置 JWT_SECRET 环境变量（至少 32 字节）
-	// 3. Refresh Token 哈希存储，禁止明文
-	// 4. 支持 Token Rotation 和重放检测
 	tokenMgr := auth.NewTokenManager()
 	userRepo := auth.NewGormRepository(db)
 	tokenRepo := auth.NewGormTokenRepository(db)
@@ -61,7 +56,7 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 	oauthService := auth.NewOAuthService(userRepo, tokenRepo, tokenMgr)
 	oauthHandler := auth.NewOAuthHandler(oauthService)
 
-	// 启动定期清理协程（每小时清理一次过期数据）
+	// 启动定期清理协程
 	go func() {
 		ticker := time.NewTicker(1 * time.Hour)
 		defer ticker.Stop()
@@ -92,30 +87,31 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 	// 用户信息路由（需要鉴权）
 	r.GET("/api/me", tokenHandler.AuthMiddleware(), tokenHandler.Me)
 
-	// 创建所有 handlers（复用于 /api 和 /api/v1 路由组）
-	homeHandler := home.NewHandler(store)
+	// 创建所有 handlers
+	homeHandler := home.NewHandler(store, db)
 	accountsHandler := accounts.NewHandler(db)
 	ledgerHandler := ledger.NewHandler(store.Transactions(), db)
 	reportHandler := report.NewHandler(store)
 	userHandler := user.NewHandler(userRepo)
-	budgetHandler := budget.NewHandler()
+
+	// 直接使用 db 的 handlers（避免循环导入）
+	budgetHandler := budget.NewHandler(db)
+	incomePlanHandler := incomeplan.NewHandler(db)
+	installmentHandler := installment.NewHandler(db)
+	recurringIncomeHandler := recurringincome.NewHandler(db)
+
 	importerHandler := importer.NewHandler()
-	incomePlanHandler := incomeplan.NewHandler()
-	installmentHandler := installment.NewHandler()
-	recurringIncomeHandler := recurringincome.NewHandler()
 	citySocialRateHandler := citysocialrate.NewHandler()
 
-	// 注册路由函数（DRY - Don't Repeat Yourself）
+	// 注册路由函数
 	registerRoutes := func(group *gin.RouterGroup) {
-		// 首页 - 完整概览（保留用于兼容）
+		// 首页
 		group.GET("/home/overview", homeHandler.GetOverview)
-
-		// 首页 - 独立 API
-		group.GET("/home/asset-summary", homeHandler.GetAssetSummary)   // 资产总览
-		group.GET("/home/budget-stats", homeHandler.GetBudgetStats)     // 本月预算
-		group.GET("/home/month-overview", homeHandler.GetMonthOverview) // 本月概览
-		group.GET("/home/category-stats", homeHandler.GetCategoryStats) // 分类统计
-		group.GET("/home/pay-cycle", homeHandler.GetPayCycle)           // 支付周期（保留用于兼容）
+		group.GET("/home/asset-summary", homeHandler.GetAssetSummary)
+		group.GET("/home/budget-stats", homeHandler.GetBudgetStats)
+		group.GET("/home/month-overview", homeHandler.GetMonthOverview)
+		group.GET("/home/category-stats", homeHandler.GetCategoryStats)
+		group.GET("/home/pay-cycle", homeHandler.GetPayCycle)
 
 		// 账户
 		group.GET("/accounts", accountsHandler.ListAccountsHandler)
@@ -161,7 +157,7 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 		group.GET("/city-social-rates", citySocialRateHandler.ListCitySocialRatesHandler)
 		group.GET("/city-social-rates/:cityCode", citySocialRateHandler.GetCitySocialRateDetailHandler)
 
-		// 薪资控制（我的 -> 薪资控制）
+		// 薪资控制
 		group.GET("/me/salary-plan", recurringIncomeHandler.GetSalaryPlanHandler)
 		group.POST("/me/salary-plan", recurringIncomeHandler.UpsertSalaryPlanHandler)
 		group.DELETE("/me/salary-plan/:id", recurringIncomeHandler.DeleteSalaryPlanHandler)
@@ -177,12 +173,11 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 		group.GET("/timeline/daily-detail", timeline.DailyDetailHandler(store))
 	}
 
-	// API 路由组（不带版本号，与前端兼容）
-	// 需要认证的路由
+	// API 路由组（需要认证）
 	api := r.Group("/api", tokenHandler.AuthMiddleware())
 	registerRoutes(api)
 
-	// API v1 路由组（保留用于未来版本管理）
+	// API v1 路由组
 	v1 := r.Group("/api/v1", tokenHandler.AuthMiddleware())
 	registerRoutes(v1)
 

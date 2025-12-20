@@ -2,32 +2,6 @@ package recurringincome
 
 import "time"
 
-// FindDuePlans 给定一个日期字符串 YYYY-MM-DD，找出 nextDueDate <= date 且 Active 的计划
-func FindDuePlans(date string) []RecurringIncomePlan {
-	mu.RLock()
-	defer mu.RUnlock()
-
-	target, err := time.Parse("2006-01-02", date)
-	if err != nil {
-		return nil
-	}
-
-	var result []RecurringIncomePlan
-	for _, p := range plans {
-		if !p.Active || p.NextDueDate == "" {
-			continue
-		}
-		due, err := time.Parse("2006-01-02", p.NextDueDate)
-		if err != nil {
-			continue
-		}
-		if !due.After(target) { // due <= target
-			result = append(result, p)
-		}
-	}
-	return result
-}
-
 // CalcNextDueDate 计算下一次应收日期
 func CalcNextDueDate(p RecurringIncomePlan) string {
 	if p.NextDueDate == "" {

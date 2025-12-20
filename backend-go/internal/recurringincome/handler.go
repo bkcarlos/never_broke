@@ -2,33 +2,112 @@ package recurringincome
 
 import (
 	"neverbroke/common/logger"
-	"neverbroke/internal/accounts"
 	"neverbroke/internal/http/response"
 	"neverbroke/internal/ledger"
+	"neverbroke/internal/models"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // Handler 周期收入处理器
-type Handler struct{}
+type Handler struct {
+	db *gorm.DB
+}
 
 // NewHandler 创建周期收入处理器
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(db *gorm.DB) *Handler {
+	return &Handler{
+		db: db,
+	}
 }
 
 // ListPlansHandler 列出所有周期收入计划
 func (h *Handler) ListPlansHandler(c *gin.Context) {
-	plans := ListPlans()
-	logger.Info("List recurring income plans", zap.Int("count", len(plans)))
-	response.OK(c, plans)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "user not authenticated")
+		return
+	}
+
+	var dbPlans []models.RecurringIncomePlan
+	if err := h.db.Where("user_id = ?", userID.(string)).
+		Order("active DESC, created_at DESC").
+		Find(&dbPlans).Error; err != nil {
+		logger.Error("Failed to list recurring income plans", zap.Error(err))
+		response.InternalError(c, "failed to list plans")
+		return
+	}
+
+	result := make([]RecurringIncomePlan, len(dbPlans))
+	for i, p := range dbPlans {
+		result[i] = toBusinessModel(&p)
+	}
+
+	logger.Info("List recurring income plans",
+		zap.String("userID", userID.(string)),
+		zap.Int("count", len(result)),
+	)
+	response.OK(c, result)
+}
+
+// toBusinessModel 转换数据库模型为业务模型
+func toBusinessModel(p *models.RecurringIncomePlan) RecurringIncomePlan {
+	plan := RecurringIncomePlan{
+		ID:          p.ID,
+		Type:        RecurringIncomeType(p.Type),
+		Label:       p.Label,
+		AccountID:   p.AccountID,
+		Amount:      p.Amount,
+		Currency:    p.Currency,
+		Frequency:   RecurringIncomeFrequency(p.Frequency),
+		NextDueDate: p.NextDueDate.Format("2006-01-02"),
+		Active:      p.Active,
+		CreatedAt:   p.CreatedAt.Format(time.RFC3339),
+	}
+
+	if p.DayOfMonth != nil {
+		plan.DayOfMonth = *p.DayOfMonth
+	}
+	if p.Weekday != nil {
+		plan.Weekday = *p.Weekday
+	}
+	if p.LastFiredDate != nil && !p.LastFiredDate.IsZero() {
+		plan.LastFiredDate = p.LastFiredDate.Format("2006-01-02")
+	}
+	if p.CityCode != nil {
+		plan.CityCode = *p.CityCode
+	}
+	if p.SalaryPreTaxMonthly != nil {
+		plan.SalaryPreTaxMonthly = *p.SalaryPreTaxMonthly
+	}
+	if p.SalarySocialRate != nil {
+		plan.SalarySocialRate = *p.SalarySocialRate
+	}
+	if p.SalaryExtraDeductions != nil {
+		plan.SalaryExtraDeductions = *p.SalaryExtraDeductions
+	}
+	if p.SalaryPayDay != nil {
+		plan.SalaryPayDay = *p.SalaryPayDay
+	}
+	if p.SalaryStartDate != nil && !p.SalaryStartDate.IsZero() {
+		plan.SalaryStartDate = p.SalaryStartDate.Format("2006-01-02")
+	}
+
+	return plan
 }
 
 // UpsertPlanHandler 创建或更新周期收入计划
 func (h *Handler) UpsertPlanHandler(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "user not authenticated")
+		return
+	}
+
 	var req UpsertRecurringIncomeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Warn("Invalid request body", zap.Error(err))
@@ -36,7 +115,6 @@ func (h *Handler) UpsertPlanHandler(c *gin.Context) {
 		return
 	}
 
-	// 验证必填字段
 	if req.Amount <= 0 {
 		response.BadRequest(c, "amount must be > 0")
 		return
@@ -50,80 +128,139 @@ func (h *Handler) UpsertPlanHandler(c *gin.Context) {
 		return
 	}
 
-	// 验证账户是否存在
-	_, exists := accounts.FindAccountByID(req.AccountID)
-	if !exists {
+	// 验证账户属于当前用户
+	var account models.Account
+	if err := h.db.Where("id = ? AND user_id = ?", req.AccountID, userID.(string)).First(&account).Error; err != nil {
 		response.BadRequest(c, "account not found")
 		return
 	}
 
-	var plan RecurringIncomePlan
+	nextDueDate, err := time.Parse("2006-01-02", req.NextDueDate)
+	if err != nil {
+		response.BadRequest(c, "invalid nextDueDate format")
+		return
+	}
+
+	var dbPlan *models.RecurringIncomePlan
+
 	if req.ID != "" {
 		// 更新现有计划
-		existing := GetPlanByID(req.ID)
-		if existing == nil {
+		dbPlan = &models.RecurringIncomePlan{}
+		if err := h.db.Where("user_id = ? AND id = ?", userID.(string), req.ID).First(dbPlan).Error; err != nil {
 			response.BadRequest(c, "plan not found")
 			return
 		}
-		plan = *existing
-		plan.Type = req.Type
-		plan.Label = req.Label
-		plan.AccountID = req.AccountID
-		plan.Amount = req.Amount
-		plan.Currency = req.Currency
-		plan.Frequency = req.Frequency
-		plan.DayOfMonth = req.DayOfMonth
-		plan.Weekday = req.Weekday
-		plan.NextDueDate = req.NextDueDate
-		plan.CityCode = req.CityCode
-		plan.Active = req.Active
+
+		dbPlan.Type = string(req.Type)
+		dbPlan.Label = req.Label
+		dbPlan.AccountID = req.AccountID
+		dbPlan.Amount = req.Amount
+		dbPlan.Currency = req.Currency
+		dbPlan.Frequency = string(req.Frequency)
+		dbPlan.NextDueDate = nextDueDate
+		dbPlan.Active = req.Active
+
+		if req.DayOfMonth > 0 {
+			dbPlan.DayOfMonth = &req.DayOfMonth
+		}
+		if req.Weekday > 0 {
+			dbPlan.Weekday = &req.Weekday
+		}
+		if req.CityCode != "" {
+			dbPlan.CityCode = &req.CityCode
+		}
+
+		if err := h.db.Save(dbPlan).Error; err != nil {
+			logger.Error("Failed to update plan", zap.Error(err))
+			response.InternalError(c, "failed to update plan")
+			return
+		}
 	} else {
 		// 新建计划
-		plan = RecurringIncomePlan{
+		dbPlan = &models.RecurringIncomePlan{
 			ID:          uuid.NewString(),
-			Type:        req.Type,
+			UserID:      userID.(string),
+			Type:        string(req.Type),
 			Label:       req.Label,
 			AccountID:   req.AccountID,
 			Amount:      req.Amount,
 			Currency:    req.Currency,
-			Frequency:   req.Frequency,
-			DayOfMonth:  req.DayOfMonth,
-			Weekday:     req.Weekday,
-			NextDueDate: req.NextDueDate,
-			CityCode:    req.CityCode,
+			Frequency:   string(req.Frequency),
+			NextDueDate: nextDueDate,
 			Active:      req.Active,
-			CreatedAt:   time.Now().Format(time.RFC3339),
+			CreatedAt:   time.Now(),
+		}
+
+		if req.DayOfMonth > 0 {
+			dbPlan.DayOfMonth = &req.DayOfMonth
+		}
+		if req.Weekday > 0 {
+			dbPlan.Weekday = &req.Weekday
+		}
+		if req.CityCode != "" {
+			dbPlan.CityCode = &req.CityCode
+		}
+
+		if err := h.db.Create(dbPlan).Error; err != nil {
+			logger.Error("Failed to create plan", zap.Error(err))
+			response.InternalError(c, "failed to create plan")
+			return
 		}
 	}
 
-	saved := SavePlan(plan)
+	plan := toBusinessModel(dbPlan)
 	logger.Info("Recurring income plan saved",
-		zap.String("id", saved.ID),
-		zap.String("type", string(saved.Type)),
-		zap.Float64("amount", saved.Amount),
+		zap.String("userID", userID.(string)),
+		zap.String("id", plan.ID),
+		zap.String("type", string(plan.Type)),
+		zap.Float64("amount", plan.Amount),
 	)
-	response.OK(c, saved)
+	response.OK(c, plan)
 }
 
 // ListDuePlansHandler 查询指定日期到期的计划
 func (h *Handler) ListDuePlansHandler(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "user not authenticated")
+		return
+	}
+
 	date := c.Query("date")
 	if date == "" {
-		// 默认使用今天
 		date = time.Now().Format("2006-01-02")
 	}
 
-	plans := FindDuePlans(date)
+	targetDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		response.BadRequest(c, "invalid date format")
+		return
+	}
+
+	var dbPlans []models.RecurringIncomePlan
+	if err := h.db.Where("user_id = ? AND active = ? AND next_due_date <= ?",
+		userID.(string), true, targetDate).Find(&dbPlans).Error; err != nil {
+		logger.Error("Failed to list due plans", zap.Error(err))
+		response.InternalError(c, "failed to list plans")
+		return
+	}
+
+	result := make([]RecurringIncomePlan, len(dbPlans))
+	for i, p := range dbPlans {
+		result[i] = toBusinessModel(&p)
+	}
+
 	logger.Info("List due recurring income plans",
+		zap.String("userID", userID.(string)),
 		zap.String("date", date),
-		zap.Int("count", len(plans)),
+		zap.Int("count", len(result)),
 	)
-	response.OK(c, plans)
+	response.OK(c, result)
 }
 
 // RealizePlanRequest 确认入账请求
 type RealizePlanRequest struct {
-	Date string `json:"date,omitempty"` // YYYY-MM-DD，可选，默认今天
+	Date string `json:"date,omitempty"`
 }
 
 // RealizePlanResponse 确认入账响应
@@ -134,6 +271,12 @@ type RealizePlanResponse struct {
 
 // RealizePlanHandler 确认周期收入到账
 func (h *Handler) RealizePlanHandler(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "user not authenticated")
+		return
+	}
+
 	id := c.Param("id")
 	if id == "" {
 		response.BadRequest(c, "id is required")
@@ -142,96 +285,111 @@ func (h *Handler) RealizePlanHandler(c *gin.Context) {
 
 	var req RealizePlanRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		// 如果没有 body，使用默认值
 		req.Date = ""
 	}
 
-	// 获取计划
-	plan := GetPlanByID(id)
-	if plan == nil {
+	var dbPlan models.RecurringIncomePlan
+	if err := h.db.Where("user_id = ? AND id = ?", userID.(string), id).First(&dbPlan).Error; err != nil {
 		response.BadRequest(c, "plan not found")
 		return
 	}
 
-	if !plan.Active {
+	if !dbPlan.Active {
 		response.BadRequest(c, "plan is not active")
 		return
 	}
 
-	// 确定日期
 	realizeDate := req.Date
 	if realizeDate == "" {
 		realizeDate = time.Now().Format("2006-01-02")
 	}
 
-	// 验证日期格式
-	_, err := time.Parse("2006-01-02", realizeDate)
+	occurredAt, err := time.Parse("2006-01-02", realizeDate)
 	if err != nil {
-		response.BadRequest(c, "invalid date format, expected YYYY-MM-DD")
+		response.BadRequest(c, "invalid date format")
 		return
 	}
 
 	// 映射类型到分类
 	var categoryKey string
-	switch plan.Type {
+	switch RecurringIncomeType(dbPlan.Type) {
 	case RecurringIncomeTypeSalary:
 		categoryKey = "INCOME_SALARY"
 	case RecurringIncomeTypeRent:
 		categoryKey = "INCOME_RENT"
 	case RecurringIncomeTypeSide:
 		categoryKey = "INCOME_SIDE"
-	case RecurringIncomeTypeOther:
-		categoryKey = "INCOME_OTHER"
 	default:
 		categoryKey = "INCOME_OTHER"
 	}
 
-	// 创建收入交易
-	occurredAt, err := time.Parse("2006-01-02", realizeDate)
+	// 使用事务创建交易并更新计划
+	var dbTx *models.Transaction
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		// 创建交易记录
+		dbTx = &models.Transaction{
+			ID:         uuid.NewString(),
+			UserID:     userID.(string),
+			Type:       "income",
+			Amount:     dbPlan.Amount,
+			OccurredAt: occurredAt.Format(time.RFC3339),
+			AccountID:  &dbPlan.AccountID,
+		}
+		dbTx.CategoryKey = &categoryKey
+		dbTx.Remark = &dbPlan.Label
+
+		if err := tx.Create(dbTx).Error; err != nil {
+			return err
+		}
+
+		// 更新账户余额
+		if err := tx.Model(&models.Account{}).Where("id = ?", dbPlan.AccountID).
+			Update("balance", gorm.Expr("balance + ?", dbPlan.Amount)).Error; err != nil {
+			return err
+		}
+
+		// 更新计划
+		dbPlan.LastFiredDate = &occurredAt
+		plan := toBusinessModel(&dbPlan)
+		nextDue := CalcNextDueDate(plan)
+		if nextDue != "" {
+			nextDueDate, _ := time.Parse("2006-01-02", nextDue)
+			dbPlan.NextDueDate = nextDueDate
+		}
+
+		return tx.Save(&dbPlan).Error
+	})
+
 	if err != nil {
-		response.BadRequest(c, "invalid date")
+		logger.Error("Failed to realize plan", zap.Error(err))
+		response.InternalError(c, "failed to realize plan")
 		return
 	}
 
-	// 更新账户余额
-	ok := accounts.AddToBalance(plan.AccountID, plan.Amount)
-	if !ok {
-		response.BadRequest(c, "account not found")
-		return
-	}
-
-	// 创建交易记录
-	tx := ledger.Transaction{
-		ID: uuid.NewString(),
+	plan := toBusinessModel(&dbPlan)
+	txResp := ledger.Transaction{
+		ID: dbTx.ID,
 		CreateTransactionRequest: ledger.CreateTransactionRequest{
 			Type:        ledger.TransactionTypeIncome,
-			Amount:      plan.Amount,
+			Amount:      dbPlan.Amount,
 			CategoryKey: categoryKey,
-			Remark:      plan.Label,
+			Remark:      dbPlan.Label,
 			OccurredAt:  occurredAt.Format(time.RFC3339),
-			AccountID:   plan.AccountID,
+			AccountID:   dbPlan.AccountID,
 		},
 	}
 
-	// 更新计划：设置 LastFiredDate 和计算 NextDueDate
-	plan.LastFiredDate = realizeDate
-	plan.NextDueDate = CalcNextDueDate(*plan)
-
-	// 保存更新后的计划
-	savedPlan := SavePlan(*plan)
-
 	logger.Info("Recurring income realized",
-		zap.String("planId", savedPlan.ID),
+		zap.String("userID", userID.(string)),
+		zap.String("planId", plan.ID),
 		zap.String("date", realizeDate),
 		zap.Float64("amount", plan.Amount),
-		zap.String("transactionId", tx.ID),
 	)
 
-	resp := RealizePlanResponse{
-		Plan:        savedPlan,
-		Transaction: tx,
-	}
-	response.OK(c, resp)
+	response.OK(c, RealizePlanResponse{
+		Plan:        plan,
+		Transaction: txResp,
+	})
 }
 
 // SalaryPreviewHandler 工资预览接口
@@ -259,23 +417,29 @@ func SalaryPreviewHandler(c *gin.Context) {
 
 // ProjectedTransactionsHandler 未来明细投射接口
 func (h *Handler) ProjectedTransactionsHandler(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "user not authenticated")
+		return
+	}
+
 	from := c.Query("from")
 	to := c.Query("to")
 
 	if from == "" || to == "" {
-		response.BadRequest(c, "from and to parameters are required (YYYY-MM-DD)")
+		response.BadRequest(c, "from and to parameters are required")
 		return
 	}
 
 	fromDate, err := time.Parse("2006-01-02", from)
 	if err != nil {
-		response.BadRequest(c, "invalid from date format, expected YYYY-MM-DD")
+		response.BadRequest(c, "invalid from date format")
 		return
 	}
 
 	toDate, err := time.Parse("2006-01-02", to)
 	if err != nil {
-		response.BadRequest(c, "invalid to date format, expected YYYY-MM-DD")
+		response.BadRequest(c, "invalid to date format")
 		return
 	}
 
@@ -284,34 +448,28 @@ func (h *Handler) ProjectedTransactionsHandler(c *gin.Context) {
 		return
 	}
 
-	// 获取所有活跃的计划
-	plans := ListPlans()
+	var dbPlans []models.RecurringIncomePlan
+	if err := h.db.Where("user_id = ? AND active = ?", userID.(string), true).Find(&dbPlans).Error; err != nil {
+		logger.Error("Failed to list plans", zap.Error(err))
+		response.InternalError(c, "failed to list plans")
+		return
+	}
+
 	var projected []ProjectedTransaction
 
-	for _, plan := range plans {
-		if !plan.Active {
-			continue
-		}
-
-		// 生成该计划在时间范围内的所有收入日期
+	for _, dbPlan := range dbPlans {
+		plan := toBusinessModel(&dbPlan)
 		dates := generateIncomeDates(plan, fromDate, toDate)
-
-		// 对工资类型，需要计算税后金额
 		isSalary := plan.Type == RecurringIncomeTypeSalary
 
 		for _, date := range dates {
 			amount := plan.Amount
 
-			// 如果是工资类型，需要计算税后金额
 			if isSalary && plan.CityCode != "" {
-				// 简化处理：使用工资预览逻辑计算单次税后金额
-				// 这里为了简化，我们使用一个估算值，或者可以调用 PreviewSalaryToYearEnd
-				// 但为了性能，我们使用简化计算
 				socialRate := GetSocialSecurityRate(plan.CityCode)
 				socialSecurity := amount * socialRate
 				taxableIncome := amount - socialSecurity - MonthlyDeduction
 				if taxableIncome > 0 {
-					// 简化：假设单次发薪的个税（不考虑累积）
 					tax := CalculateTax(taxableIncome)
 					amount = amount - socialSecurity - tax
 				} else {
@@ -331,7 +489,12 @@ func (h *Handler) ProjectedTransactionsHandler(c *gin.Context) {
 		}
 	}
 
+	if projected == nil {
+		projected = []ProjectedTransaction{}
+	}
+
 	logger.Info("List projected transactions",
+		zap.String("userID", userID.(string)),
 		zap.String("from", from),
 		zap.String("to", to),
 		zap.Int("count", len(projected)),
@@ -342,18 +505,26 @@ func (h *Handler) ProjectedTransactionsHandler(c *gin.Context) {
 
 // GetSalaryPlanHandler 获取当前用户的工资方案
 func (h *Handler) GetSalaryPlanHandler(c *gin.Context) {
-	plans := ListPlans()
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "user not authenticated")
+		return
+	}
 
-	// 筛选 Type=salary 且 Active=true 的计划
+	var dbPlan models.RecurringIncomePlan
+	err := h.db.Where("user_id = ? AND type = ? AND active = ?",
+		userID.(string), string(RecurringIncomeTypeSalary), true).
+		Order("created_at DESC").
+		First(&dbPlan).Error
+
 	var salaryPlan *RecurringIncomePlan
-	for i := range plans {
-		if plans[i].Type == RecurringIncomeTypeSalary && plans[i].Active {
-			salaryPlan = &plans[i]
-			break // 只返回最新的 active 方案
-		}
+	if err == nil {
+		plan := toBusinessModel(&dbPlan)
+		salaryPlan = &plan
 	}
 
 	logger.Info("Get salary plan",
+		zap.String("userID", userID.(string)),
 		zap.Bool("found", salaryPlan != nil),
 	)
 
@@ -364,6 +535,12 @@ func (h *Handler) GetSalaryPlanHandler(c *gin.Context) {
 
 // UpsertSalaryPlanHandler 保存/更新工资方案
 func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "user not authenticated")
+		return
+	}
+
 	var req UpsertSalaryPlanRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Warn("Invalid request body", zap.Error(err))
@@ -371,7 +548,6 @@ func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
 		return
 	}
 
-	// 验证必填字段
 	if req.PreTaxMonthly <= 0 {
 		response.BadRequest(c, "preTaxMonthly must be > 0")
 		return
@@ -389,14 +565,14 @@ func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
 		return
 	}
 
-	// 验证账户是否存在
-	_, exists := accounts.FindAccountByID(req.AccountID)
-	if !exists {
+	// 验证账户
+	var account models.Account
+	if err := h.db.Where("id = ? AND user_id = ?", req.AccountID, userID.(string)).First(&account).Error; err != nil {
 		response.BadRequest(c, "account not found")
 		return
 	}
 
-	// 调用薪资预览计算税后金额
+	// 调用薪资预览
 	socialRate := req.SocialRate
 	previewReq := SalaryPreviewRequest{
 		PreTaxAmount:    req.PreTaxMonthly,
@@ -416,85 +592,102 @@ func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
 		return
 	}
 
-	// 使用首月税后金额作为 Amount
-	var postTaxAmount float64
-	if len(preview.Items) > 0 {
-		postTaxAmount = preview.Items[0].PostTax
-	} else {
+	if len(preview.Items) == 0 {
 		response.BadRequest(c, "no preview items generated")
 		return
 	}
 
-	// 查询现有的 active salary 计划，将其设为 inactive
-	plans := ListPlans()
-	for i := range plans {
-		if plans[i].Type == RecurringIncomeTypeSalary && plans[i].Active {
-			plans[i].Active = false
-			SavePlan(plans[i])
-			logger.Info("Deactivated existing salary plan", zap.String("id", plans[i].ID))
-		}
+	postTaxAmount := preview.Items[0].PostTax
+
+	// 停用现有工资方案
+	h.db.Model(&models.RecurringIncomePlan{}).
+		Where("user_id = ? AND type = ? AND active = ?",
+			userID.(string), string(RecurringIncomeTypeSalary), true).
+		Update("active", false)
+
+	// 解析日期
+	nextDueDate, _ := time.Parse("2006-01-02", preview.Items[0].Date)
+	startDate, _ := time.Parse("2006-01-02", req.StartDate)
+
+	// 创建新方案
+	dbPlan := &models.RecurringIncomePlan{
+		ID:                    uuid.NewString(),
+		UserID:                userID.(string),
+		Type:                  string(RecurringIncomeTypeSalary),
+		Label:                 "工资",
+		AccountID:             req.AccountID,
+		Amount:                postTaxAmount,
+		Currency:              req.Currency,
+		Frequency:             string(FrequencyMonthly),
+		DayOfMonth:            &req.PayDay,
+		NextDueDate:           nextDueDate,
+		Active:                true,
+		CreatedAt:             time.Now(),
+		SalaryPreTaxMonthly:   &req.PreTaxMonthly,
+		SalarySocialRate:      &req.SocialRate,
+		SalaryExtraDeductions: &req.ExtraDeductions,
+		SalaryPayDay:          &req.PayDay,
+		SalaryStartDate:       &startDate,
 	}
 
-	// 创建新的工资方案
-	plan := RecurringIncomePlan{
-		ID:          uuid.NewString(),
-		Type:        RecurringIncomeTypeSalary,
-		Label:       "工资",
-		AccountID:   req.AccountID,
-		Amount:      postTaxAmount, // 税后金额
-		Currency:    req.Currency,
-		Frequency:   FrequencyMonthly,
-		DayOfMonth:  req.PayDay,
-		NextDueDate: preview.Items[0].Date,
-		CityCode:    req.CityCode,
-		Active:      true,
-		CreatedAt:   time.Now().Format(time.RFC3339),
-
-		// 薪资专用字段
-		SalaryPreTaxMonthly:   req.PreTaxMonthly,
-		SalarySocialRate:      req.SocialRate,
-		SalaryExtraDeductions: req.ExtraDeductions,
-		SalaryPayDay:          req.PayDay,
-		SalaryStartDate:       req.StartDate,
+	if req.CityCode != "" {
+		dbPlan.CityCode = &req.CityCode
 	}
 
-	saved := SavePlan(plan)
+	if err := h.db.Create(dbPlan).Error; err != nil {
+		logger.Error("Failed to create salary plan", zap.Error(err))
+		response.InternalError(c, "failed to create salary plan")
+		return
+	}
+
+	plan := toBusinessModel(dbPlan)
 	logger.Info("Salary plan saved",
-		zap.String("id", saved.ID),
+		zap.String("userID", userID.(string)),
+		zap.String("id", plan.ID),
 		zap.Float64("preTax", req.PreTaxMonthly),
 		zap.Float64("postTax", postTaxAmount),
 	)
 
 	response.OK(c, UpsertSalaryPlanResponse{
-		Plan:    saved,
+		Plan:    plan,
 		Preview: preview,
 	})
 }
 
 // DeleteSalaryPlanHandler 删除工资方案
 func (h *Handler) DeleteSalaryPlanHandler(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Unauthorized(c, "user not authenticated")
+		return
+	}
+
 	id := c.Param("id")
 	if id == "" {
 		response.BadRequest(c, "id is required")
 		return
 	}
 
-	plan := GetPlanByID(id)
-	if plan == nil {
+	var dbPlan models.RecurringIncomePlan
+	if err := h.db.Where("user_id = ? AND id = ?", userID.(string), id).First(&dbPlan).Error; err != nil {
 		response.BadRequest(c, "plan not found")
 		return
 	}
 
-	if plan.Type != RecurringIncomeTypeSalary {
+	if RecurringIncomeType(dbPlan.Type) != RecurringIncomeTypeSalary {
 		response.BadRequest(c, "not a salary plan")
 		return
 	}
 
-	// 将计划设为 inactive
-	plan.Active = false
-	SavePlan(*plan)
+	dbPlan.Active = false
+	if err := h.db.Save(&dbPlan).Error; err != nil {
+		logger.Error("Failed to delete salary plan", zap.Error(err))
+		response.InternalError(c, "failed to delete salary plan")
+		return
+	}
 
 	logger.Info("Salary plan deleted",
+		zap.String("userID", userID.(string)),
 		zap.String("id", id),
 	)
 
@@ -505,22 +698,18 @@ func (h *Handler) DeleteSalaryPlanHandler(c *gin.Context) {
 func generateIncomeDates(plan RecurringIncomePlan, fromDate, toDate time.Time) []time.Time {
 	var dates []time.Time
 
-	// 解析 nextDueDate
 	nextDue, err := time.Parse("2006-01-02", plan.NextDueDate)
 	if err != nil {
 		return dates
 	}
 
-	// 如果 nextDueDate 在 fromDate 之前，需要向前推算
 	currentDate := nextDue
 	if currentDate.Before(fromDate) {
-		// 向前推算到 fromDate 之后
 		for currentDate.Before(fromDate) {
 			currentDate = calcNextDate(currentDate, plan.Frequency, plan.DayOfMonth)
 		}
 	}
 
-	// 生成日期列表
 	for !currentDate.After(toDate) {
 		dates = append(dates, currentDate)
 		currentDate = calcNextDate(currentDate, plan.Frequency, plan.DayOfMonth)

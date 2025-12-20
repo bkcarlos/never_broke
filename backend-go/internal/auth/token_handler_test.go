@@ -56,6 +56,17 @@ func (m *MockUserRepository) GetUserByID(id int) (*User, error) {
 	return nil, ErrUserNotFound
 }
 
+func (m *MockUserRepository) UpdateUserSettings(userID int, settings *UserSettings) error {
+	for _, user := range m.users {
+		if user.ID == userID {
+			user.Locale = settings.Locale
+			user.ShowAmount = settings.ShowAmount
+			return nil
+		}
+	}
+	return ErrUserNotFound
+}
+
 // MockTokenRepository 模拟 Token 仓储
 type MockTokenRepository struct {
 	refreshTokens map[string]*RefreshToken

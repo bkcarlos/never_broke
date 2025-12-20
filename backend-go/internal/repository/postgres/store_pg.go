@@ -8,21 +8,19 @@ import (
 
 // PgStore Postgres 实现的 Store (使用 GORM)
 type PgStore struct {
-	db                  *gorm.DB
-	accountRepo         repository.AccountRepository
-	transactionRepo     repository.TransactionRepository
-	installmentRepo     repository.InstallmentRepository
-	recurringIncomeRepo repository.RecurringIncomeRepository
+	db              *gorm.DB
+	accountRepo     repository.AccountRepository
+	transactionRepo repository.TransactionRepository
+	budgetRepo      repository.BudgetRepository
 }
 
 // NewPgStore 创建新的 Postgres Store (使用 GORM)
 func NewPgStore(db *gorm.DB) *PgStore {
 	return &PgStore{
-		db:                  db,
-		accountRepo:         NewPgAccountRepository(db),
-		transactionRepo:     NewPgTransactionRepository(db),
-		installmentRepo:     NewPgInstallmentRepository(db),
-		recurringIncomeRepo: NewPgRecurringIncomeRepository(db),
+		db:              db,
+		accountRepo:     NewPgAccountRepository(db),
+		transactionRepo: NewPgTransactionRepository(db),
+		budgetRepo:      NewPgBudgetRepository(db),
 	}
 }
 
@@ -36,14 +34,9 @@ func (s *PgStore) Transactions() repository.TransactionRepository {
 	return s.transactionRepo
 }
 
-// Installments 返回分期计划仓储
-func (s *PgStore) Installments() repository.InstallmentRepository {
-	return s.installmentRepo
-}
-
-// RecurringIncomes 返回周期收入计划仓储
-func (s *PgStore) RecurringIncomes() repository.RecurringIncomeRepository {
-	return s.recurringIncomeRepo
+// Budgets 返回预算仓储
+func (s *PgStore) Budgets() repository.BudgetRepository {
+	return s.budgetRepo
 }
 
 // Close 关闭数据库连接

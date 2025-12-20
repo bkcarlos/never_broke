@@ -98,6 +98,41 @@ func (RecurringIncomePlan) TableName() string {
 	return "recurring_income_plans"
 }
 
+// Budget GORM 预算模型
+type Budget struct {
+	ID          string    `gorm:"primaryKey;type:varchar(36)" json:"id"`
+	UserID      string    `gorm:"type:varchar(36);not null;uniqueIndex:idx_user_month" json:"userId"`
+	Month       string    `gorm:"type:varchar(7);not null;uniqueIndex:idx_user_month" json:"month"` // YYYY-MM
+	TotalBudget float64   `gorm:"type:decimal(15,2);not null;default:0" json:"totalBudget"`
+	CreatedAt   time.Time `gorm:"type:timestamptz;not null" json:"createdAt"`
+	UpdatedAt   time.Time `gorm:"type:timestamptz;not null" json:"updatedAt"`
+}
+
+// TableName 指定表名
+func (Budget) TableName() string {
+	return "budgets"
+}
+
+// IncomePlan GORM 收入计划模型
+type IncomePlan struct {
+	ID           string     `gorm:"primaryKey;type:varchar(36)" json:"id"`
+	UserID       string     `gorm:"type:varchar(36);not null;index:idx_income_plans_user" json:"userId"`
+	Name         string     `gorm:"type:varchar(100);not null" json:"name"`
+	Amount       float64    `gorm:"type:decimal(15,2);not null" json:"amount"`
+	Frequency    string     `gorm:"type:varchar(20);not null" json:"frequency"`
+	AccountID    string     `gorm:"type:varchar(36);not null" json:"accountId"`
+	FirstPayDate time.Time  `gorm:"type:date;not null" json:"firstPayDate"`
+	EndDate      *time.Time `gorm:"type:date" json:"endDate,omitempty"`
+	Active       bool       `gorm:"not null;default:true" json:"active"`
+	CreatedAt    time.Time  `gorm:"type:timestamptz;not null" json:"createdAt"`
+	UpdatedAt    time.Time  `gorm:"type:timestamptz;not null" json:"updatedAt"`
+}
+
+// TableName 指定表名
+func (IncomePlan) TableName() string {
+	return "income_plans"
+}
+
 // BeforeCreate GORM hook - 在创建前设置时间
 func (a *Account) BeforeCreate(tx *gorm.DB) error {
 	return nil
@@ -121,5 +156,41 @@ func (r *RecurringIncomePlan) BeforeCreate(tx *gorm.DB) error {
 	if r.CreatedAt.IsZero() {
 		r.CreatedAt = time.Now()
 	}
+	return nil
+}
+
+// BeforeCreate GORM hook - 在创建前设置时间
+func (b *Budget) BeforeCreate(tx *gorm.DB) error {
+	now := time.Now()
+	if b.CreatedAt.IsZero() {
+		b.CreatedAt = now
+	}
+	if b.UpdatedAt.IsZero() {
+		b.UpdatedAt = now
+	}
+	return nil
+}
+
+// BeforeUpdate GORM hook - 在更新前设置时间
+func (b *Budget) BeforeUpdate(tx *gorm.DB) error {
+	b.UpdatedAt = time.Now()
+	return nil
+}
+
+// BeforeCreate GORM hook - 在创建前设置时间
+func (p *IncomePlan) BeforeCreate(tx *gorm.DB) error {
+	now := time.Now()
+	if p.CreatedAt.IsZero() {
+		p.CreatedAt = now
+	}
+	if p.UpdatedAt.IsZero() {
+		p.UpdatedAt = now
+	}
+	return nil
+}
+
+// BeforeUpdate GORM hook - 在更新前设置时间
+func (p *IncomePlan) BeforeUpdate(tx *gorm.DB) error {
+	p.UpdatedAt = time.Now()
 	return nil
 }

@@ -14,8 +14,13 @@ import (
 // MonthlySummaryHandler 月度汇总报表处理器
 func MonthlySummaryHandler(store repository.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 当前使用固定用户 ID
-		userID := "demo"
+		// 从上下文获取用户ID
+		userIDVal, exists := c.Get("user_id")
+		if !exists {
+			response.Unauthorized(c, "user not authenticated")
+			return
+		}
+		userID := userIDVal.(string)
 
 		// 从 query 读取 year, month（默认当前年月）
 		yearStr := c.Query("year")

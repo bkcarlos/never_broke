@@ -12,8 +12,13 @@ import (
 // DailySummaryHandler 每日汇总处理器
 func DailySummaryHandler(store repository.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 当前使用固定用户 ID
-		userID := "demo"
+		// 从上下文获取用户ID
+		userIDVal, exists := c.Get("user_id")
+		if !exists {
+			response.Unauthorized(c, "user not authenticated")
+			return
+		}
+		userID := userIDVal.(string)
 
 		fromDate := c.Query("from")
 		if fromDate == "" {
@@ -65,8 +70,13 @@ func DailySummaryHandler(store repository.Store) gin.HandlerFunc {
 // DailyDetailHandler 每日明细处理器
 func DailyDetailHandler(store repository.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 当前使用固定用户 ID
-		userID := "demo"
+		// 从上下文获取用户ID
+		userIDVal, exists := c.Get("user_id")
+		if !exists {
+			response.Unauthorized(c, "user not authenticated")
+			return
+		}
+		userID := userIDVal.(string)
 
 		date := c.Query("date")
 		if date == "" {

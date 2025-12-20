@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"neverbroke/internal/budget"
 	"neverbroke/internal/installment"
 	"neverbroke/internal/ledger"
+	"neverbroke/internal/models"
 	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/repository"
+
+	"gorm.io/gorm"
 )
 
 // BuildForecast 构建现金流预测
@@ -48,47 +50,18 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 	// 3. 计算结束日期
 	endDate := startDate.AddDate(0, 0, req.Days)
 
-	// 4. 获取周期收入计划
-	recurringPlans, err := store.RecurringIncomes().ListByUser(ctx, userID)
-	if err != nil {
-		return CashflowForecastResponse{}, fmt.Errorf("failed to list recurring incomes: %w", err)
-	}
+	// 4. 这里简化处理：不再获取周期收入和分期计划
+	// 仅基于账户余额和预算计算
 
-	// 5. 获取分期计划
-	// 如果 base 是 account，只获取该账户的分期；否则获取所有账户的分期
-	var installmentPlans []*installment.InstallmentPlan
-	if req.Base == ForecastBaseAccount {
-		plans, err := store.Installments().ListByAccount(ctx, userID, req.AccountID)
-		if err != nil {
-			return CashflowForecastResponse{}, fmt.Errorf("failed to list installments: %w", err)
-		}
-		for i := range plans {
-			installmentPlans = append(installmentPlans, plans[i])
-		}
-	} else {
-		// 获取所有账户的分期计划
-		accounts, err := store.Accounts().ListByUser(ctx, userID)
-		if err != nil {
-			return CashflowForecastResponse{}, fmt.Errorf("failed to list accounts: %w", err)
-		}
-		for _, acc := range accounts {
-			if !acc.Archived {
-				plans, err := store.Installments().ListByAccount(ctx, userID, acc.ID)
-				if err != nil {
-					continue // 忽略错误，继续处理其他账户
-				}
-				for i := range plans {
-					installmentPlans = append(installmentPlans, plans[i])
-				}
-			}
-		}
-	}
-
-	// 6. 获取预算信息（用于日常消费预估）
+	// 5. 获取预算信息（用于日常消费预估）
 	now := time.Now()
-	currentMonth := fmt.Sprintf("%04d-%02d", now.Year(), int(now.Month()))
-	monthlyBudget, _ := budget.GetMonthlyBudget(currentMonth)
-	// 计算本月已消费金额（简化：从交易中统计）
+	var monthlyBudget float64 = 3000.0 // 默认预算
+	budgetData, err := store.Budgets().GetByMonth(ctx, userID, now.Format("2006-01"))
+	if err == nil && budgetData != nil && budgetData.TotalBudget > 0 {
+		monthlyBudget = budgetData.TotalBudget
+	}
+
+	// 计算本月已消费金额
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	monthEnd := monthStart.AddDate(0, 1, 0)
 	monthStartStr := monthStart.Format("2006-01-02")
@@ -102,56 +75,26 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 			}
 		}
 	}
+
 	// 计算本月剩余天数
 	lastDayOfMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.UTC).Day()
 	remainingDaysInMonth := lastDayOfMonth - now.Day()
 	if remainingDaysInMonth <= 0 {
 		remainingDaysInMonth = 1
 	}
-	dailyBudget := (monthlyBudget.TotalBudget - monthExpense) / float64(remainingDaysInMonth)
+	dailyBudget := (monthlyBudget - monthExpense) / float64(remainingDaysInMonth)
 	if dailyBudget < 0 {
 		dailyBudget = 0
 	}
 
-	// 7. 构建日期到流入/流出的映射
+	// 6. 构建日期到流入/流出的映射
 	type dayFlow struct {
 		inflow  float64
 		outflow float64
 	}
 	dayFlows := make(map[string]*dayFlow)
 
-	// 7.1 处理周期收入
-	for _, plan := range recurringPlans {
-		if !plan.Active {
-			continue
-		}
-		projectedDates := projectRecurringIncome(plan, startDate, endDate)
-		for _, date := range projectedDates {
-			dateStr := date.Format("2006-01-02")
-			if dayFlows[dateStr] == nil {
-				dayFlows[dateStr] = &dayFlow{}
-			}
-			// 如果是工资，需要计算税后金额（简化：直接使用 amount）
-			dayFlows[dateStr].inflow += plan.Amount
-		}
-	}
-
-	// 7.2 处理分期还款
-	for _, plan := range installmentPlans {
-		if plan.Status != installment.InstallmentStatusActive {
-			continue
-		}
-		schedule := calculateInstallmentSchedule(plan, startDate, endDate)
-		for _, item := range schedule {
-			dateStr := item.DueDate
-			if dayFlows[dateStr] == nil {
-				dayFlows[dateStr] = &dayFlow{}
-			}
-			dayFlows[dateStr].outflow += item.Total
-		}
-	}
-
-	// 7.3 处理日常消费预估（在整个预测期内按每天均摊）
+	// 6.1 处理日常消费预估（在整个预测期内按每天均摊）
 	current := startDate
 	for current.Before(endDate) {
 		dateStr := current.Format("2006-01-02")
@@ -162,7 +105,7 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 		current = current.AddDate(0, 0, 1)
 	}
 
-	// 8. 逐日累积计算
+	// 7. 逐日累积计算
 	var points []DailyForecastPoint
 	currentBalance := startingBalance
 	current = startDate
@@ -201,7 +144,7 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 		current = current.AddDate(0, 0, 1)
 	}
 
-	// 9. 确定整体状态
+	// 8. 确定整体状态
 	var status ForecastStatus
 	if len(dangerDates) > 0 {
 		status = ForecastStatusDanger
@@ -224,22 +167,199 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 	}, nil
 }
 
-// projectRecurringIncome 推算周期收入在未来日期范围内的收入日期
-func projectRecurringIncome(plan *recurringincome.RecurringIncomePlan, startDate, endDate time.Time) []time.Time {
-	var dates []time.Time
-	nextDue, err := time.Parse("2006-01-02", plan.NextDueDate)
-	if err != nil {
-		return dates
+// BuildForecastWithDB 构建现金流预测（使用db查询周期收入和分期）
+func BuildForecastWithDB(ctx context.Context, store repository.Store, db *gorm.DB, userID string, req CashflowForecastRequest) (CashflowForecastResponse, error) {
+	// 1. 计算起始余额
+	var startingBalance float64
+	if req.Base == ForecastBaseTotalAssets {
+		accounts, err := store.Accounts().ListByUser(ctx, userID)
+		if err != nil {
+			return CashflowForecastResponse{}, fmt.Errorf("failed to list accounts: %w", err)
+		}
+		for _, acc := range accounts {
+			if !acc.Archived {
+				startingBalance += acc.Balance
+			}
+		}
+	} else if req.Base == ForecastBaseAccount {
+		if req.AccountID == "" {
+			return CashflowForecastResponse{}, fmt.Errorf("accountId is required when base is account")
+		}
+		acc, err := store.Accounts().GetByID(ctx, userID, req.AccountID)
+		if err != nil {
+			return CashflowForecastResponse{}, fmt.Errorf("failed to get account: %w", err)
+		}
+		startingBalance = acc.Balance
 	}
 
-	current := nextDue
+	// 2. 解析起始日期
+	startDate, err := time.Parse("2006-01-02", req.StartDate)
+	if err != nil {
+		return CashflowForecastResponse{}, fmt.Errorf("invalid startDate: %w", err)
+	}
+
+	// 3. 计算结束日期
+	endDate := startDate.AddDate(0, 0, req.Days)
+
+	// 4. 获取周期收入计划
+	var recurringPlans []models.RecurringIncomePlan
+	if db != nil {
+		db.Where("user_id = ? AND active = ?", userID, true).Find(&recurringPlans)
+	}
+
+	// 5. 获取分期计划
+	var installmentPlans []models.InstallmentPlan
+	if db != nil {
+		db.Where("user_id = ? AND status = ?", userID, "active").Find(&installmentPlans)
+	}
+
+	// 6. 获取预算信息
+	now := time.Now()
+	var monthlyBudget float64 = 3000.0
+	budgetData, err := store.Budgets().GetByMonth(ctx, userID, now.Format("2006-01"))
+	if err == nil && budgetData != nil && budgetData.TotalBudget > 0 {
+		monthlyBudget = budgetData.TotalBudget
+	}
+
+	// 计算本月已消费金额
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	monthEnd := monthStart.AddDate(0, 1, 0)
+	transactions, _ := store.Transactions().ListByUserBetween(ctx, userID, monthStart.Format(time.RFC3339), monthEnd.Format(time.RFC3339))
+	var monthExpense float64
+	for _, tx := range transactions {
+		if tx.Type == ledger.TransactionTypeExpense {
+			monthExpense += tx.Amount
+		}
+	}
+
+	lastDayOfMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.UTC).Day()
+	remainingDaysInMonth := lastDayOfMonth - now.Day()
+	if remainingDaysInMonth <= 0 {
+		remainingDaysInMonth = 1
+	}
+	dailyBudget := (monthlyBudget - monthExpense) / float64(remainingDaysInMonth)
+	if dailyBudget < 0 {
+		dailyBudget = 0
+	}
+
+	// 7. 构建日期到流入/流出的映射
+	type dayFlow struct {
+		inflow  float64
+		outflow float64
+	}
+	dayFlows := make(map[string]*dayFlow)
+
+	// 7.1 处理周期收入
+	for _, plan := range recurringPlans {
+		if !plan.Active {
+			continue
+		}
+		projectedDates := projectRecurringIncomeFromDB(&plan, startDate, endDate)
+		for _, date := range projectedDates {
+			dateStr := date.Format("2006-01-02")
+			if dayFlows[dateStr] == nil {
+				dayFlows[dateStr] = &dayFlow{}
+			}
+			dayFlows[dateStr].inflow += plan.Amount
+		}
+	}
+
+	// 7.2 处理分期还款
+	for _, plan := range installmentPlans {
+		if plan.Status != "active" {
+			continue
+		}
+		schedule := calculateInstallmentScheduleFromDB(&plan, startDate, endDate)
+		for _, item := range schedule {
+			dateStr := item.DueDate
+			if dayFlows[dateStr] == nil {
+				dayFlows[dateStr] = &dayFlow{}
+			}
+			dayFlows[dateStr].outflow += item.Total
+		}
+	}
+
+	// 7.3 处理日常消费预估
+	current := startDate
+	for current.Before(endDate) {
+		dateStr := current.Format("2006-01-02")
+		if dayFlows[dateStr] == nil {
+			dayFlows[dateStr] = &dayFlow{}
+		}
+		dayFlows[dateStr].outflow += dailyBudget
+		current = current.AddDate(0, 0, 1)
+	}
+
+	// 8. 逐日累积计算
+	var points []DailyForecastPoint
+	currentBalance := startingBalance
+	current = startDate
+	var dangerDates []string
+	var warningDates []string
+
+	for current.Before(endDate) {
+		dateStr := current.Format("2006-01-02")
+		flow := dayFlows[dateStr]
+		if flow == nil {
+			flow = &dayFlow{}
+		}
+
+		openingBalance := currentBalance
+		inflow := flow.inflow
+		outflow := flow.outflow
+		closingBalance := openingBalance + inflow - outflow
+
+		points = append(points, DailyForecastPoint{
+			Date:           dateStr,
+			OpeningBalance: openingBalance,
+			Inflow:         inflow,
+			Outflow:        outflow,
+			ClosingBalance: closingBalance,
+		})
+
+		if closingBalance < 0 {
+			dangerDates = append(dangerDates, dateStr)
+		} else if closingBalance < req.SafeAmount {
+			warningDates = append(warningDates, dateStr)
+		}
+
+		currentBalance = closingBalance
+		current = current.AddDate(0, 0, 1)
+	}
+
+	var status ForecastStatus
+	if len(dangerDates) > 0 {
+		status = ForecastStatusDanger
+	} else if len(warningDates) > 0 {
+		status = ForecastStatusWarning
+	} else {
+		status = ForecastStatusSafe
+	}
+
+	return CashflowForecastResponse{
+		StartDate:    req.StartDate,
+		EndDate:      endDate.Format("2006-01-02"),
+		Base:         req.Base,
+		AccountID:    req.AccountID,
+		SafeAmount:   req.SafeAmount,
+		Points:       points,
+		Status:       status,
+		DangerDates:  dangerDates,
+		WarningDates: warningDates,
+	}, nil
+}
+
+// projectRecurringIncomeFromDB 推算周期收入在未来日期范围内的收入日期
+func projectRecurringIncomeFromDB(plan *models.RecurringIncomePlan, startDate, endDate time.Time) []time.Time {
+	var dates []time.Time
+	current := plan.NextDueDate
+
 	for current.Before(endDate) || current.Equal(endDate) {
 		if current.After(startDate) || current.Equal(startDate) {
 			dates = append(dates, current)
 		}
 
-		// 计算下一次日期
-		switch plan.Frequency {
+		switch recurringincome.RecurringIncomeFrequency(plan.Frequency) {
 		case recurringincome.FrequencyMonthly:
 			current = current.AddDate(0, 1, 0)
 		case recurringincome.FrequencyBimonthly:
@@ -253,21 +373,21 @@ func projectRecurringIncome(plan *recurringincome.RecurringIncomePlan, startDate
 		case recurringincome.FrequencyYearly:
 			current = current.AddDate(1, 0, 0)
 		default:
-			return dates // 未知频率，停止
+			return dates
 		}
 	}
 
 	return dates
 }
 
-// calculateInstallmentSchedule 计算分期计划在指定日期范围内的还款计划
-func calculateInstallmentSchedule(plan *installment.InstallmentPlan, startDate, endDate time.Time) []installment.InstallmentPreviewItem {
+// calculateInstallmentScheduleFromDB 计算分期计划在指定日期范围内的还款计划
+func calculateInstallmentScheduleFromDB(plan *models.InstallmentPlan, startDate, endDate time.Time) []installment.InstallmentPreviewItem {
 	req := installment.PreviewInstallmentRequest{
 		Principal:          plan.Principal,
 		TermMonths:         plan.TermMonths,
 		MonthlyRatePercent: plan.MonthlyRate * 100,
-		RepayMethod:        plan.RepayMethod,
-		FirstDueDate:       plan.FirstDueDate,
+		RepayMethod:        installment.InstallmentRepayMethod(plan.RepayMethod),
+		FirstDueDate:       plan.FirstDueDate.Format("2006-01-02"),
 		Currency:           plan.Currency,
 	}
 
