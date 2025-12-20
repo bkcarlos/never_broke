@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 基础样式重置 */
+/* ============================================
+   基础样式重置
+   ============================================ */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -15,6 +17,8 @@ html {
   /* PC端使用细滚动条 */
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;
+  /* 平滑滚动 */
+  scroll-behavior: smooth;
 }
 
 body {
@@ -29,6 +33,37 @@ body {
   height: 100%;
   overflow-x: hidden;
   background-color: #f9fafb;
+}
+
+/* ============================================
+   移动端安全区域适配（刘海屏/打孔屏）
+   ============================================ */
+@supports (padding: env(safe-area-inset-top)) {
+  /* iOS 11.2+ 和 Android Chrome */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+@supports (padding: constant(safe-area-inset-top)) {
+  /* iOS 11.0-11.2 降级支持 */
+  body {
+    padding-top: constant(safe-area-inset-top);
+    padding-bottom: constant(safe-area-inset-bottom);
+    padding-left: constant(safe-area-inset-left);
+    padding-right: constant(safe-area-inset-right);
+  }
+}
+
+/* #app 抵消 body 的 padding */
+#app {
+  margin-top: calc(-1 * env(safe-area-inset-top, 0px));
+  margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  margin-left: calc(-1 * env(safe-area-inset-left, 0px));
+  margin-right: calc(-1 * env(safe-area-inset-right, 0px));
 }
 
 /* PC端自定义滚动条样式 */
@@ -76,20 +111,14 @@ body {
   }
 }
 
-/* 通用页面容器样式 */
+/* ============================================
+   通用组件样式
+   ============================================ */
 @layer components {
-  /* PC端页面容器 - 统一浅色背景 */
+  /* 页面容器 - 只负责最小高度，padding 由 app-main 统一管理 */
   .page-container {
-    min-height: calc(100vh - 70px);
-    padding: 2rem;
-  }
-  
-  /* 移动端页面容器 */
-  @media (max-width: 768px) {
-    .page-container {
-      min-height: calc(100vh - 4rem);
-      padding: 1rem;
-    }
+    min-height: 100%;
+    width: 100%;
   }
   
   .page-content {
@@ -98,25 +127,28 @@ body {
 
   /* 卡片样式 */
   .card {
-    @apply bg-white rounded-2xl shadow-lg p-6 transition-all duration-200;
+    @apply bg-white rounded-2xl shadow-md p-6 transition-all duration-200;
   }
 
   .card:hover {
-    @apply shadow-xl;
+    @apply shadow-lg;
   }
 
   /* 按钮样式 */
   .btn-primary {
-    @apply bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200;
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200;
+    min-height: 44px; /* 移动端触摸友好 */
   }
 
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-6 py-3 rounded-lg transition-all duration-200;
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-6 py-3 rounded-xl transition-all duration-200;
+    min-height: 44px;
   }
 
   /* 输入框样式 */
   .input-primary {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all;
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
+    min-height: 44px;
   }
 
   /* 网格布局容器 */
@@ -126,26 +158,44 @@ body {
   }
 
   /* PC端特定布局 */
-  @media (min-width: 769px) {
+  @media (min-width: 1024px) {
     .page-content-wrapper {
-      @apply max-w-7xl mx-auto;
+      @apply max-w-8xl mx-auto;
     }
 
     .card-grid {
-      @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+      @apply grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6;
     }
   }
 
   /* 移动端特定布局 */
-  @media (max-width: 768px) {
+  @media (max-width: 767px) {
+    .page-container {
+      width: 100%;
+    }
+    
     .card-grid {
       @apply space-y-4;
     }
   }
+
+  /* 平板适配 */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .page-container {
+      width: 100%;
+    }
+    
+    .card-grid {
+      @apply grid grid-cols-2 gap-4;
+    }
+  }
 }
 
-/* 响应式文字大小 */
+/* ============================================
+   响应式工具类
+   ============================================ */
 @layer utilities {
+  /* 响应式文字大小 */
   .text-responsive-xl {
     @apply text-xl;
   }
@@ -158,6 +208,22 @@ body {
     @apply text-3xl;
   }
 
+  /* 平板 */
+  @media (min-width: 768px) {
+    .text-responsive-xl {
+      @apply text-xl;
+    }
+
+    .text-responsive-2xl {
+      @apply text-2xl;
+    }
+
+    .text-responsive-3xl {
+      @apply text-3xl;
+    }
+  }
+
+  /* 桌面端 */
   @media (min-width: 1024px) {
     .text-responsive-xl {
       @apply text-2xl;
@@ -172,6 +238,7 @@ body {
     }
   }
 
+  /* 2K显示器 */
   @media (min-width: 1920px) {
     .text-responsive-xl {
       @apply text-2xl;
@@ -185,9 +252,64 @@ body {
       @apply text-5xl;
     }
   }
+
+  /* 4K显示器 */
+  @media (min-width: 2560px) {
+    .text-responsive-xl {
+      font-size: 1.75rem;
+      line-height: 2.25rem;
+    }
+
+    .text-responsive-2xl {
+      font-size: 2.5rem;
+      line-height: 3rem;
+    }
+
+    .text-responsive-3xl {
+      font-size: 3.5rem;
+      line-height: 1;
+    }
+  }
+
+  /* 移动端触摸友好 */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* 禁用移动端双击缩放 */
+  .no-touch-zoom {
+    touch-action: manipulation;
+  }
+
+  /* 安全区域边距工具类 */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+
+  .safe-area {
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+  }
 }
 
-/* 动画效果 */
+/* ============================================
+   动画效果
+   ============================================ */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -203,8 +325,61 @@ body {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* 平滑滚动 */
-html {
-  scroll-behavior: smooth;
+/* ============================================
+   性能优化
+   ============================================ */
+/* 硬件加速 */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 固定定位元素优化 */
+.fixed,
+[class*="fixed"] {
+  transform: translateZ(0);
+}
+
+/* ============================================
+   移动端特定优化
+   ============================================ */
+@media (max-width: 767px) {
+  /* 移动端隐藏滚动条 */
+  html,
+  body,
+  #app,
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #app::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 移动端固定定位元素必须考虑安全区域 */
+  .fixed-top {
+    top: 0;
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  .fixed-bottom {
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* 禁用文本选择（可选） */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* 禁用长按菜单（可选） */
+  .no-context-menu {
+    -webkit-touch-callout: none;
+  }
 }
 

@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-content px-4">
+    <div class="page-content">
     <!-- 月份选择 -->
     <div class="month-selector bg-white rounded-lg shadow p-4 mb-4">
       <div class="flex items-center justify-between">

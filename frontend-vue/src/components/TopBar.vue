@@ -97,12 +97,11 @@ function toggleShowAmount() {
 .topbar {
   height: 70px;
   border-bottom: 1px solid #e5e7eb;
-  position: fixed;
+  background: white;
+  position: sticky;
   top: 0;
-  right: 0;
-  left: 260px;
-  z-index: 100;
-  transition: left 0.3s;
+  z-index: 90;
+  transition: all 0.3s ease;
 }
 
 .topbar-content {
@@ -173,34 +172,99 @@ function toggleShowAmount() {
   border: 2px solid white;
 }
 
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .topbar {
-    left: 70px;
-  }
-}
+/* ============================================
+   响应式设计
+   ============================================ */
 
-@media (max-width: 768px) {
+/* 平板 (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
   .topbar {
-    left: 0;
-    height: 60px;
+    height: 64px;
   }
 
   .topbar-content {
-    padding: 0 1rem;
+    padding: 0 1.5rem;
   }
 
   .page-title {
-    font-size: 1.25rem;
+    font-size: 1.375rem;
   }
 
   .page-subtitle {
-    display: none;
+    font-size: 0.8125rem;
   }
 
   .icon-btn {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* 桌面端 (1024px - 1919px) */
+@media (min-width: 1024px) and (max-width: 1919px) {
+  .topbar {
+    height: 70px;
+  }
+}
+
+/* 2K显示器 (1920px - 2559px) */
+@media (min-width: 1920px) and (max-width: 2559px) {
+  .topbar {
+    height: 80px;
+  }
+
+  .topbar-content {
+    padding: 0 3rem;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* 4K显示器 (≥ 2560px) */
+@media (min-width: 2560px) {
+  .topbar {
+    height: 90px;
+  }
+
+  .topbar-content {
+    padding: 0 4rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+  }
+
+  .page-subtitle {
+    font-size: 1.125rem;
+  }
+
+  .icon-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .notification-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 0.6875rem;
+  }
+}
+
+/* 移动端 (< 768px) - TopBar 在移动端由 App.vue 中的 mobile-topbar 替代 */
+@media (max-width: 767px) {
+  .topbar {
+    display: none;
   }
 }
 </style>

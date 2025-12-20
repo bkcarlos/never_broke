@@ -291,7 +291,7 @@ onMounted(() => {
 }
 
 .page-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  /* 移除 max-width 限制，与其他页面保持一致 */
+  width: 100%;
 }
 </style>

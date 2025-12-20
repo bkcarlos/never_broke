@@ -145,6 +145,7 @@ onMounted(() => {
 <style scoped>
 .detail-page {
   width: 100%;
+  /* 确保没有额外的 margin 或 padding */
 }
 
 /* 日期选择器 */
@@ -343,24 +344,29 @@ onMounted(() => {
   color: #9ca3af;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
+/* ============================================
+   响应式设计
+   ============================================ */
+
+/* 小手机 (< 640px) */
+@media (max-width: 639px) {
   .date-selector-card {
     padding: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .btn-text {
-    display: none;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .nav-btn {
-    padding: 0.625rem 1rem;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-text {
+    display: inline;
   }
 
   .date-input {
-    flex: 1;
-    min-width: 150px;
+    width: 100%;
   }
 
   .stats-grid {
@@ -379,6 +385,7 @@ onMounted(() => {
   .transaction-content {
     flex-direction: column;
     align-items: flex-start;
+    gap: 0.75rem;
   }
 
   .transaction-amount {
@@ -390,7 +397,81 @@ onMounted(() => {
   }
 }
 
-@media (min-width: 1280px) {
+/* 大手机 (640px - 767px) */
+@media (min-width: 640px) and (max-width: 767px) {
+  .date-selector-card {
+    padding: 1rem;
+  }
+
+  .btn-text {
+    display: none;
+  }
+
+  .nav-btn {
+    padding: 0.75rem 1.25rem;
+  }
+
+  .date-input {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .stat-amount {
+    font-size: 1.5rem;
+  }
+
+  .transaction-content {
+    flex-direction: row;
+  }
+
+  .amount-value {
+    font-size: 1.375rem;
+  }
+}
+
+/* 平板 (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .date-selector-card {
+    padding: 1.25rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .stat-amount {
+    font-size: 1.75rem;
+  }
+
+  .amount-value {
+    font-size: 1.5rem;
+  }
+}
+
+/* 标准桌面 (1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .stat-amount {
+    font-size: 1.875rem;
+  }
+
+  .amount-value {
+    font-size: 1.625rem;
+  }
+}
+
+/* 大屏桌面 (1280px - 1919px) */
+@media (min-width: 1280px) and (max-width: 1919px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 2rem;
@@ -405,21 +486,128 @@ onMounted(() => {
   }
 }
 
-@media (min-width: 1920px) {
+/* 2K显示器 (1920px - 2559px) */
+@media (min-width: 1920px) and (max-width: 2559px) {
   .date-selector-card {
     padding: 2rem;
+  }
+
+  .nav-btn {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .date-input {
+    padding: 1rem 1.5rem;
+    font-size: 1.125rem;
   }
 
   .stats-card {
     padding: 2rem;
   }
 
-  .transaction-card {
-    padding: 2rem;
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .stat-label {
+    font-size: 1rem;
   }
 
   .stat-amount {
     font-size: 2.25rem;
+  }
+
+  .transaction-card {
+    padding: 2rem;
+  }
+
+  .transaction-category {
+    font-size: 1.125rem;
+  }
+
+  .transaction-time {
+    font-size: 0.875rem;
+  }
+
+  .transaction-remark {
+    font-size: 1rem;
+  }
+
+  .amount-value {
+    font-size: 1.875rem;
+  }
+}
+
+/* 4K显示器 (≥ 2560px) */
+@media (min-width: 2560px) {
+  .date-selector-card {
+    padding: 2.5rem;
+    border-radius: 1.5rem;
+  }
+
+  .nav-btn {
+    padding: 1.25rem 2rem;
+    font-size: 1.125rem;
+  }
+
+  .date-input {
+    padding: 1.25rem 2rem;
+    font-size: 1.25rem;
+  }
+
+  .stats-card {
+    padding: 2.5rem;
+    border-radius: 1.5rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.5rem;
+  }
+
+  .stat-box {
+    padding: 1.75rem;
+  }
+
+  .stat-label {
+    font-size: 1.125rem;
+  }
+
+  .stat-amount {
+    font-size: 2.5rem;
+  }
+
+  .transaction-card {
+    padding: 2.5rem;
+    border-radius: 1.5rem;
+  }
+
+  .transaction-category {
+    font-size: 1.25rem;
+  }
+
+  .transaction-time {
+    font-size: 1rem;
+    padding: 0.375rem 1rem;
+  }
+
+  .transaction-remark {
+    font-size: 1.125rem;
+  }
+
+  .amount-value {
+    font-size: 2rem;
+  }
+
+  .empty-icon {
+    width: 100px;
+    height: 100px;
+  }
+
+  .empty-text {
+    font-size: 1.25rem;
   }
 }
 

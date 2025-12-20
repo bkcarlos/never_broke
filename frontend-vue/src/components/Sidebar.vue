@@ -58,9 +58,11 @@ import { useRoute, useRouter } from 'vue-router'
 import Icon from './Icon.vue'
 import { t } from '@/i18n'
 import type { RadialAction } from '@/types/actions'
+import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const route = useRoute()
 const router = useRouter()
+const { isTablet, isDesktop } = useBreakpoint()
 
 const navItems = [
   { path: '/', icon: 'home', label: t('nav.home') },
@@ -117,13 +119,14 @@ function handleActionClick(action: RadialAction) {
   width: 260px;
   height: 100vh;
   border-right: 1px solid #e5e7eb;
+  background: white;
   color: #374151;
   display: flex;
   flex-direction: column;
-  position: fixed;
-  left: 0;
+  position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 100;
+  transition: width 0.3s ease;
 }
 
 .logo-section {
@@ -275,10 +278,14 @@ function handleActionClick(action: RadialAction) {
   white-space: nowrap;
 }
 
-/* 响应式设计 */
-@media (max-width: 1024px) {
+/* ============================================
+   响应式设计
+   ============================================ */
+
+/* 平板竖屏 (768px - 1023px) - 精简版侧边栏 */
+@media (min-width: 768px) and (max-width: 1023px) {
   .sidebar {
-    width: 70px;
+    width: 80px;
   }
 
   .logo-text,
@@ -303,10 +310,104 @@ function handleActionClick(action: RadialAction) {
 
   .nav-item:hover {
     transform: translateX(0);
+    transform: scale(1.05);
+  }
+
+  .quick-actions {
+    padding: 0.5rem;
+  }
+
+  .action-btn {
+    padding: 0.75rem;
   }
 }
 
-@media (max-width: 768px) {
+/* 桌面端 (1024px - 1919px) - 完整侧边栏 */
+@media (min-width: 1024px) and (max-width: 1919px) {
+  .sidebar {
+    width: 260px;
+  }
+}
+
+/* 2K显示器 (1920px - 2559px) - 稍宽侧边栏 */
+@media (min-width: 1920px) and (max-width: 2559px) {
+  .sidebar {
+    width: 280px;
+  }
+
+  .logo-section {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .logo-text {
+    font-size: 1.375rem;
+  }
+
+  .nav-menu {
+    padding: 2rem 1rem;
+  }
+
+  .nav-item {
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+  }
+}
+
+/* 4K显示器 (≥ 2560px) - 加宽侧边栏 */
+@media (min-width: 2560px) {
+  .sidebar {
+    width: 320px;
+  }
+
+  .logo-section {
+    padding: 3rem 2rem;
+  }
+
+  .logo-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .logo-text {
+    font-size: 1.5rem;
+  }
+
+  .nav-menu {
+    padding: 2.5rem 1.5rem;
+    gap: 0.75rem;
+  }
+
+  .nav-item {
+    padding: 1.25rem 1.5rem;
+    font-size: 1.125rem;
+  }
+
+  .section-title {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .action-btn {
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+  }
+
+  .user-name {
+    font-size: 1rem;
+  }
+
+  .user-email {
+    font-size: 0.875rem;
+  }
+}
+
+/* 移动端 (< 768px) - 隐藏侧边栏 */
+@media (max-width: 767px) {
   .sidebar {
     display: none;
   }

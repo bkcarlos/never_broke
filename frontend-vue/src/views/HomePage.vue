@@ -1,5 +1,5 @@
 <template>
-  <div class="home-page">
+  <div class="home-page w-full">
     <!-- PC端欢迎头部 -->
     <div class="welcome-header desktop-only">
       <div>
@@ -534,6 +534,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .home-page {
   width: 100%;
+  /* 确保没有额外的 margin 或 padding */
 }
 
 /* PC端欢迎头部 */
@@ -788,10 +789,37 @@ onBeforeUnmount(() => {
   color: #9ca3af;
 }
 
-/* 响应式设计 */
-@media (max-width: 1280px) {
+/* ============================================
+   响应式设计
+   ============================================ */
+
+/* 小手机 (< 640px) */
+@media (max-width: 639px) {
   .stats-row {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .spending-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .chart-container {
+    max-width: 280px;
+    margin: 0 auto;
+  }
+
+  .asset-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 大手机/小平板 (640px - 767px) */
+@media (min-width: 640px) and (max-width: 767px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
   }
   
   .spending-content {
@@ -799,11 +827,180 @@ onBeforeUnmount(() => {
   }
 
   .chart-container {
-    margin-bottom: 1rem;
+    max-width: 320px;
+    margin: 0 auto 1.5rem;
   }
 }
 
-@media (max-width: 768px) {
+/* 平板 (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  /* 让第三个卡片跨两列 */
+  .stats-row > .card:nth-child(3) {
+    grid-column: span 2;
+  }
+  
+  .spending-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+}
+
+/* 小笔记本 (1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .spending-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+}
+
+/* 标准桌面 (1280px - 1919px) */
+@media (min-width: 1280px) and (max-width: 1919px) {
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+  
+  .spending-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+  }
+
+  .pie-chart {
+    max-width: 320px;
+  }
+}
+
+/* 2K显示器 (1920px - 2559px) */
+@media (min-width: 1920px) and (max-width: 2559px) {
+  .welcome-title h1 {
+    font-size: 2.5rem;
+  }
+
+  .card {
+    padding: 2rem;
+  }
+
+  .card-title {
+    font-size: 1.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .cycle-amount {
+    font-size: 2.5rem;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
+  }
+  
+  .spending-content {
+    grid-template-columns: 1fr 1.2fr;
+    gap: 3rem;
+  }
+
+  .pie-chart {
+    max-width: 360px;
+  }
+
+  .category-item {
+    padding: 1rem;
+  }
+
+  .category-name {
+    font-size: 1rem;
+  }
+
+  .category-amount {
+    font-size: 1rem;
+  }
+}
+
+/* 4K显示器 (≥ 2560px) */
+@media (min-width: 2560px) {
+  .welcome-title h1 {
+    font-size: 3rem;
+  }
+
+  .badge {
+    padding: 0.625rem 1.5rem;
+    font-size: 0.875rem;
+  }
+
+  .card {
+    padding: 2.5rem;
+    border-radius: 1.5rem;
+  }
+
+  .card-title {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 1rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+  }
+
+  .cycle-amount {
+    font-size: 3rem;
+  }
+
+  .cycle-progress {
+    width: 100px;
+    height: 100px;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+  }
+  
+  .spending-content {
+    grid-template-columns: 1fr 1.2fr;
+    gap: 4rem;
+  }
+
+  .pie-chart {
+    max-width: 400px;
+  }
+
+  .category-item {
+    padding: 1.25rem;
+  }
+
+  .category-name {
+    font-size: 1.125rem;
+  }
+
+  .category-amount {
+    font-size: 1.125rem;
+  }
+
+  .category-dot {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* 移动端 (< 768px) */
+@media (max-width: 767px) {
   .desktop-only {
     display: none !important;
   }
@@ -820,10 +1017,6 @@ onBeforeUnmount(() => {
     padding: 1rem;
   }
 
-  .asset-stats {
-    gap: 0.75rem;
-  }
-
   .stat-value {
     font-size: 1rem;
   }
@@ -838,31 +1031,14 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (min-width: 769px) {
+/* 桌面端 (≥ 768px) */
+@media (min-width: 768px) {
   .mobile-only {
     display: none !important;
   }
 
   .desktop-only {
     display: block !important;
-  }
-}
-
-@media (min-width: 1920px) {
-  .welcome-title h1 {
-    font-size: 2.5rem;
-  }
-
-  .card-title {
-    font-size: 1.25rem;
-  }
-
-  .stat-value {
-    font-size: 1.5rem;
-  }
-
-  .cycle-amount {
-    font-size: 2.5rem;
   }
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <!-- 顶部标题栏 -->
-    <div class="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between">
+    <div class="bg-white border-b border-gray-200 py-4 flex items-center justify-between">
       <h1 class="text-xl font-bold text-gray-900">{{ t('profile.title') }}</h1>
       <button
         @click="handleLogout"
@@ -11,7 +11,7 @@
       </button>
     </div>
 
-    <div class="page-content px-4">
+    <div class="page-content">
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
       <p class="text-gray-500">{{ t('common.loading') }}</p>

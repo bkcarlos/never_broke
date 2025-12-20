@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-content px-4">
+    <div class="page-content max-w-3xl mx-auto">
       <!-- 头部：模式切换按钮 -->
       <div class="mb-6">
         <div class="flex gap-2 mb-4">
