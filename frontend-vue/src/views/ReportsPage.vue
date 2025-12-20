@@ -152,11 +152,13 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { fetchMonthlySummary } from '@/api/reports'
 import { t, formatAmount } from '@/i18n'
 import type { SummaryReport } from '@/types'
+import { useUserSettingsStore } from '@/stores/userSettings'
 
+const userSettingsStore = useUserSettingsStore()
 const loading = ref(false)
 const error = ref<string | null>(null)
 const report = ref<SummaryReport | null>(null)
-const showAmount = ref(true)
+const showAmount = computed(() => userSettingsStore.showAmount)
 const chartCanvas = ref<HTMLCanvasElement | null>(null)
 const pieCanvas = ref<HTMLCanvasElement | null>(null)
 

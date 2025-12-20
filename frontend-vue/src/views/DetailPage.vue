@@ -103,15 +103,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getDailyTransactions } from '@/api/ledger'
 import { t, formatAmount } from '@/i18n'
 import type { DailyTransactionResponse } from '@/types'
+import { useUserSettingsStore } from '@/stores/userSettings'
 
+const userSettingsStore = useUserSettingsStore()
 const loading = ref(false)
 const error = ref<string | null>(null)
 const data = ref<DailyTransactionResponse | null>(null)
-const showAmount = ref(true)
+const showAmount = computed(() => userSettingsStore.showAmount)
 
 // 默认今天
 const today = new Date().toISOString().split('T')[0]

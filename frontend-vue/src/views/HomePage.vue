@@ -12,11 +12,11 @@
         </div>
       </div>
       <button 
-        @click="toggleShowAmount" 
+        @click="userSettingsStore.toggleShowAmount" 
         class="toggle-btn"
-        :title="showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
+        :title="userSettingsStore.showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
       >
-        <Icon :name="showAmount ? 'eye' : 'eye-close'" size="20px" />
+        <Icon :name="userSettingsStore.showAmount ? 'eye' : 'eye-close'" size="20px" />
       </button>
     </div>
 
@@ -32,11 +32,11 @@
         </div>
       </div>
       <button 
-        @click="toggleShowAmount" 
+        @click="userSettingsStore.toggleShowAmount" 
         class="absolute top-6 right-4 hover:scale-110 transition-transform"
-        :title="showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
+        :title="userSettingsStore.showAmount ? t('profile.hideAmount') : t('profile.showAmount')"
       >
-        <Icon :name="showAmount ? 'eye' : 'eye-close'" size="24px" class="text-white" />
+        <Icon :name="userSettingsStore.showAmount ? 'eye' : 'eye-close'" size="24px" class="text-white" />
       </button>
     </div>
 
@@ -231,13 +231,12 @@ import type { HomeOverview } from '@/types'
 import { getHomeOverview } from '@/api/home'
 import { t } from '@/i18n'
 import Icon from '@/components/Icon.vue'
+import { useUserSettingsStore } from '@/stores/userSettings'
 
+const userSettingsStore = useUserSettingsStore()
 const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
 const data = ref<HomeOverview | null>(null)
-
-// 金额显隐，从 localStorage 读取
-const showAmount = ref<boolean>(true)
 
 // 扇形图相关
 const pieChartRef = ref<HTMLElement | null>(null)
@@ -300,14 +299,8 @@ const daysInMonth = computed(() => {
 
 // 格式化金额
 function formatMoney(value: number): string {
-  if (!showAmount.value) return '***'
+  if (!userSettingsStore.showAmount) return '***'
   return value.toFixed(2)
-}
-
-// 切换金额显隐
-function toggleShowAmount() {
-  showAmount.value = !showAmount.value
-  localStorage.setItem('showAmount', String(showAmount.value))
 }
 
 function getCategoryDotColor(index: number): string {
@@ -504,11 +497,8 @@ async function loadData() {
 
 // 初始化
 onMounted(() => {
-  // 读取金额显隐设置
-  const stored = localStorage.getItem('showAmount')
-  if (stored !== null) {
-    showAmount.value = stored === 'true'
-  }
+  // 初始化用户设置
+  userSettingsStore.initFromLocalStorage()
   
   // 加载数据
   loadData()

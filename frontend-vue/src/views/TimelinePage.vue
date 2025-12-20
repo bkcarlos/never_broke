@@ -157,11 +157,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { fetchDailySummary, fetchDailyDetail } from '@/api/timeline'
-import { t, formatAmount } from '@/i18n'
+import { t, formatAmount as baseFormatAmount } from '@/i18n'
 import Icon from '@/components/Icon.vue'
 import type { DailyTimeline, TimelineMode, Transaction } from '@/types'
+import { useUserSettingsStore } from '@/stores/userSettings'
 
+const userSettingsStore = useUserSettingsStore()
 const mode = ref<TimelineMode>('history')
+
+// 包装 formatAmount 以使用 store 的 showAmount
+const formatAmount = (amount: number) => baseFormatAmount(amount, userSettingsStore.showAmount)
 const currentYear = ref(new Date().getFullYear())
 const currentMonth = ref(new Date().getMonth() + 1)
 const timeline = ref<DailyTimeline | null>(null)

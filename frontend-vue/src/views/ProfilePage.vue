@@ -16,7 +16,7 @@
             <button
               @click="handleLocaleSelect('zh-CN')"
               class="px-4 py-2 rounded-lg font-medium transition-all duration-200"
-              :class="currentLocale === 'zh-CN' 
+              :class="userSettingsStore.locale === 'zh-CN' 
                 ? 'bg-blue-500 text-white shadow-md' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
             >
@@ -25,7 +25,7 @@
             <button
               @click="handleLocaleSelect('en-US')"
               class="px-4 py-2 rounded-lg font-medium transition-all duration-200"
-              :class="currentLocale === 'en-US' 
+              :class="userSettingsStore.locale === 'en-US' 
                 ? 'bg-blue-500 text-white shadow-md' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
             >
@@ -39,16 +39,16 @@
       <div class="setting-item bg-white rounded-lg shadow p-4">
         <div class="flex items-center justify-between">
           <span class="font-semibold">
-            {{ settings.showAmount ? t('profile.showAmount') : t('profile.hideAmount') }}
+            {{ userSettingsStore.showAmount ? t('profile.showAmount') : t('profile.hideAmount') }}
           </span>
           <button 
             @click="toggleShowAmount"
             class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-            :class="settings.showAmount ? 'bg-blue-500' : 'bg-gray-300'"
+            :class="userSettingsStore.showAmount ? 'bg-blue-500' : 'bg-gray-300'"
           >
             <span 
               class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-              :class="settings.showAmount ? 'translate-x-6' : 'translate-x-1'"
+              :class="userSettingsStore.showAmount ? 'translate-x-6' : 'translate-x-1'"
             />
           </button>
         </div>
@@ -152,78 +152,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getUserSettings, updateUserSettings } from '@/api/user'
 import { logout } from '@/api/auth'
-import { t, locale, setLocale } from '@/i18n'
-import type { UserSettings, Locale } from '@/types'
+import { t } from '@/i18n'
+import type { Locale } from '@/types'
 import Icon from '@/components/Icon.vue'
+import { useUserSettingsStore } from '@/stores/userSettings'
 
 const router = useRouter()
+const userSettingsStore = useUserSettingsStore()
 
-const loading = ref(false)
-const error = ref<string | null>(null)
-
-const settings = ref<UserSettings>({
-  locale: 'zh-CN',
-  showAmount: true
-})
-
-const originalSettings = ref<UserSettings>({
-  locale: 'zh-CN',
-  showAmount: true
-})
-
-const currentLocale = ref<Locale>(locale.value)
-
-async function loadSettings() {
-  loading.value = true
-  error.value = null
-  
-  try {
-    const data = await getUserSettings()
-    settings.value = { ...data }
-    originalSettings.value = { ...data }
-    currentLocale.value = data.locale
-    setLocale(data.locale)
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '加载设置失败'
-  } finally {
-    loading.value = false
-  }
-}
+const error = computed(() => userSettingsStore.error)
+const loading = computed(() => userSettingsStore.loading)
 
 async function handleLocaleSelect(locale: Locale) {
-  currentLocale.value = locale
-  settings.value.locale = locale
-  setLocale(locale)
-  
-  // 立即保存语言设置
-  try {
-    const updated = await updateUserSettings({
-      locale: locale,
-      showAmount: settings.value.showAmount
-    })
-    originalSettings.value = { ...updated }
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '保存语言设置失败'
-  }
+  await userSettingsStore.updateLocale(locale)
 }
 
 async function toggleShowAmount() {
-  settings.value.showAmount = !settings.value.showAmount
-  
-  // 立即保存金额显隐设置
-  try {
-    const updated = await updateUserSettings({
-      locale: settings.value.locale,
-      showAmount: settings.value.showAmount
-    })
-    originalSettings.value = { ...updated }
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '保存金额显示设置失败'
-  }
+  await userSettingsStore.toggleShowAmount()
 }
 
 function handleAddAccount() {
@@ -261,7 +209,7 @@ async function handleLogout() {
 }
 
 onMounted(() => {
-  loadSettings()
+  userSettingsStore.loadSettings()
 })
 </script>
 
