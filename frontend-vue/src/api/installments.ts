@@ -1,10 +1,23 @@
-import { post } from './http'
+import { get, post } from './http'
 import type {
   PreviewInstallmentPayload,
   InstallmentPreviewResult,
   CreateExpenseInstallmentPayload,
-  CreateExpenseInstallmentResult
+  CreateExpenseInstallmentResult,
+  InstallmentPlan
 } from '@/types'
+
+/**
+ * 获取分期计划列表
+ */
+export async function listInstallmentPlans(status?: string): Promise<InstallmentPlan[]> {
+  try {
+    const url = status ? `/installments?status=${status}` : '/installments'
+    return await get<InstallmentPlan[]>(url)
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : 'Failed to fetch installment plans')
+  }
+}
 
 /**
  * 预览分期

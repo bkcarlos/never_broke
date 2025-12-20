@@ -147,6 +147,7 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 		group.POST("/income-plans", incomePlanHandler.CreateIncomePlanHandler)
 
 		// 分期
+		group.GET("/installments", installmentHandler.ListInstallmentPlansHandler)
 		group.POST("/installments/preview", installmentHandler.PreviewInstallmentHandler)
 		group.POST("/installments/expense", installmentHandler.CreateExpenseInstallmentHandler)
 

@@ -20,6 +20,28 @@ func ListPlansByAccount(accountID string) []InstallmentPlan {
 	return result
 }
 
+// ListAllPlans 列出所有分期计划
+func ListAllPlans() []InstallmentPlan {
+	mu.RLock()
+	defer mu.RUnlock()
+	result := make([]InstallmentPlan, len(plans))
+	copy(result, plans)
+	return result
+}
+
+// ListActivePlans 列出所有活跃的分期计划
+func ListActivePlans() []InstallmentPlan {
+	mu.RLock()
+	defer mu.RUnlock()
+	var result []InstallmentPlan
+	for _, p := range plans {
+		if p.Status == InstallmentStatusActive {
+			result = append(result, p)
+		}
+	}
+	return result
+}
+
 // AddPlan 添加分期计划
 func AddPlan(p InstallmentPlan) InstallmentPlan {
 	mu.Lock()

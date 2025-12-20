@@ -38,6 +38,26 @@ func (h *Handler) PreviewInstallmentHandler(c *gin.Context) {
 	response.OK(c, resp)
 }
 
+// ListInstallmentPlansHandler 列出所有分期计划
+func (h *Handler) ListInstallmentPlansHandler(c *gin.Context) {
+	status := c.Query("status")
+
+	var result []InstallmentPlan
+	if status == "" {
+		result = ListAllPlans()
+	} else {
+		// 根据状态筛选
+		allPlans := ListAllPlans()
+		for _, p := range allPlans {
+			if string(p.Status) == status {
+				result = append(result, p)
+			}
+		}
+	}
+
+	response.OK(c, result)
+}
+
 // CreateExpenseInstallmentHandler 创建支出分期
 func (h *Handler) CreateExpenseInstallmentHandler(c *gin.Context) {
 	var req CreateExpenseInstallmentRequest

@@ -195,6 +195,58 @@
         </div>
       </div>
 
+      <!-- 固定收入卡片（有数据时显示） -->
+      <div v-if="recurringIncomes && recurringIncomes.length > 0" class="card fixed-income-card">
+        <h2 class="card-title">💰 固定收入</h2>
+        <div class="space-y-2">
+          <div 
+            v-for="income in recurringIncomes" 
+            :key="income.id"
+            class="flex justify-between items-center py-3 border-b border-gray-100 last:border-0"
+          >
+            <div class="flex items-center gap-3">
+              <span class="text-base font-medium text-gray-700">{{ getIncomeTypeLabel(income.type) }}</span>
+              <span class="text-xs text-gray-400">{{ getFrequencyLabel(income.frequency) }}</span>
+            </div>
+            <span class="text-base font-semibold text-green-600">
+              ¥{{ formatMoney(income.amount) }}
+            </span>
+          </div>
+          <div class="pt-3 mt-2 border-t-2 border-gray-200 flex justify-between items-center">
+            <span class="text-base font-semibold text-gray-700">月度预计总收入</span>
+            <span class="text-lg font-bold text-green-600">
+              ¥{{ formatMoney(monthlyRecurringIncome) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 固定支出卡片（有数据时显示） -->
+      <div v-if="installmentPlans && installmentPlans.length > 0" class="card fixed-expense-card">
+        <h2 class="card-title">💳 固定支出</h2>
+        <div class="space-y-2">
+          <div 
+            v-for="plan in installmentPlans" 
+            :key="plan.id"
+            class="flex justify-between items-center py-3 border-b border-gray-100 last:border-0"
+          >
+            <div class="flex items-center gap-3">
+              <span class="text-base font-medium text-gray-700">分期 {{ plan.termMonths }}期</span>
+              <span class="text-xs text-gray-400">剩余本金 ¥{{ formatMoney(plan.principal) }}</span>
+            </div>
+            <span class="text-base font-semibold text-orange-600">
+              ¥{{ formatMoney(plan.totalAmount / plan.termMonths) }}/月
+            </span>
+          </div>
+          <div class="pt-3 mt-2 border-t-2 border-gray-200 flex justify-between items-center">
+            <span class="text-base font-semibold text-gray-700">月度还款总额</span>
+            <span class="text-lg font-bold text-orange-600">
+              ¥{{ formatMoney(monthlyInstallmentPayment) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <!-- PC端：第二行消费概览（全宽） -->
       <div class="spending-overview">
         <div class="card spending-card">
@@ -236,8 +288,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
-import type { AssetSummary, TodayStats, MonthOverview, CategoryStat } from '@/types'
+import type { AssetSummary, TodayStats, MonthOverview, CategoryStat, RecurringIncomePlan, InstallmentPlan } from '@/types'
 import { getAssetSummary, getBudgetStats, getMonthOverview, getCategoryStats } from '@/api/home'
+import { listRecurringIncomePlans } from '@/api/recurringIncome'
+import { listInstallmentPlans } from '@/api/installments'
 import { t } from '@/i18n'
 import { useUserSettingsStore } from '@/stores/userSettings'
 
@@ -266,6 +320,8 @@ const monthOverview = ref<MonthOverview>({
   suggestion: ''
 })
 const categoryTop = ref<CategoryStat[]>([])
+const recurringIncomes = ref<RecurringIncomePlan[]>([])
+const installmentPlans = ref<InstallmentPlan[]>([])
 
 // 扇形图相关
 const pieChartRef = ref<HTMLElement | null>(null)
@@ -326,10 +382,75 @@ const daysInMonth = computed(() => {
   return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
 })
 
+// 月度固定收入总计
+const monthlyRecurringIncome = computed(() => {
+  if (!recurringIncomes.value) return 0
+  return recurringIncomes.value.reduce((sum, income) => {
+    if (!income.active) return sum
+    // 根据频率转换为月度金额
+    let monthlyAmount = income.amount
+    switch (income.frequency) {
+      case 'weekly':
+        monthlyAmount = income.amount * 4.33 // 一个月约4.33周
+        break
+      case 'bimonthly':
+        monthlyAmount = income.amount / 2
+        break
+      case 'quarterly':
+        monthlyAmount = income.amount / 3
+        break
+      case 'semiannual':
+        monthlyAmount = income.amount / 6
+        break
+      case 'yearly':
+        monthlyAmount = income.amount / 12
+        break
+      case 'monthly':
+      default:
+        monthlyAmount = income.amount
+        break
+    }
+    return sum + monthlyAmount
+  }, 0)
+})
+
+// 月度分期还款总计
+const monthlyInstallmentPayment = computed(() => {
+  if (!installmentPlans.value) return 0
+  return installmentPlans.value.reduce((sum, plan) => {
+    if (plan.status !== 'active') return sum
+    return sum + (plan.totalAmount / plan.termMonths)
+  }, 0)
+})
+
 // 格式化金额
 function formatMoney(value: number): string {
   if (!userSettingsStore.showAmount) return '***'
   return value.toFixed(2)
+}
+
+// 获取收入类型标签
+function getIncomeTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    salary: '💼 工资',
+    rent: '🏠 房租',
+    side: '💡 副业',
+    other: '📌 其他'
+  }
+  return labels[type] || '📌 其他'
+}
+
+// 获取频率标签
+function getFrequencyLabel(frequency: string): string {
+  const labels: Record<string, string> = {
+    monthly: '每月',
+    bimonthly: '双月',
+    quarterly: '每季度',
+    semiannual: '半年',
+    weekly: '每周',
+    yearly: '每年'
+  }
+  return labels[frequency] || frequency
 }
 
 // 获取状态文本
@@ -527,11 +648,13 @@ async function loadData() {
   
   try {
     // 并行加载所有数据
-    const [assetData, budgetData, monthData, categoryData] = await Promise.all([
+    const [assetData, budgetData, monthData, categoryData, recurringIncomeData, installmentData] = await Promise.all([
       getAssetSummary(),
       getBudgetStats(),
       getMonthOverview(),
-      getCategoryStats()
+      getCategoryStats(),
+      listRecurringIncomePlans().catch(() => []),
+      listInstallmentPlans('active').catch(() => [])
     ])
     
     console.log('✅ 数据加载成功')
@@ -539,11 +662,15 @@ async function loadData() {
     console.log('预算统计:', budgetData)
     console.log('本月概览:', monthData)
     console.log('分类统计:', categoryData)
+    console.log('固定收入:', recurringIncomeData)
+    console.log('分期计划:', installmentData)
     
     assetSummary.value = assetData
     budgetStats.value = budgetData
     monthOverview.value = monthData
     categoryTop.value = categoryData || []  // 如果为 null，设置为空数组
+    recurringIncomes.value = (recurringIncomeData || []).filter(income => income.active)
+    installmentPlans.value = installmentData || []
   } catch (e) {
     console.error('❌ 数据加载失败:', e)
     error.value = e instanceof Error ? e.message : t('common.error')
@@ -643,6 +770,12 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1.5rem;
+}
+
+/* 固定收入和支出卡片 */
+.fixed-income-card,
+.fixed-expense-card {
+  width: 100%;
 }
 
 .spending-overview {
