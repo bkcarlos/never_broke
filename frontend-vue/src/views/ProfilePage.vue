@@ -102,7 +102,7 @@
         </button>
       </div>
 
-      <!-- 薪资控制 -->
+      <!-- 薪资管理 -->
       <div class="setting-item bg-white rounded-lg shadow p-4">
         <button 
           @click="handleSalaryControl"
@@ -111,8 +111,8 @@
           <div class="flex items-center gap-3">
             <Icon name="money" size="24px" class="text-emerald-500" />
             <div class="text-left">
-              <div class="text-sm font-medium text-slate-800">
-                {{ t('me.salary.title', '薪资控制') }}
+              <div class="font-semibold block">
+                {{ t('me.salary.title', '薪资管理') }}
               </div>
               <div class="text-xs text-slate-500">
                 {{ t('me.salary.subtitle', '配置工资方案并预览税后收入') }}

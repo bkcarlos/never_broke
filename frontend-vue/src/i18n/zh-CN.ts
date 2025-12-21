@@ -421,8 +421,8 @@ export default {
   'salary.firstPayInfo': '首次发薪：{date}',
   'salary.frequencyAmount': '{frequency} · ¥{amount}',
 
-  // 薪资控制
-  'me.salary.title': '薪资控制',
+  // 薪资管理
+  'me.salary.title': '薪资管理',
   'me.salary.subtitle': '配置工资方案并预览税后收入',
   'me.salary.currentPlan': '当前工资方案',
   'me.salary.noPlan': '暂未配置工资方案',

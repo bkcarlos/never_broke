@@ -4,7 +4,7 @@
     <header class="px-4 pt-4 pb-3 flex items-center gap-2 bg-white shadow-sm">
       <button class="text-2xl text-slate-600" @click="router.back()">‹</button>
       <h1 class="text-lg font-semibold">
-        {{ t('me.salary.title', '薪资控制') }}
+        {{ t('me.salary.title', '薪资管理') }}
       </h1>
     </header>
 

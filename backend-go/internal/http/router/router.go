@@ -157,7 +157,7 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 		group.GET("/city-social-rates", citySocialRateHandler.ListCitySocialRatesHandler)
 		group.GET("/city-social-rates/:cityCode", citySocialRateHandler.GetCitySocialRateDetailHandler)
 
-		// 薪资控制
+		// 薪资管理
 		group.GET("/me/salary-plan", recurringIncomeHandler.GetSalaryPlanHandler)
 		group.POST("/me/salary-plan", recurringIncomeHandler.UpsertSalaryPlanHandler)
 		group.DELETE("/me/salary-plan/:id", recurringIncomeHandler.DeleteSalaryPlanHandler)
