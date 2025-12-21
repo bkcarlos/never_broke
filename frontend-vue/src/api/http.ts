@@ -31,9 +31,12 @@ export async function request<T>(
       headers['Authorization'] = `Bearer ${token}`
     }
     
+    // 创建不包含 headers 的 options，避免覆盖 headers
+    const { headers: _ignoredHeaders, ...restOptions } = options || {}
+    
     const response = await fetch(`${BASE_URL}${url}`, {
-      headers,
-      ...options
+      ...restOptions,
+      headers
     })
 
     console.log(`📡 响应状态: ${response.status} ${response.statusText}`)

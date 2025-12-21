@@ -76,6 +76,7 @@ func PreviewSalaryToYearEnd(req SalaryPreviewRequest) (SalaryPreviewResponse, er
 	}
 
 	year := startDate.Year()
+	// 如果接近年底，预览到下一年年底，确保至少有一个月的数据
 	yearEnd := time.Date(year, 12, 31, 0, 0, 0, 0, startDate.Location())
 
 	// 获取社保比例：优先使用自定义比例，否则使用城市默认比例
@@ -121,6 +122,43 @@ func PreviewSalaryToYearEnd(req SalaryPreviewRequest) (SalaryPreviewResponse, er
 			currentDate = currentDate.AddDate(1, 0, 0)
 		default:
 			currentDate = AddMonths(currentDate, 1)
+		}
+	}
+
+	// 如果当年没有发薪日（接近年底的情况），扩展到下一年
+	if len(payDates) == 0 {
+		year = year + 1
+		yearEnd = time.Date(year, 12, 31, 0, 0, 0, 0, startDate.Location())
+		currentDate = startDate
+
+		for !currentDate.After(yearEnd) {
+			payDate := time.Date(currentDate.Year(), currentDate.Month(), req.PayDay, 0, 0, 0, 0, currentDate.Location())
+			if payDate.Before(currentDate) {
+				payDate = AddMonths(payDate, 1)
+			}
+
+			if payDate.After(yearEnd) {
+				break
+			}
+
+			payDates = append(payDates, payDate)
+
+			switch req.Frequency {
+			case FrequencyMonthly:
+				currentDate = AddMonths(currentDate, 1)
+			case FrequencyBimonthly:
+				currentDate = AddMonths(currentDate, 2)
+			case FrequencyQuarterly:
+				currentDate = AddMonths(currentDate, 3)
+			case FrequencySemiannual:
+				currentDate = AddMonths(currentDate, 6)
+			case FrequencyWeekly:
+				currentDate = currentDate.AddDate(0, 0, 7)
+			case FrequencyYearly:
+				currentDate = currentDate.AddDate(1, 0, 0)
+			default:
+				currentDate = AddMonths(currentDate, 1)
+			}
 		}
 	}
 
