@@ -105,161 +105,28 @@
             </div>
           </div>
         </section>
-
-        <!-- 工资税前配置 & 预览到年底 -->
-        <section class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-          <h2 class="text-sm font-medium text-slate-800">
-            {{ t('recurring.salary.preview', '工资税前配置 & 预览到年底') }}
-          </h2>
-
-          <!-- 配置表单 -->
-          <div class="space-y-3">
-            <div>
-              <div class="text-xs text-slate-500 mb-1">
-                {{ t('recurring.salary.preTax', '税前收入（每期）') }}
-              </div>
-              <input
-                v-model.number="salaryPreviewForm.preTaxAmount"
-                type="number"
-                class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-                :placeholder="t('recurring.salary.preTaxPlaceholder')"
-              />
-            </div>
-
-            <div>
-              <div class="text-xs text-slate-500 mb-1">
-                {{ t('recurring.salary.city', '纳税城市') }}
-              </div>
-              <select
-                v-model="salaryPreviewForm.cityCode"
-                class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-              >
-                <option value="beijing">{{ t('recurring.city.beijing') }}</option>
-                <option value="shanghai">{{ t('recurring.city.shanghai') }}</option>
-                <option value="guangzhou">{{ t('recurring.city.guangzhou') }}</option>
-                <option value="shenzhen">{{ t('recurring.city.shenzhen') }}</option>
-              </select>
-            </div>
-
-            <div class="flex gap-3">
-              <div class="flex-1">
-                <div class="text-xs text-slate-500 mb-1">
-                  {{ t('recurring.salary.startDate', '开始日期') }}
-                </div>
-                <input
-                  v-model="salaryPreviewForm.startDate"
-                  type="date"
-                  class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-                />
-              </div>
-              <div class="flex-1">
-                <div class="text-xs text-slate-500 mb-1">
-                  {{ t('recurring.salary.payDay', '发薪日（1-31）') }}
-                </div>
-                <input
-                  v-model.number="salaryPreviewForm.payDay"
-                  type="number"
-                  min="1"
-                  max="31"
-                  class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-                  placeholder="10"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div class="text-xs text-slate-500 mb-1">
-                {{ t('recurring.frequency', '频率') }}
-              </div>
-              <select
-                v-model="salaryPreviewForm.frequency"
-                class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-              >
-                <option value="monthly">{{ t('recurring.frequency.monthly') }}</option>
-                <option value="bimonthly">{{ t('recurring.frequency.bimonthly') }}</option>
-                <option value="quarterly">{{ t('recurring.frequency.quarterly') }}</option>
-                <option value="semiannual">{{ t('recurring.frequency.semiannual') }}</option>
-                <option value="weekly">{{ t('recurring.frequency.weekly') }}</option>
-                <option value="yearly">{{ t('recurring.frequency.yearly') }}</option>
-              </select>
-            </div>
-
-            <button
-              class="w-full py-2.5 rounded-full bg-indigo-500 text-white text-sm font-medium disabled:opacity-60"
-              :disabled="previewingSalary || !canPreviewSalary"
-              @click="onPreviewSalary"
-            >
-              {{ previewingSalary ? t('recurring.salary.generating') : t('recurring.salary.generate') }}
-            </button>
-          </div>
-
-          <!-- 预览表格 -->
-          <div v-if="salaryPreview" class="mt-4">
-            <div class="text-xs text-slate-500 mb-2">
-              {{ t('recurring.salary.yearPreview', { year: salaryPreview.year, count: salaryPreview.items.length }) }}
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-xs text-slate-600">
-                <thead class="bg-slate-50">
-                  <tr>
-                    <th class="px-2 py-2 text-left">{{ t('recurring.salary.table.date') }}</th>
-                    <th class="px-2 py-2 text-right">{{ t('recurring.salary.table.preTax') }}</th>
-                    <th class="px-2 py-2 text-right">{{ t('recurring.salary.table.social') }}</th>
-                    <th class="px-2 py-2 text-right">{{ t('recurring.salary.table.tax') }}</th>
-                    <th class="px-2 py-2 text-right font-semibold text-emerald-600">{{ t('recurring.salary.table.postTax') }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="item in salaryPreview.items"
-                    :key="item.date"
-                    class="border-b border-slate-50"
-                  >
-                    <td class="px-2 py-2">{{ item.date }}</td>
-                    <td class="px-2 py-2 text-right">¥{{ item.preTax.toFixed(2) }}</td>
-                    <td class="px-2 py-2 text-right">¥{{ item.socialSecurity.toFixed(2) }}</td>
-                    <td class="px-2 py-2 text-right">¥{{ item.taxAmount.toFixed(2) }}</td>
-                    <td class="px-2 py-2 text-right font-semibold text-emerald-600">
-                      ¥{{ item.postTax.toFixed(2) }}
-                    </td>
-                  </tr>
-                </tbody>
-                <tfoot class="bg-slate-50 font-semibold">
-                  <tr>
-                    <td class="px-2 py-2">{{ t('recurring.salary.table.total') }}</td>
-                    <td class="px-2 py-2 text-right">¥{{ salaryPreview.totalPreTax.toFixed(2) }}</td>
-                    <td class="px-2 py-2 text-right">-</td>
-                    <td class="px-2 py-2 text-right">¥{{ salaryPreview.totalTax.toFixed(2) }}</td>
-                    <td class="px-2 py-2 text-right text-emerald-600">
-                      ¥{{ salaryPreview.totalPostTax.toFixed(2) }}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </section>
       </template>
     </main>
 
     <!-- 新增/编辑周期收入对话框 -->
     <div
       v-if="showCreateDialog"
-      class="fixed inset-0 bg-black/50 flex items-end z-50"
+      class="fixed inset-0 bg-black/50 z-[100] flex flex-col justify-end items-center"
       @click.self="closeCreateDialog"
     >
       <div
-        class="w-full bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto"
+        class="w-full max-w-lg bg-white rounded-t-3xl flex flex-col"
+        style="max-height: calc(100vh - 60px);"
         @click.stop
       >
-        <div class="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+        <div class="flex-shrink-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between rounded-t-3xl z-10">
           <h3 class="text-lg font-semibold">
             {{ editId ? t('recurring.dialog.title.edit') : t('recurring.dialog.title.new') }}
           </h3>
           <button class="text-2xl text-slate-400" @click="closeCreateDialog">×</button>
         </div>
 
-        <div class="p-4 space-y-4">
+        <div class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
           <!-- 类型切换 -->
           <div>
             <div class="text-xs text-slate-500 mb-2">{{ t('recurring.type') }}</div>
@@ -360,7 +227,7 @@
             </select>
           </div>
 
-          <div class="pt-2 space-y-2">
+          <div class="pt-2 pb-4 space-y-2">
             <button
               class="w-full py-2.5 rounded-full bg-indigo-500 text-white text-sm font-medium disabled:opacity-60"
               :disabled="saving"
@@ -390,14 +257,12 @@ import type {
   RecurringIncomeFrequency,
   UpsertRecurringIncomePayload,
   Account,
-  SalaryPreviewResponse,
 } from '@/types'
 import {
   listRecurringIncomePlans,
   listDueRecurringIncomePlans,
   upsertRecurringIncomePlan,
   realizeRecurringIncome,
-  previewSalaryToYearEnd,
 } from '@/api/recurringIncome'
 import { getAccounts } from '@/api/accounts'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
@@ -411,8 +276,6 @@ const accounts = ref<Account[]>([])
 const loading = ref<boolean>(false)
 const saving = ref<boolean>(false)
 const realizingId = ref<string | null>(null)
-const previewingSalary = ref<boolean>(false)
-const salaryPreview = ref<SalaryPreviewResponse | null>(null)
 
 // 对话框状态
 const showCreateDialog = ref<boolean>(false)
@@ -427,29 +290,9 @@ const formFrequency = ref<RecurringIncomeFrequency>('monthly')
 const formNextDueDate = ref<string>('')
 const formCityCode = ref<string>('beijing')
 
-// 工资预览表单
-const salaryPreviewForm = ref({
-  preTaxAmount: 15000,
-  cityCode: 'beijing',
-  startDate: '',
-  payDay: 10,
-  frequency: 'monthly' as RecurringIncomeFrequency,
-  currency: 'CNY',
-})
-
 const activePlans = computed(() =>
   plans.value.filter((p) => p.active),
 )
-
-const canPreviewSalary = computed(() => {
-  return (
-    salaryPreviewForm.value.preTaxAmount > 0 &&
-    salaryPreviewForm.value.cityCode !== '' &&
-    salaryPreviewForm.value.startDate !== '' &&
-    salaryPreviewForm.value.payDay >= 1 &&
-    salaryPreviewForm.value.payDay <= 31
-  )
-})
 
 function getTypeLabel(type: RecurringIncomeType): string {
   const typeKey = `recurring.type.${type}` as const
@@ -458,6 +301,7 @@ function getTypeLabel(type: RecurringIncomeType): string {
 
 function getFrequencyLabel(frequency: RecurringIncomeFrequency): string {
   return t(`recurring.frequency.${frequency}`)
+}
 
 // 计算未来几次收入日期和金额
 function getFutureIncomes(plan: RecurringIncomePlan, count: number): Array<{ date: string; amount: number }> {
@@ -502,7 +346,6 @@ function initDateToday() {
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const dd = String(now.getDate()).padStart(2, '0')
   formNextDueDate.value = `${yyyy}-${mm}-${dd}`
-  salaryPreviewForm.value.startDate = `${yyyy}-${mm}-${dd}`
 }
 
 async function loadAccounts() {
@@ -597,30 +440,6 @@ async function onSavePlan() {
     await loadDueToday()
   } finally {
     saving.value = false
-  }
-}
-
-async function onPreviewSalary() {
-  if (!canPreviewSalary.value) {
-    alert(t('recurring.error.salaryConfig'))
-    return
-  }
-
-  try {
-    previewingSalary.value = true
-    const result = await previewSalaryToYearEnd({
-      preTaxAmount: salaryPreviewForm.value.preTaxAmount,
-      cityCode: salaryPreviewForm.value.cityCode,
-      startDate: salaryPreviewForm.value.startDate,
-      payDay: salaryPreviewForm.value.payDay,
-      frequency: salaryPreviewForm.value.frequency,
-      currency: salaryPreviewForm.value.currency,
-    })
-    salaryPreview.value = result
-  } catch (error) {
-    alert(error instanceof Error ? error.message : t('recurring.error.preview'))
-  } finally {
-    previewingSalary.value = false
   }
 }
 
