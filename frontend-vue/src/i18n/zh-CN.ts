@@ -526,6 +526,8 @@ export default {
   'me.salary.saving': '保存中...',
   'me.salary.generating': '生成中...',
   'me.salary.total': '合计',
+  'me.salary.regionRuleLoaded': '✓ 已加载 {region} 的社保公积金基数规则',
+  'me.salary.loadingRegionRule': '加载地区规则中...',
 
   // 认证
   'auth.welcome': '欢迎回来',
@@ -559,6 +561,96 @@ export default {
   'auth.unknownError': '发生未知错误，请稍后重试',
   'auth.oauthNotImplemented': 'OAuth登录功能即将上线',
   'auth.logout': '退出登录',
-  'auth.logoutConfirm': '确定要退出登录吗？'
+  'auth.logoutConfirm': '确定要退出登录吗？',
+
+  // 薪资计算器
+  'payroll.title': '薪资计算器',
+  'payroll.basicInfo': '基本信息',
+  'payroll.region': '地区',
+  'payroll.year': '计算年度',
+  'payroll.grossMonthly': '税前月薪',
+  'payroll.grossPlaceholder': '请输入税前月薪',
+  
+  'payroll.socialSecurity': '社保',
+  'payroll.housingFund': '公积金',
+  'payroll.baseMode': '基数模式',
+  'payroll.baseMode.byWage': '按工资',
+  'payroll.baseMode.byMin': '按最低基数',
+  'payroll.baseMode.custom': '自定义',
+  'payroll.customBase': '自定义基数',
+  'payroll.baseRange': '基数范围',
+  'payroll.customRate': '自定义比例',
+  'payroll.ssRatePerson': '个人比例',
+  'payroll.ssRateCompany': '公司比例',
+  'payroll.ssRateTip': '个人社保缴纳比例',
+  'payroll.ssRateCompanyTip': '公司社保缴纳比例',
+  'payroll.hfRatePerson': '个人比例',
+  'payroll.hfRateCompany': '公司比例',
+  'payroll.hfRateTip': '公积金比例范围',
+  
+  'payroll.specialDeduction': '专项附加扣除',
+  'payroll.specialTip': '大病医疗在次年汇算清缴时扣除，本工具不按月计算',
+  'payroll.childEdu': '子女教育',
+  'payroll.contEdu': '继续教育',
+  'payroll.elderlyCare': '赡养老人',
+  'payroll.housingLoan': '住房贷款利息',
+  'payroll.housingRent': '住房租金',
+  'payroll.infantCare': '3岁以下婴幼儿照护',
+  'payroll.pensionMonthly': '个人养老金',
+  'payroll.pensionTip': '每年上限12000元，折合每月1000元',
+  
+  'payroll.calculate': '开始计算',
+  'payroll.calculating': '计算中...',
+  
+  'payroll.summary': '薪资概览',
+  'payroll.yearTotals': '年度合计',
+  'payroll.monthlyDetail': '每月明细',
+  'payroll.noResult': '暂无计算结果',
+  'payroll.noResultTip': '填写税前月薪等信息后，点击"开始计算"查看结果',
+  
+  'payroll.error.loadRegions': '加载地区列表失败',
+  'payroll.error.loadRule': '加载地区规则失败',
+  'payroll.error.noRule': '未找到地区规则',
+  'payroll.error.invalidGross': '请输入有效的税前月薪',
+  'payroll.error.invalidSSBase': '请输入有效的社保自定义基数',
+  'payroll.error.invalidHFBase': '请输入有效的公积金自定义基数',
+  'payroll.error.calcFailed': '计算失败，请重试',
+
+  // 专项扣除选项
+  'deduction.notApplicable': '不符合，扣除0元',
+  
+  // 子女教育选项
+  'deduction.childEdu.one1000': '一个孩子，夫妻各扣除1000元',
+  'deduction.childEdu.one2000': '一个孩子，仅有一方扣除2000元',
+  'deduction.childEdu.two2000': '两个孩子，夫妻各扣除1000元×2',
+  'deduction.childEdu.two4000': '两个孩子，仅有一方扣除4000元',
+  
+  // 继续教育选项
+  'deduction.contEdu.degree': '接受学历教育中，扣除400元',
+  
+  // 赡养老人选项
+  'deduction.elderlyCare.six': '六兄弟姐妹分摊，扣除500元',
+  'deduction.elderlyCare.four': '四兄弟姐妹分摊，扣除750元',
+  'deduction.elderlyCare.three': '三兄弟姐妹分摊，扣除1000元',
+  'deduction.elderlyCare.two': '两兄弟姐妹分摊，扣除1500元',
+  'deduction.elderlyCare.only': '独生子女，扣除3000元',
+  
+  // 住房贷款选项
+  'deduction.housingLoan.both': '夫妻各扣除500元',
+  'deduction.housingLoan.one': '仅由一方扣除1000元',
+  
+  // 住房租金选项
+  'deduction.housingRent.small': '户籍人口少于100万城市，扣除800元',
+  'deduction.housingRent.medium': '户籍人口超过100万城市，扣除1100元',
+  'deduction.housingRent.large': '直辖市/省会/计划单列市，扣除1500元',
+  
+  // 婴幼儿照护选项
+  'deduction.infantCare.one1000': '一个婴幼儿，夫妻各扣除1000元',
+  'deduction.infantCare.one2000': '一个婴幼儿，仅有一方扣除2000元',
+  'deduction.infantCare.two3000': '两个婴幼儿，夫妻各扣除1500元',
+  'deduction.infantCare.two4000': '两个婴幼儿，仅有一方扣除4000元',
+  
+  // 个人养老金选项
+  'deduction.pension.placeholder': '每月扣除金额（上限1000元）'
 }
 

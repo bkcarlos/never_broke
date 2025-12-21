@@ -526,6 +526,8 @@ export default {
   'me.salary.saving': 'Saving...',
   'me.salary.generating': 'Generating...',
   'me.salary.total': 'Total',
+  'me.salary.regionRuleLoaded': '✓ Loaded contribution rules for {region}',
+  'me.salary.loadingRegionRule': 'Loading region rules...',
 
   // Auth
   'auth.welcome': 'Welcome Back',
@@ -559,6 +561,96 @@ export default {
   'auth.unknownError': 'Unknown error occurred',
   'auth.oauthNotImplemented': 'OAuth login coming soon',
   'auth.logout': 'Logout',
-  'auth.logoutConfirm': 'Are you sure you want to logout?'
+  'auth.logoutConfirm': 'Are you sure you want to logout?',
+
+  // Salary Calculator
+  'payroll.title': 'Salary Calculator',
+  'payroll.basicInfo': 'Basic Information',
+  'payroll.region': 'Region',
+  'payroll.year': 'Year',
+  'payroll.grossMonthly': 'Gross Monthly Salary',
+  'payroll.grossPlaceholder': 'Enter gross monthly salary',
+  
+  'payroll.socialSecurity': 'Social Security',
+  'payroll.housingFund': 'Housing Fund',
+  'payroll.baseMode': 'Base Mode',
+  'payroll.baseMode.byWage': 'By Wage',
+  'payroll.baseMode.byMin': 'By Minimum',
+  'payroll.baseMode.custom': 'Custom',
+  'payroll.customBase': 'Custom Base',
+  'payroll.baseRange': 'Base Range',
+  'payroll.customRate': 'Custom Rate',
+  'payroll.ssRatePerson': 'Personal Rate',
+  'payroll.ssRateCompany': 'Company Rate',
+  'payroll.ssRateTip': 'Personal social security rate',
+  'payroll.ssRateCompanyTip': 'Company social security rate',
+  'payroll.hfRatePerson': 'Personal Rate',
+  'payroll.hfRateCompany': 'Company Rate',
+  'payroll.hfRateTip': 'Housing fund rate range',
+  
+  'payroll.specialDeduction': 'Special Deductions',
+  'payroll.specialTip': 'Major illness medical expenses are deducted during annual settlement, not calculated monthly',
+  'payroll.childEdu': 'Child Education',
+  'payroll.contEdu': 'Continuing Education',
+  'payroll.elderlyCare': 'Elderly Care',
+  'payroll.housingLoan': 'Housing Loan Interest',
+  'payroll.housingRent': 'Housing Rent',
+  'payroll.infantCare': 'Infant Care (Under 3)',
+  'payroll.pensionMonthly': 'Personal Pension',
+  'payroll.pensionTip': 'Annual limit ¥12,000, equals ¥1,000/month',
+  
+  'payroll.calculate': 'Calculate',
+  'payroll.calculating': 'Calculating...',
+  
+  'payroll.summary': 'Salary Summary',
+  'payroll.yearTotals': 'Annual Totals',
+  'payroll.monthlyDetail': 'Monthly Details',
+  'payroll.noResult': 'No Results Yet',
+  'payroll.noResultTip': 'Enter salary information and click Calculate to see results',
+  
+  'payroll.error.loadRegions': 'Failed to load regions',
+  'payroll.error.loadRule': 'Failed to load region rules',
+  'payroll.error.noRule': 'Region rule not found',
+  'payroll.error.invalidGross': 'Please enter a valid gross salary',
+  'payroll.error.invalidSSBase': 'Please enter a valid social security base',
+  'payroll.error.invalidHFBase': 'Please enter a valid housing fund base',
+  'payroll.error.calcFailed': 'Calculation failed, please retry',
+
+  // Special Deduction Options
+  'deduction.notApplicable': 'Not applicable, deduct ¥0',
+  
+  // Child Education Options
+  'deduction.childEdu.one1000': 'One child, each spouse deducts ¥1,000',
+  'deduction.childEdu.one2000': 'One child, one spouse deducts ¥2,000',
+  'deduction.childEdu.two2000': 'Two children, each spouse deducts ¥1,000×2',
+  'deduction.childEdu.two4000': 'Two children, one spouse deducts ¥4,000',
+  
+  // Continuing Education Options
+  'deduction.contEdu.degree': 'Pursuing degree education, deduct ¥400',
+  
+  // Elderly Care Options
+  'deduction.elderlyCare.six': 'Shared among 6 siblings, deduct ¥500',
+  'deduction.elderlyCare.four': 'Shared among 4 siblings, deduct ¥750',
+  'deduction.elderlyCare.three': 'Shared among 3 siblings, deduct ¥1,000',
+  'deduction.elderlyCare.two': 'Shared among 2 siblings, deduct ¥1,500',
+  'deduction.elderlyCare.only': 'Only child, deduct ¥3,000',
+  
+  // Housing Loan Options
+  'deduction.housingLoan.both': 'Each spouse deducts ¥500',
+  'deduction.housingLoan.one': 'One spouse deducts ¥1,000',
+  
+  // Housing Rent Options
+  'deduction.housingRent.small': 'City with <1M population, deduct ¥800',
+  'deduction.housingRent.medium': 'City with >1M population, deduct ¥1,100',
+  'deduction.housingRent.large': 'Municipality/Provincial capital, deduct ¥1,500',
+  
+  // Infant Care Options
+  'deduction.infantCare.one1000': 'One infant, each spouse deducts ¥1,000',
+  'deduction.infantCare.one2000': 'One infant, one spouse deducts ¥2,000',
+  'deduction.infantCare.two3000': 'Two infants, each spouse deducts ¥1,500',
+  'deduction.infantCare.two4000': 'Two infants, one spouse deducts ¥4,000',
+  
+  // Personal Pension Options
+  'deduction.pension.placeholder': 'Monthly deduction (max ¥1,000)'
 }
 

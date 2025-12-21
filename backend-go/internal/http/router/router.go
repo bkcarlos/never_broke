@@ -14,6 +14,7 @@ import (
 	"neverbroke/internal/incomeplan"
 	"neverbroke/internal/installment"
 	"neverbroke/internal/ledger"
+	"neverbroke/internal/payroll"
 	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/report"
 	"neverbroke/internal/reports"
@@ -102,6 +103,7 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 
 	importerHandler := importer.NewHandler()
 	citySocialRateHandler := citysocialrate.NewHandler()
+	payrollHandler := payroll.NewHandler(db)
 
 	// 注册路由函数
 	registerRoutes := func(group *gin.RouterGroup) {
@@ -171,6 +173,11 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 		// 时间线
 		group.GET("/timeline/daily-summary", timeline.DailySummaryHandler(store))
 		group.GET("/timeline/daily-detail", timeline.DailyDetailHandler(store))
+
+		// 薪资计算器
+		group.GET("/payroll/regions", payrollHandler.ListRegions)
+		group.GET("/payroll/regions/:code/rule", payrollHandler.GetRegionRule)
+		group.POST("/payroll/calc/salary", payrollHandler.CalcSalary)
 	}
 
 	// API 路由组（需要认证）

@@ -89,6 +89,12 @@ const routes: RouteRecordRaw[] = [
     path: '/timeline',
     name: 'Timeline',
     component: () => import('@/views/TimelinePage.vue')
+  },
+  {
+    path: '/tools/salary-calculator',
+    name: 'SalaryCalculator',
+    component: () => import('@/views/SalaryCalculatorPage.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

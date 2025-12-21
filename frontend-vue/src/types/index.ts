@@ -533,6 +533,88 @@ export interface SalaryPlanConfig {
   currency: string
 }
 
+// ========== 薪资计算器相关类型 ==========
+
+export type BaseMode = 'BY_WAGE' | 'BY_MIN' | 'CUSTOM'
+
+export interface PayrollRegion {
+  code: string
+  name: string
+}
+
+export interface PayrollRegionRule {
+  regionCode: string
+  year: number
+  ssBaseMin: number
+  ssBaseMax: number
+  hfBaseMin: number
+  hfBaseMax: number
+  ssPersonRateSum: number
+  ssCompanyRateSum: number
+  hfRateMin: number
+  hfRateMax: number
+  defaultHfRatePerson: number
+  defaultHfRateCompany: number
+}
+
+export interface SpecialDeduction {
+  childEdu: number
+  contEdu: number
+  elderlyCare: number
+  housingLoan: number
+  housingRent: number
+  infantCare: number
+  pensionMonthly: number
+}
+
+export interface CalcSalaryRequest {
+  regionCode: string
+  year: number
+  grossMonthly: number
+  ssEnabled: boolean
+  ssBaseMode: BaseMode
+  ssBaseCustom?: number
+  ssRatePersonSum?: number   // 自定义个人社保比例
+  ssRateCompanySum?: number  // 自定义公司社保比例
+  hfEnabled: boolean
+  hfBaseMode: BaseMode
+  hfBaseCustom?: number
+  hfRatePerson: number
+  hfRateCompany: number
+  specialEnabled: boolean
+  special: SpecialDeduction
+}
+
+export interface CalcSalarySummary {
+  grossMonthly: number
+  ssPersonMonthly: number
+  ssCompanyMonthly: number
+  hfPersonMonthly: number
+  hfCompanyMonthly: number
+  specialMonthly: number
+  companyCostMonthly: number
+}
+
+export interface CalcSalaryMonth {
+  month: number
+  gross: number
+  ssPerson: number
+  hfPerson: number
+  tax: number
+  net: number
+}
+
+export interface CalcSalaryTotals {
+  netYear: number
+  taxYear: number
+}
+
+export interface CalcSalaryResponse {
+  summary: CalcSalarySummary
+  months: CalcSalaryMonth[]
+  totals: CalcSalaryTotals
+}
+
 // ========== API 响应通用类型 ==========
 
 export interface ApiResponse<T> {
