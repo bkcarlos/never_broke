@@ -65,9 +65,6 @@
 
         <!-- 已配置的周期收入预览区 -->
         <section v-if="activePlans.length" class="space-y-3">
-          <h2 class="text-sm font-medium text-slate-800">
-            {{ t('recurring.section.active', '已配置的周期收入') }}
-          </h2>
           <div
             v-for="plan in activePlans"
             :key="plan.id"
@@ -130,9 +127,9 @@
           <!-- 类型切换 -->
           <div>
             <div class="text-xs text-slate-500 mb-2">{{ t('recurring.type') }}</div>
-            <div class="grid grid-cols-4 gap-2">
+            <div class="grid grid-cols-3 gap-2">
               <button
-                v-for="tType in ['salary', 'rent', 'side', 'other']"
+                v-for="tType in ['rent', 'side', 'other']"
                 :key="tType"
                 class="py-2 rounded-xl text-xs border"
                 :class="
@@ -213,20 +210,6 @@
             </div>
           </div>
 
-          <!-- 工资专用：城市代码 -->
-          <div v-if="formType === 'salary'">
-            <div class="text-xs text-slate-500 mb-1">{{ t('recurring.cityLabel') }}</div>
-            <select
-              v-model="formCityCode"
-              class="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-sm bg-slate-50"
-            >
-              <option value="beijing">{{ t('recurring.city.beijing') }}</option>
-              <option value="shanghai">{{ t('recurring.city.shanghai') }}</option>
-              <option value="guangzhou">{{ t('recurring.city.guangzhou') }}</option>
-              <option value="shenzhen">{{ t('recurring.city.shenzhen') }}</option>
-            </select>
-          </div>
-
           <div class="pt-2 pb-4 space-y-2">
             <button
               class="w-full py-2.5 rounded-full bg-indigo-500 text-white text-sm font-medium disabled:opacity-60"
@@ -282,16 +265,15 @@ const showCreateDialog = ref<boolean>(false)
 const editId = ref<string | undefined>(undefined)
 
 // 表单数据
-const formType = ref<RecurringIncomeType>('salary')
+const formType = ref<RecurringIncomeType>('rent')
 const formLabel = ref<string>('')
 const formAmount = ref<number>(0)
 const formAccountId = ref<string>('')
 const formFrequency = ref<RecurringIncomeFrequency>('monthly')
 const formNextDueDate = ref<string>('')
-const formCityCode = ref<string>('beijing')
 
 const activePlans = computed(() =>
-  plans.value.filter((p) => p.active),
+  plans.value.filter((p) => p.active && p.type !== 'salary'),
 )
 
 function getTypeLabel(type: RecurringIncomeType): string {
@@ -368,18 +350,17 @@ async function loadDueToday() {
   const dd = String(now.getDate()).padStart(2, '0')
   const today = `${yyyy}-${mm}-${dd}`
   const list = await listDueRecurringIncomePlans(today)
-  dueToday.value = list
+  dueToday.value = list.filter((p) => p.type !== 'salary')
 }
 
 function openCreateDialog() {
   editId.value = undefined
-  formType.value = 'salary'
+  formType.value = 'rent'
   formLabel.value = ''
   formAmount.value = 0
   formAccountId.value = accounts.value.length > 0 ? accounts.value[0].id : ''
   formFrequency.value = 'monthly'
   initDateToday()
-  formCityCode.value = 'beijing'
   showCreateDialog.value = true
 }
 
@@ -390,13 +371,12 @@ function closeCreateDialog() {
 
 function editPlan(plan: RecurringIncomePlan) {
   editId.value = plan.id
-  formType.value = plan.type
+  formType.value = plan.type === 'salary' ? 'other' : plan.type
   formLabel.value = plan.label
   formAmount.value = plan.amount
   formAccountId.value = plan.accountId
   formFrequency.value = plan.frequency
   formNextDueDate.value = plan.nextDueDate
-  formCityCode.value = plan.cityCode || 'beijing'
   showCreateDialog.value = true
 }
 
@@ -423,7 +403,6 @@ async function onSavePlan() {
     currency: 'CNY',
     frequency: formFrequency.value,
     nextDueDate: formNextDueDate.value,
-    cityCode: formType.value === 'salary' ? formCityCode.value : undefined,
     active: true,
   }
 
