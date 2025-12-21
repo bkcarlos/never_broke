@@ -6,7 +6,7 @@
 
 **当前版本**: v1.0.0
 
-**最后更新**: 2025年12月20日
+**最后更新**: 2025年12月21日
 
 ---
 
@@ -116,7 +116,7 @@
 | 现金流预测 | `/cashflow` | 未来现金流预测图表 | ✅ |
 | 时间线 | `/timeline` | 历史和未来交易时间线 | ✅ |
 
-### 🔌 API接口实现（共50+个）
+### 🔌 API接口实现（共55+个）
 
 **认证模块** (7个):
 - `POST /api/auth/register` - 用户注册
@@ -148,9 +148,12 @@
 - `POST /api/v1/recurring-incomes/salary/preview` - 薪资预览
 - `GET /api/v1/recurring-incomes/projected-transactions` - 未来收入投射
 
-**薪资控制模块** (5个):
-- `GET /api/v1/city-social-rates` - 获取城市社保比例列表
-- `GET /api/v1/city-social-rates/:cityCode` - 获取城市社保详情
+**薪资控制模块** (8个):
+- `GET /api/v1/payroll/regions` - 获取地区列表
+- `GET /api/v1/payroll/regions/:code/rule` - 获取地区规则（含社保/公积金基数限制）
+- `POST /api/v1/payroll/calc/salary` - 计算薪资（12个月累计预扣法）
+- `GET /api/v1/city-social-rates` - 获取城市社保比例列表（兼容）
+- `GET /api/v1/city-social-rates/:cityCode` - 获取城市社保详情（兼容）
 - `GET /api/v1/me/salary-plan` - 获取工资方案
 - `POST /api/v1/me/salary-plan` - 保存工资方案
 - `DELETE /api/v1/me/salary-plan/:id` - 删除工资方案
@@ -188,14 +191,14 @@
 ### 📈 项目统计
 
 **代码量统计** (估算):
-- 后端 Go 代码: ~8,000 行
-- 前端 Vue/TS 代码: ~6,000 行
-- 测试代码: ~1,500 行
-- 总计: ~15,500 行
+- 后端 Go 代码: ~9,000 行
+- 前端 Vue/TS 代码: ~7,000 行
+- 测试代码: ~1,800 行
+- 总计: ~17,800 行
 
 **文件结构**:
-- 后端源文件: ~60 个
-- 前端源文件: ~50 个
+- 后端源文件: ~70 个（含 payroll 模块 8 个文件）
+- 前端源文件: ~55 个
 - 配置文件: ~10 个
 - 文档文件: 3 个
 
@@ -279,6 +282,7 @@ backend-go/
 │   ├── installment/     # 分期付款
 │   ├── ledger/          # 账本明细
 │   ├── recurringincome/ # 周期收入（含薪资）
+│   ├── payroll/         # 薪资计算器（地区规则、个税计算）
 │   ├── reports/         # 报表分析
 │   ├── timeline/        # 时间线
 │   ├── user/            # 用户设置
@@ -312,6 +316,7 @@ frontend-vue/
 │   │   ├── report.ts
 │   │   ├── reports.ts
 │   │   ├── timeline.ts
+│   │   ├── payroll.ts    # 薪资计算器API
 │   │   └── user.ts
 │   ├── components/     # 公共组件
 │   │   ├── Icon.vue
@@ -1506,305 +1511,169 @@ func CheckAndRealizeIncomes() {
 ### 功能概述
 
 这是一个完整的薪资管理系统，支持：
-- ✅ 城市社保比例管理
-- ✅ 工资方案配置
-- ✅ 税后收入计算
-- ✅ 全年薪资预览
-- ✅ 个税累进计算
+- ✅ 地区规则管理（社保/公积金基数上下限、比例）
+- ✅ 灵活的缴费基数模式（按工资/按最低/自定义）
+- ✅ 详细专项附加扣除配置
+- ✅ 累计预扣法个税计算（12个月）
+- ✅ 高精度计算（使用 decimal 类型）
 - ✅ 与现金流预测集成
 
-### 核心功能
+### 核心架构
 
-#### 1. 城市社保比例管理
+采用独立的 `payroll` 模块设计：
 
-**支持城市**:
-- 北京: 22.2% (养老8% + 医疗2% + 失业0.2% + 公积金12%)
-- 上海: 17.5% (养老8% + 医疗2% + 失业0.5% + 公积金7%)
-- 广州: 22.0%
-- 深圳: 21.5%
-- 其他: 20.0% (默认)
+```
+backend-go/internal/payroll/
+├── model.go          # 数据模型（Region, RegionRule, TaxBracket）
+├── dto.go            # 请求/响应DTO
+├── repository.go     # 数据访问层
+├── service.go        # 业务逻辑层
+├── calculator.go     # 薪资计算核心
+├── handler.go        # HTTP处理器
+├── errors.go         # 错误定义
+└── calculator_test.go # 单元测试
+```
 
-**数据模型**:
-```typescript
-interface CitySocialRate {
-  id: string
-  cityCode: string              // beijing, shanghai, etc.
-  cityName: string
-  effectiveDate: string
-  pensionRate: number           // 养老保险
-  medicalRate: number           // 医疗保险
-  unemploymentRate: number      // 失业保险
-  injuryRate: number            // 工伤保险（个人通常不缴）
-  maternityRate: number         // 生育保险（个人通常不缴）
-  housingFundRate: number       // 住房公积金
-  totalRate: number             // 总比例
-  isActive: boolean
-  remark?: string
-}
+### 数据模型
 
-interface CitySocialRateDetail {
-  cityCode: string
-  cityName: string
-  totalRate: number
-  components: SocialRateComponent[]
-}
+#### 1. 地区 (PayrollRegion)
 
-interface SocialRateComponent {
-  name: string                  // 养老/医疗/失业/公积金
-  rate: number
+```go
+type PayrollRegion struct {
+    ID        string    `json:"id"`
+    Code      string    `json:"code"`      // CN-BJ, CN-SH, CN-GZ, CN-SZ, CN-DEFAULT
+    Name      string    `json:"name"`      // 北京、上海、广州、深圳、默认
+    CreatedAt time.Time `json:"createdAt"`
+    UpdatedAt time.Time `json:"updatedAt"`
 }
 ```
 
-**API接口**:
+#### 2. 地区规则 (PayrollRegionRule)
+
+按年度存储各地区的社保公积金规则：
+
+```go
+type PayrollRegionRule struct {
+    ID                   string          `json:"id"`
+    RegionCode           string          `json:"regionCode"`
+    Year                 int             `json:"year"`
+    // 社保基数
+    SSBaseMin            decimal.Decimal `json:"ssBaseMin"`    // 社保基数下限
+    SSBaseMax            decimal.Decimal `json:"ssBaseMax"`    // 社保基数上限
+    SSPersonRateSum      decimal.Decimal `json:"ssPersonRateSum"`   // 个人社保合计比例
+    SSCompanyRateSum     decimal.Decimal `json:"ssCompanyRateSum"`  // 公司社保合计比例
+    // 公积金基数
+    HFBaseMin            decimal.Decimal `json:"hfBaseMin"`    // 公积金基数下限
+    HFBaseMax            decimal.Decimal `json:"hfBaseMax"`    // 公积金基数上限
+    HFRateMin            decimal.Decimal `json:"hfRateMin"`    // 公积金比例下限（5%）
+    HFRateMax            decimal.Decimal `json:"hfRateMax"`    // 公积金比例上限（12%）
+    DefaultHFRatePerson  decimal.Decimal `json:"defaultHfRatePerson"`
+    DefaultHFRateCompany decimal.Decimal `json:"defaultHfRateCompany"`
+}
+```
+
+#### 3. 个税税率表 (TaxBracketCN)
+
+存储中国综合所得7级累进税率：
+
+```go
+type TaxBracketCN struct {
+    ID             string           `json:"id"`
+    Year           int              `json:"year"`
+    LowerBound     decimal.Decimal  `json:"lowerBound"`
+    UpperBound     *decimal.Decimal `json:"upperBound"` // NULL表示无上限
+    Rate           decimal.Decimal  `json:"rate"`
+    QuickDeduction decimal.Decimal  `json:"quickDeduction"`
+}
+```
+
+**2025年税率表**:
+| 级数 | 累计应纳税所得额 | 税率 | 速算扣除数 |
+|------|-----------------|------|-----------|
+| 1 | ≤36,000 | 3% | 0 |
+| 2 | 36,000-144,000 | 10% | 2,520 |
+| 3 | 144,000-300,000 | 20% | 16,920 |
+| 4 | 300,000-420,000 | 25% | 31,920 |
+| 5 | 420,000-660,000 | 30% | 52,920 |
+| 6 | 660,000-960,000 | 35% | 85,920 |
+| 7 | >960,000 | 45% | 181,920 |
+
+### API接口
+
+#### 1. 获取地区列表
+
 ```http
-GET /api/v1/city-social-rates
+GET /api/v1/payroll/regions
 
 Response 200:
 {
   "code": 0,
   "message": "OK",
   "data": [
-    {
-      "id": "csr_001",
-      "cityCode": "beijing",
-      "cityName": "北京",
-      "totalRate": 0.222,
-      "effectiveDate": "2024-01-01",
-      "isActive": true
-    }
+    { "code": "CN-BJ", "name": "北京" },
+    { "code": "CN-SH", "name": "上海" },
+    { "code": "CN-GZ", "name": "广州" },
+    { "code": "CN-SZ", "name": "深圳" },
+    { "code": "CN-DEFAULT", "name": "默认" }
   ]
 }
 ```
 
+#### 2. 获取地区规则
+
 ```http
-GET /api/v1/city-social-rates/beijing
+GET /api/v1/payroll/regions/CN-BJ/rule?year=2025
 
 Response 200:
 {
   "code": 0,
   "message": "OK",
   "data": {
-    "cityCode": "beijing",
-    "cityName": "北京",
-    "totalRate": 0.222,
-    "components": [
-      { "name": "养老保险", "rate": 0.08 },
-      { "name": "医疗保险", "rate": 0.02 },
-      { "name": "失业保险", "rate": 0.002 },
-      { "name": "住房公积金", "rate": 0.12 }
-    ]
+    "regionCode": "CN-BJ",
+    "year": 2025,
+    "ssBaseMin": 6821.00,
+    "ssBaseMax": 35283.00,
+    "hfBaseMin": 2420.00,
+    "hfBaseMax": 35283.00,
+    "ssPersonRateSum": 0.102,
+    "ssCompanyRateSum": 0.26,
+    "hfRateMin": 0.05,
+    "hfRateMax": 0.12,
+    "defaultHfRatePerson": 0.12,
+    "defaultHfRateCompany": 0.12
   }
 }
 ```
 
-#### 2. 工资方案配置
+#### 3. 计算薪资
 
-**配置参数**:
-```typescript
-interface SalaryPlanConfig {
-  preTaxMonthly: number         // 税前月薪
-  cityCode: string              // 纳税城市
-  startDate: string             // 开始日期
-  payDay: number                // 发薪日（1-31）
-  socialRate: number            // 社保比例（可自定义）
-  extraDeductions: number       // 专项附加扣除
-  accountId: string             // 到账账户
-  currency: string
-}
-```
-
-**API接口**:
-
-获取工资方案:
 ```http
-GET /api/v1/me/salary-plan
-
-Response 200:
-{
-  "code": 0,
-  "message": "OK",
-  "data": {
-    "plan": {
-      "id": "plan_001",
-      "type": "salary",
-      "label": "工资",
-      "accountId": "acc_001",
-      "amount": 15000.00,           // 税后金额
-      "frequency": "monthly",
-      "dayOfMonth": 15,
-      "nextDueDate": "2025-01-15",
-      "cityCode": "beijing",
-      "active": true,
-      "salaryPreTaxMonthly": 20000.00,
-      "salarySocialRate": 0.222,
-      "salaryExtraDeductions": 1000.00,
-      "salaryPayDay": 15,
-      "salaryStartDate": "2024-01-01"
-    }
-  }
-}
-```
-
-保存工资方案:
-```http
-POST /api/v1/me/salary-plan
+POST /api/v1/payroll/calc/salary
 Content-Type: application/json
 
 {
-  "preTaxMonthly": 20000.00,
-  "cityCode": "beijing",
-  "startDate": "2024-01-01",
-  "payDay": 15,
-  "socialRate": 0.222,
-  "extraDeductions": 1000.00,
-  "accountId": "acc_001",
-  "currency": "CNY"
-}
-
-Response 200:
-{
-  "code": 0,
-  "message": "Salary plan saved",
-  "data": {
-    "plan": { ... },
-    "preview": {
-      "cityCode": "beijing",
-      "year": 2024,
-      "items": [ ... ],
-      "totalPreTax": 240000.00,
-      "totalTax": 18000.00,
-      "totalPostTax": 180000.00
-    }
+  "regionCode": "CN-BJ",
+  "year": 2025,
+  "grossMonthly": 25000.00,
+  
+  "ssEnabled": true,
+  "ssBaseMode": "BY_WAGE",
+  
+  "hfEnabled": true,
+  "hfBaseMode": "BY_WAGE",
+  "hfRatePerson": 0.12,
+  "hfRateCompany": 0.12,
+  
+  "specialEnabled": true,
+  "special": {
+    "childEdu": 2000,
+    "contEdu": 0,
+    "elderlyCare": 3000,
+    "housingLoan": 1000,
+    "housingRent": 0,
+    "infantCare": 0,
+    "pensionMonthly": 1000
   }
-}
-```
-
-删除工资方案:
-```http
-DELETE /api/v1/me/salary-plan/:id
-
-Response 200:
-{
-  "code": 0,
-  "message": "Salary plan deleted"
-}
-```
-
-#### 3. 薪资计算逻辑
-
-**中国个税累进税率表**:
-```go
-var TaxBrackets = []TaxBracket{
-    {Threshold: 0,      Rate: 0.03, QuickDeduction: 0},
-    {Threshold: 36000,  Rate: 0.10, QuickDeduction: 2520},
-    {Threshold: 144000, Rate: 0.20, QuickDeduction: 16920},
-    {Threshold: 300000, Rate: 0.25, QuickDeduction: 31920},
-    {Threshold: 420000, Rate: 0.30, QuickDeduction: 52920},
-    {Threshold: 660000, Rate: 0.35, QuickDeduction: 85920},
-    {Threshold: 960000, Rate: 0.45, QuickDeduction: 181920},
-}
-```
-
-**计算流程**:
-```go
-func CalculateSalaryPreview(req SalaryPreviewRequest) SalaryPreviewResponse {
-    // 1. 确定社保比例
-    socialRate := req.SocialRate
-    if socialRate == nil {
-        // 使用城市默认比例
-        cityRate := GetCitySocialRate(req.CityCode)
-        socialRate = &cityRate.TotalRate
-    }
-    
-    // 2. 生成发薪日期列表（从startDate到年底）
-    dates := GeneratePayDates(req.StartDate, req.PayDay, req.Frequency)
-    
-    // 3. 逐月计算
-    items := make([]SalaryPreviewItem, len(dates))
-    cumulativePreTax := 0.0
-    cumulativeTax := 0.0
-    
-    for i, date := range dates {
-        // 3.1 扣除社保
-        socialSecurity := req.PreTaxAmount * (*socialRate)
-        
-        // 3.2 计算应纳税所得额
-        taxableIncome := req.PreTaxAmount - socialSecurity - 5000 - req.ExtraDeductions
-        
-        // 3.3 累计应纳税所得额
-        cumulativePreTax += req.PreTaxAmount
-        cumulativeTaxableIncome := cumulativePreTax - 
-                                   socialSecurity*float64(i+1) - 
-                                   5000*float64(i+1) - 
-                                   req.ExtraDeductions*float64(i+1)
-        
-        // 3.4 查税率表计算累计税额
-        totalTax := CalculateTaxByBracket(cumulativeTaxableIncome)
-        
-        // 3.5 本月应缴税额 = 累计税额 - 已缴税额
-        currentMonthTax := totalTax - cumulativeTax
-        cumulativeTax = totalTax
-        
-        // 3.6 税后金额
-        postTax := req.PreTaxAmount - socialSecurity - currentMonthTax
-        
-        items[i] = SalaryPreviewItem{
-            Date:             date,
-            PreTax:           req.PreTaxAmount,
-            SocialSecurity:   socialSecurity,
-            TaxableIncome:    taxableIncome,
-            TaxAmount:        currentMonthTax,
-            PostTax:          postTax,
-            CumulativePreTax: cumulativePreTax,
-            CumulativeTax:    cumulativeTax,
-        }
-    }
-    
-    return SalaryPreviewResponse{
-        CityCode:     req.CityCode,
-        Year:         time.Now().Year(),
-        Items:        items,
-        TotalPreTax:  cumulativePreTax,
-        TotalTax:     cumulativeTax,
-        TotalPostTax: cumulativePreTax - cumulativeTax - socialSecurity*float64(len(dates)),
-    }
-}
-```
-
-**查税率表**:
-```go
-func CalculateTaxByBracket(taxableIncome float64) float64 {
-    if taxableIncome <= 0 {
-        return 0
-    }
-    
-    for i := len(TaxBrackets) - 1; i >= 0; i-- {
-        bracket := TaxBrackets[i]
-        if taxableIncome > bracket.Threshold {
-            return taxableIncome*bracket.Rate - bracket.QuickDeduction
-        }
-    }
-    
-    return 0
-}
-```
-
-#### 4. 薪资预览
-
-**预览请求**:
-```http
-POST /api/v1/recurring-incomes/salary/preview
-Content-Type: application/json
-
-{
-  "preTaxAmount": 20000.00,
-  "cityCode": "beijing",
-  "startDate": "2024-12-01",
-  "payDay": 15,
-  "frequency": "monthly",
-  "currency": "CNY",
-  "socialRate": 0.222,
-  "extraDeductions": 1000.00
 }
 
 Response 200:
@@ -1812,60 +1681,98 @@ Response 200:
   "code": 0,
   "message": "OK",
   "data": {
-    "cityCode": "beijing",
-    "year": 2024,
-    "items": [
-      {
-        "date": "2024-12-15",
-        "preTax": 20000.00,
-        "socialSecurity": 4440.00,
-        "taxableIncome": 9560.00,
-        "taxAmount": 286.80,
-        "postTax": 15273.20,
-        "cumulativePreTax": 20000.00,
-        "cumulativeTax": 286.80
-      }
+    "summary": {
+      "grossMonthly": 25000.00,
+      "ssPersonMonthly": 2550.00,
+      "ssCompanyMonthly": 6500.00,
+      "hfPersonMonthly": 3000.00,
+      "hfCompanyMonthly": 3000.00,
+      "specialMonthly": 6000.00,
+      "companyCostMonthly": 34500.00
+    },
+    "months": [
+      { "month": 1, "gross": 25000.00, "ssPerson": 2550.00, "hfPerson": 3000.00, "tax": 394.50, "net": 19055.50 },
+      { "month": 2, "gross": 25000.00, "ssPerson": 2550.00, "hfPerson": 3000.00, "tax": 394.50, "net": 19055.50 },
+      // ... 其余月份
+      { "month": 12, "gross": 25000.00, "ssPerson": 2550.00, "hfPerson": 3000.00, "tax": 894.50, "net": 18555.50 }
     ],
-    "totalPreTax": 20000.00,
-    "totalTax": 286.80,
-    "totalPostTax": 15273.20
+    "totals": {
+      "netYear": 224166.00,
+      "taxYear": 5834.00
+    }
   }
 }
 ```
 
-### 数据库设计
+### 缴费基数模式
 
-**城市社保比例表**:
-```sql
-CREATE TABLE city_social_rates (
-  id TEXT PRIMARY KEY,
-  city_code TEXT NOT NULL,
-  city_name TEXT NOT NULL,
-  effective_date DATE NOT NULL,
-  pension_rate DOUBLE PRECISION NOT NULL,
-  medical_rate DOUBLE PRECISION NOT NULL,
-  unemployment_rate DOUBLE PRECISION NOT NULL,
-  injury_rate DOUBLE PRECISION DEFAULT 0,
-  maternity_rate DOUBLE PRECISION DEFAULT 0,
-  housing_fund_rate DOUBLE PRECISION NOT NULL,
-  total_rate DOUBLE PRECISION NOT NULL,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  remark TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+支持三种基数确定模式：
 
-CREATE INDEX idx_city_social_rates_city_active 
-  ON city_social_rates(city_code, is_active);
+```typescript
+type BaseMode = 'BY_WAGE' | 'BY_MIN' | 'CUSTOM'
 ```
 
-**周期收入计划表（扩展）**:
-```sql
-ALTER TABLE recurring_income_plans 
-  ADD COLUMN salary_pre_tax_monthly DOUBLE PRECISION,
-  ADD COLUMN salary_social_rate DOUBLE PRECISION,
-  ADD COLUMN salary_extra_deductions DOUBLE PRECISION,
-  ADD COLUMN salary_pay_day INT,
-  ADD COLUMN salary_start_date DATE;
+| 模式 | 说明 |
+|------|------|
+| `BY_WAGE` | 按工资确定（自动限制在上下限范围内） |
+| `BY_MIN` | 按最低基数缴纳 |
+| `CUSTOM` | 自定义基数（需在合法范围内） |
+
+### 专项附加扣除
+
+支持7项专项附加扣除：
+
+```typescript
+interface SpecialDeduction {
+  childEdu: number        // 子女教育：每个子女2000元/月
+  contEdu: number         // 继续教育：学历教育400元/月
+  elderlyCare: number     // 赡养老人：独生子女3000元/月
+  housingLoan: number     // 住房贷款利息：1000元/月
+  housingRent: number     // 住房租金：800-1500元/月
+  infantCare: number      // 3岁以下婴幼儿照护：每个2000元/月
+  pensionMonthly: number  // 个人养老金：最高1000元/月
+}
+```
+
+### 计算核心
+
+使用累计预扣法计算12个月个税：
+
+```go
+func (c *Calculator) Calculate(req *CalcSalaryRequest) (*CalcSalaryResponse, error) {
+    // 1. 计算社保/公积金基数（考虑上下限）
+    ssBase := c.clamp(req.GrossMonthly, c.rule.SSBaseMin, c.rule.SSBaseMax)
+    hfBase := c.clamp(req.GrossMonthly, c.rule.HFBaseMin, c.rule.HFBaseMax)
+    
+    // 2. 计算每月扣除额
+    ssPerson := ssBase.Mul(ssPersonRate)
+    hfPerson := hfBase.Mul(req.HFRatePerson)
+    specialMonthly := calculateSpecialDeduction(req.Special)
+    basicDeduction := 5000  // 基本减除费用
+    
+    // 3. 累计预扣法计算12个月
+    cumIncome := 0
+    cumDeduction := 0
+    taxPaidSoFar := 0
+    
+    for m := 1; m <= 12; m++ {
+        cumIncome += grossMonthly
+        cumDeduction += (basicDeduction + ssPerson + hfPerson + specialMonthly + pensionMonthly)
+        
+        // 累计应纳税所得额
+        cumTaxable := max(cumIncome - cumDeduction, 0)
+        
+        // 查税率表计算累计应纳税额
+        cumTax := calculateBracketTax(cumTaxable)
+        
+        // 本月应纳税额 = 累计应纳税额 - 已缴税额
+        taxThisMonth := max(cumTax - taxPaidSoFar, 0)
+        taxPaidSoFar = cumTax
+        
+        // 本月到手 = 税前 - 社保 - 公积金 - 个税
+        net := grossMonthly - ssPerson - hfPerson - taxThisMonth
+    }
+}
 ```
 
 ### 前端页面
@@ -1879,55 +1786,143 @@ ALTER TABLE recurring_income_plans
 
 **Section 2: 工资参数配置表单**
 - 税前月薪输入
-- 纳税城市选择（自动加载社保比例）
-- 社保比例（显示默认值，可自定义）
-- 社保比例明细表格
-- 专项附加扣除
-- 开始日期、发薪日
-- 到账账户选择
-- 保存/预览按钮
+- 纳税城市选择（从API加载地区列表，自动获取地区规则）
+- 社保缴纳比例（使用默认/自定义切换）
+  - 养老保险、医疗保险、失业保险分别可调
+  - 住房公积金比例滑块（5%-12%）
+- 缴费基数信息展示（社保/公积金基数上下限，实际使用的基数）
+- 专项附加扣除配置（7项下拉选择）
+- 发薪设置（开始日期、发薪日、到账账户）
+- 保存为工资方案 / 仅预览 按钮
 
-**Section 3: 薪资计算器预览**
-- 顶部汇总卡片:
+**Section 3: 薪资预览结果**
+- 年度汇总卡片:
   - 全年税前总额
-  - 全年个税总额
-  - 全年税后总额
+  - 全年税后到手
+  - 全年个税
+  - 全年社保+公积金
+- 公积金详情:
+  - 个人公积金/月、公司公积金/月
+  - 公积金总计/月、全年公积金总计
 - 月度明细表格:
-  - 列: 月份、税前、社保+公积金、个税、税后到手
-- 底部提示: "仅供参考，以实际发薪与当地政策为准"
+  - 列: 月份、税前、社保、公积金(个人)、个税、税后到手、公积金累计
+- 公积金账户说明
+- 免责声明
 
 **页面特点**:
-- 实时计算预览
-- 自动加载城市社保比例
-- 表单验证
-- 加载状态管理
-- 错误提示
+- 实时加载地区规则
+- 专项附加扣除详细配置（子女教育、继续教育、赡养老人等）
+- 缴费基数自动限制（显示封顶/保底标记）
+- 公积金双边入账展示
+- 表单验证和加载状态
 
-### 业务流程
+### 数据库设计
 
-**保存工资方案流程**:
-1. 用户填写工资参数
-2. 前端调用预览API（可选）
-3. 用户确认后调用保存API
-4. 后端计算税后金额
-5. 查询现有salary计划并设为inactive
-6. 创建新的周期收入计划
-7. 返回计划和预览结果
+```sql
+-- 地区表
+CREATE TABLE payroll_regions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(50) UNIQUE NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-**数据一致性**:
-- 工资方案的`amount`字段存储税后金额
-- 税前金额和计算参数存储在专用字段
-- 与现金流预测系统无缝集成
-- 只允许一个active的工资方案
+-- 地区规则表（按年度）
+CREATE TABLE payroll_region_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  region_code VARCHAR(50) NOT NULL,
+  year INT NOT NULL,
+  ss_base_min NUMERIC(15,2) NOT NULL DEFAULT 0,
+  ss_base_max NUMERIC(15,2) NOT NULL DEFAULT 0,
+  hf_base_min NUMERIC(15,2) NOT NULL DEFAULT 0,
+  hf_base_max NUMERIC(15,2) NOT NULL DEFAULT 0,
+  ss_person_rate_sum NUMERIC(10,6) NOT NULL DEFAULT 0,
+  ss_company_rate_sum NUMERIC(10,6) NOT NULL DEFAULT 0,
+  hf_rate_min NUMERIC(10,6) NOT NULL DEFAULT 0.05,
+  hf_rate_max NUMERIC(10,6) NOT NULL DEFAULT 0.12,
+  default_hf_rate_person NUMERIC(10,6) NOT NULL DEFAULT 0.12,
+  default_hf_rate_company NUMERIC(10,6) NOT NULL DEFAULT 0.12,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_region_code ON payroll_region_rules(region_code);
+CREATE INDEX idx_year ON payroll_region_rules(year);
+
+-- 个税税率表
+CREATE TABLE tax_brackets_cn (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  year INT NOT NULL,
+  lower_bound NUMERIC(15,2) NOT NULL,
+  upper_bound NUMERIC(15,2),  -- NULL表示无上限
+  rate NUMERIC(10,6) NOT NULL,
+  quick_deduction NUMERIC(15,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_tax_year ON tax_brackets_cn(year);
+```
+
+### 前端类型定义
+
+```typescript
+// 薪资计算器相关类型
+export type BaseMode = 'BY_WAGE' | 'BY_MIN' | 'CUSTOM'
+
+export interface PayrollRegion {
+  code: string
+  name: string
+}
+
+export interface PayrollRegionRule {
+  regionCode: string
+  year: number
+  ssBaseMin: number
+  ssBaseMax: number
+  hfBaseMin: number
+  hfBaseMax: number
+  ssPersonRateSum: number
+  ssCompanyRateSum: number
+  hfRateMin: number
+  hfRateMax: number
+  defaultHfRatePerson: number
+  defaultHfRateCompany: number
+}
+
+export interface CalcSalaryRequest {
+  regionCode: string
+  year: number
+  grossMonthly: number
+  ssEnabled: boolean
+  ssBaseMode: BaseMode
+  ssBaseCustom?: number
+  ssRatePersonSum?: number
+  ssRateCompanySum?: number
+  hfEnabled: boolean
+  hfBaseMode: BaseMode
+  hfBaseCustom?: number
+  hfRatePerson: number
+  hfRateCompany: number
+  specialEnabled: boolean
+  special: SpecialDeduction
+}
+
+export interface CalcSalaryResponse {
+  summary: CalcSalarySummary
+  months: CalcSalaryMonth[]
+  totals: CalcSalaryTotals
+}
+```
 
 ### 扩展建议
 
-1. **年终奖计算**: 单独配置年终奖的税务计算
-2. **多地工作**: 支持同时配置多个城市的工资
-3. **历史记录**: 查看历史工资方案和实际发薪记录对比
-4. **智能提醒**: 发薪日前一天推送提醒
-5. **数据导出**: 导出全年薪资预览为Excel/PDF
-6. **社保基数**: 支持配置各城市的社保缴费基数上下限
+1. **年终奖计算**: 支持单独税率或并入综合所得
+2. **多城市对比**: 同一工资在不同城市的税后对比
+3. **历史规则**: 支持查询历史年度的社保规则
+4. **税率变化提醒**: 新年度税率更新通知
+5. **公积金贷款计算**: 根据公积金余额计算可贷额度
 
 ---
 
@@ -2946,7 +2941,10 @@ accounts                 - 账户
 transactions             - 交易记录
 installment_plans        - 分期计划
 recurring_income_plans   - 周期收入计划
-city_social_rates        - 城市社保比例
+city_social_rates        - 城市社保比例（兼容旧版）
+payroll_regions          - 薪资地区
+payroll_region_rules     - 薪资地区规则（含社保/公积金基数限制）
+tax_brackets_cn          - 中国个税税率表
 ```
 
 ### 索引策略
@@ -3170,7 +3168,7 @@ pnpm test
 - ✅ 交易记录
 - ✅ 分期计算
 - ✅ 周期收入
-- ✅ 薪资计算
+- ✅ 薪资计算（payroll/calculator_test.go）
 - ✅ 日志系统
 
 ---
@@ -3838,18 +3836,30 @@ sqlDB.SetConnMaxLifetime(5 * time.Minute)
 
 ### 5. 薪资计算引擎
 
-**个税累进算法**:
-- 7级税率表
-- 累计扣除法（月度计算）
-- 专项附加扣除
-- 社保公积金扣除
+**独立payroll模块设计**:
+- 地区规则管理（按年度存储各城市社保/公积金规则）
+- 数据库存储税率表（支持年度更新）
+- 灵活的基数模式（BY_WAGE/BY_MIN/CUSTOM）
+- 完整的专项附加扣除支持（7项）
+
+**累计预扣法个税计算**:
+- 7级累进税率表
+- 12个月逐月累计计算
+- 支持自定义社保/公积金比例
+- 公司成本同步计算
 
 **高精度计算**:
 ```go
-// 使用 float64 + 四舍五入
-func Round(value float64, places int) float64 {
-    multiplier := math.Pow(10, float64(places))
-    return math.Round(value * multiplier) / multiplier
+// 使用 shopspring/decimal 库
+import "github.com/shopspring/decimal"
+
+// 所有金额使用 decimal.Decimal 类型
+type CalcSalaryMonth struct {
+    Gross    decimal.Decimal `json:"gross"`
+    SSPerson decimal.Decimal `json:"ssPerson"`
+    HFPerson decimal.Decimal `json:"hfPerson"`
+    Tax      decimal.Decimal `json:"tax"`
+    Net      decimal.Decimal `json:"net"`
 }
 ```
 
@@ -3992,6 +4002,6 @@ type Store interface {
 
 ---
 
-**最后更新**: 2025年12月20日
+**最后更新**: 2025年12月21日
 **版本**: v1.0.0
 **文档维护**: NeverBroke Team
