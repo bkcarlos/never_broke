@@ -117,7 +117,7 @@
         </button>
       </div>
 
-      <!-- 周期收入配置 -->
+      <!-- 固定收入 -->
       <div class="setting-item bg-white rounded-lg shadow p-4">
         <button 
           @click="handleRecurringIncome"
@@ -125,7 +125,10 @@
         >
           <div class="flex items-center gap-3">
             <Icon name="wallet" size="24px" class="text-green-500" />
-            <span class="font-semibold">周期收入配置</span>
+            <div class="text-left">
+              <span class="font-semibold block">固定收入</span>
+              <p class="text-xs text-gray-500 mt-0.5">管理您的周期性固定收入</p>
+            </div>
           </div>
           <Icon name="add" size="20px" class="text-gray-400" />
         </button>

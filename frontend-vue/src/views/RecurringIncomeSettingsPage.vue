@@ -3,7 +3,7 @@
     <header class="px-4 pt-4 pb-3 flex items-center gap-2 bg-white shadow-sm">
       <button class="text-2xl text-slate-600" @click="router.back()">‹</button>
       <h1 class="text-lg font-semibold">
-        {{ t('recurring.title', '周期收入配置') }}
+        {{ t('recurring.title', '固定收入') }}
       </h1>
       <div class="flex-1" />
       <button
@@ -15,7 +15,7 @@
       </button>
     </header>
 
-    <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32 space-y-4">
+    <main class="flex-1 overflow-y-auto px-4 pt-2 pb-32 space-y-4">
       <!-- 加载状态 -->
       <div v-if="loading" class="text-center py-8">
         <p class="text-gray-500">{{ t('common.loading', '加载中...') }}</p>
