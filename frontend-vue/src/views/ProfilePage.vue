@@ -11,7 +11,10 @@
       <!-- 语言设置 -->
       <div class="setting-item bg-white rounded-lg shadow p-4">
         <div class="flex items-center justify-between">
-          <span class="font-semibold">{{ t('profile.language') }}</span>
+          <div class="flex items-center gap-3">
+            <Icon name="language" size="24px" class="text-blue-500" />
+            <span class="font-semibold">{{ t('profile.language') }}</span>
+          </div>
           <div class="flex gap-2">
             <button
               @click="handleLocaleSelect('zh-CN')"
@@ -38,9 +41,12 @@
       <!-- 金额显隐 -->
       <div class="setting-item bg-white rounded-lg shadow p-4">
         <div class="flex items-center justify-between">
-          <span class="font-semibold">
-            {{ userSettingsStore.showAmount ? t('profile.showAmount') : t('profile.hideAmount') }}
-          </span>
+          <div class="flex items-center gap-3">
+            <Icon :name="userSettingsStore.showAmount ? 'eye' : 'eye-close'" size="24px" class="text-blue-500" />
+            <span class="font-semibold">
+              {{ userSettingsStore.showAmount ? t('profile.showAmount') : t('profile.hideAmount') }}
+            </span>
+          </div>
           <button 
             @click="toggleShowAmount"
             class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
@@ -64,7 +70,7 @@
             <Icon name="bank" size="24px" class="text-indigo-500" />
             <span class="font-semibold">{{ t('account.manage.title', '账户管理') }}</span>
           </div>
-          <Icon name="add" size="20px" class="text-gray-400" />
+          <Icon name="chevron-right" size="20px" class="text-gray-400" />
         </button>
       </div>
 
@@ -78,7 +84,7 @@
             <Icon name="target" size="24px" class="text-purple-500" />
             <span class="font-semibold">{{ t('actions.setBudget') }}</span>
           </div>
-          <Icon name="add" size="20px" class="text-gray-400" />
+          <Icon name="chevron-right" size="20px" class="text-gray-400" />
         </button>
       </div>
 
@@ -92,7 +98,7 @@
             <Icon name="import" size="24px" class="text-orange-500" />
             <span class="font-semibold">{{ t('actions.import') }}</span>
           </div>
-          <Icon name="add" size="20px" class="text-gray-400" />
+          <Icon name="chevron-right" size="20px" class="text-gray-400" />
         </button>
       </div>
 
@@ -103,7 +109,7 @@
           class="w-full flex items-center justify-between"
         >
           <div class="flex items-center gap-3">
-            <Icon name="wallet" size="24px" class="text-emerald-500" />
+            <Icon name="money" size="24px" class="text-emerald-500" />
             <div class="text-left">
               <div class="text-sm font-medium text-slate-800">
                 {{ t('me.salary.title', '薪资控制') }}
@@ -113,7 +119,7 @@
               </div>
             </div>
           </div>
-          <Icon name="add" size="20px" class="text-gray-400" />
+          <Icon name="chevron-right" size="20px" class="text-gray-400" />
         </button>
       </div>
 
@@ -124,13 +130,13 @@
           class="w-full flex items-center justify-between"
         >
           <div class="flex items-center gap-3">
-            <Icon name="wallet" size="24px" class="text-green-500" />
+            <Icon name="refresh" size="24px" class="text-teal-500" />
             <div class="text-left">
-              <span class="font-semibold block">固定收入</span>
-              <p class="text-xs text-gray-500 mt-0.5">管理您的周期性固定收入</p>
+              <span class="font-semibold block">{{ t('recurring.title', '固定收入') }}</span>
+              <p class="text-xs text-gray-500 mt-0.5">{{ t('recurring.subtitle', '管理您的周期性固定收入') }}</p>
             </div>
           </div>
-          <Icon name="add" size="20px" class="text-gray-400" />
+          <Icon name="chevron-right" size="20px" class="text-gray-400" />
         </button>
       </div>
 

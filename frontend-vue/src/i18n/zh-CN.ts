@@ -104,6 +104,11 @@ export default {
   'record.installment.feePlaceholder': '没有可填 0',
   'record.installment.firstDueDate': '首期扣款日',
   'record.installment.hint': '保存后会按期数自动生成每期还款明细记录，用于后续统计和现金流预测。',
+  'record.installment.monthlyRate': '月利率（%）',
+  'record.installment.monthlyRatePlaceholder': '例如 0.5',
+  'record.installment.repayMethod': '还款方式',
+  'record.installment.repayMethod.equalPrincipal': '等额本金',
+  'record.installment.repayMethod.equalPayment': '等额本息',
 
   // 报表页
   'reports.title': '月度报表',
@@ -464,6 +469,7 @@ export default {
   // 通用
   'common.loading': '加载中...',
   'common.error': '出错了',
+  'common.unknownError': '未知错误',
   'common.retry': '重试',
   'common.save': '保存',
   'common.cancel': '取消',
@@ -472,6 +478,54 @@ export default {
   'common.year': '年',
   'common.month': '月',
   'common.required': '*',
+
+  // 固定收入页面
+  'recurring.title': '固定收入',
+  'recurring.subtitle': '管理您的周期性固定收入',
+  'recurring.dueToday.title': '今日待确认收入',
+  'recurring.amount': '金额',
+  'recurring.account': '到账账户',
+  'recurring.confirm': '确认到账',
+  'recurring.section.active': '已配置的周期收入',
+
+  // 首页
+  'home.availableBalance': '可用余额',
+  'home.monthSummary': '本月概览',
+  'home.monthBalance': '本月结余',
+  'home.monthIncome': '本月收入',
+  'home.monthExpense': '本月支出',
+  'home.fixedIncome': '固定收入',
+  'home.fixedExpense': '固定支出',
+  'home.monthlyEstimatedIncome': '月度预计总收入',
+  'home.monthlyRepayment': '月度还款总额',
+  'home.installmentTerm': '分期 {term}期',
+  'home.remainingPrincipal': '剩余本金',
+  'home.perMonth': '/月',
+  'home.statusSurplus': '收支盈余',
+  'home.statusOverspend': '支出超标',
+  'home.statusBalance': '收支平衡',
+  'home.statusUnknown': '未知',
+  'home.incomeType.salary': '工资',
+  'home.incomeType.rent': '房租',
+  'home.incomeType.side': '副业',
+  'home.incomeType.other': '其他',
+  'home.otherCategory': '其他',
+
+  // 时间线
+  'timeline.weekdays': '日,一,二,三,四,五,六',
+
+  // 城市
+  'city.beijing': '北京',
+  'city.shanghai': '上海',
+  'city.guangzhou': '广州',
+  'city.shenzhen': '深圳',
+  'city.default': '其他城市',
+
+  // 薪资页面补充
+  'me.salary.selectAccount': '请选择账户',
+  'me.salary.saving': '保存中...',
+  'me.salary.generating': '生成中...',
+  'me.salary.total': '合计',
 
   // 认证
   'auth.welcome': '欢迎回来',

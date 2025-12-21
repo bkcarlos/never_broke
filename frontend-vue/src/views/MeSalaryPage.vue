@@ -99,11 +99,11 @@
                 @change="handleCityChange"
                 class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-slate-50"
               >
-                <option value="beijing">北京</option>
-                <option value="shanghai">上海</option>
-                <option value="guangzhou">广州</option>
-                <option value="shenzhen">深圳</option>
-                <option value="default">其他城市</option>
+                <option value="beijing">{{ t('city.beijing', '北京') }}</option>
+                <option value="shanghai">{{ t('city.shanghai', '上海') }}</option>
+                <option value="guangzhou">{{ t('city.guangzhou', '广州') }}</option>
+                <option value="shenzhen">{{ t('city.shenzhen', '深圳') }}</option>
+                <option value="default">{{ t('city.default', '其他城市') }}</option>
               </select>
             </div>
 
@@ -141,7 +141,7 @@
                     <span>{{ (comp.rate * 100).toFixed(1) }}%</span>
                   </div>
                   <div class="flex justify-between font-medium text-slate-800 pt-1 border-t border-slate-200">
-                    <span>合计</span>
+                    <span>{{ t('me.salary.total', '合计') }}</span>
                     <span>{{ (cityRateDetail.totalRate * 100).toFixed(1) }}%</span>
                   </div>
                 </div>
@@ -199,7 +199,7 @@
                 v-model="form.accountId"
                 class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-slate-50"
               >
-                <option value="" disabled>请选择账户</option>
+                <option value="" disabled>{{ t('me.salary.selectAccount', '请选择账户') }}</option>
                 <option v-for="acc in accounts" :key="acc.id" :value="acc.id">
                   {{ formatAccountDisplayName(acc) }}
                 </option>
@@ -213,14 +213,14 @@
                 :disabled="saving || !isFormValid"
                 class="w-full py-2.5 rounded-full bg-indigo-500 text-white text-sm font-medium disabled:opacity-60"
               >
-                {{ saving ? '保存中...' : t('me.salary.saveAndApply', '保存为工资方案') }}
+                {{ saving ? t('me.salary.saving', '保存中...') : t('me.salary.saveAndApply', '保存为工资方案') }}
               </button>
               <button
                 @click="handlePreviewOnly"
                 :disabled="previewing || !isFormValid"
                 class="w-full py-2.5 rounded-full bg-slate-100 text-slate-700 text-sm font-medium disabled:opacity-60"
               >
-                {{ previewing ? '生成中...' : t('me.salary.previewOnly', '仅预览') }}
+                {{ previewing ? t('me.salary.generating', '生成中...') : t('me.salary.previewOnly', '仅预览') }}
               </button>
             </div>
           </div>
@@ -349,14 +349,7 @@ const isFormValid = computed(() => {
 })
 
 function getCityName(cityCode: string): string {
-  const cityNames: Record<string, string> = {
-    beijing: '北京',
-    shanghai: '上海',
-    guangzhou: '广州',
-    shenzhen: '深圳',
-    default: '其他城市',
-  }
-  return cityNames[cityCode] || cityCode
+  return t(`city.${cityCode}`, cityCode)
 }
 
 function getAccountName(accountId: string): string {

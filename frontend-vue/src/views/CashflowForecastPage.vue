@@ -323,7 +323,7 @@ async function loadForecast() {
     await nextTick()
     drawChart()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '未知错误'
+    error.value = e instanceof Error ? e.message : t('common.unknownError', '未知错误')
   } finally {
     loading.value = false
   }

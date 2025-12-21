@@ -58,7 +58,7 @@
             </div>
             
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
-              <span class="text-sm text-gray-500">💳 可用余额</span>
+              <span class="text-sm text-gray-500">💳 {{ t('home.availableBalance', '可用余额') }}</span>
               <span class="font-semibold text-indigo-600">
                 ¥{{ formatMoney(assetSummary.availableBalance) }}
               </span>
@@ -146,7 +146,7 @@
         <div class="card month-overview-card">
           <div class="mb-4">
             <div class="flex items-center justify-between mb-2">
-              <h2 class="card-title mb-0">本月概览</h2>
+              <h2 class="card-title mb-0">{{ t('home.monthSummary', '本月概览') }}</h2>
               <span 
                 class="px-3 py-1 rounded-full text-xs font-medium"
                 :class="{
@@ -165,7 +165,7 @@
           <div class="space-y-3">
             <!-- 收支统计 -->
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
-              <span class="text-sm text-gray-500">💰 本月结余</span>
+              <span class="text-sm text-gray-500">💰 {{ t('home.monthBalance', '本月结余') }}</span>
               <span 
                 class="font-semibold"
                 :class="{
@@ -179,14 +179,14 @@
             </div>
             
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
-              <span class="text-sm text-gray-500">📈 本月收入</span>
+              <span class="text-sm text-gray-500">📈 {{ t('home.monthIncome', '本月收入') }}</span>
               <span class="font-semibold text-green-600">
                 ¥{{ formatMoney(monthOverview.monthIncome) }}
               </span>
             </div>
             
             <div class="flex justify-between items-center py-2">
-              <span class="text-sm text-gray-500">📉 本月支出</span>
+              <span class="text-sm text-gray-500">📉 {{ t('home.monthExpense', '本月支出') }}</span>
               <span class="font-semibold text-red-500">
                 ¥{{ formatMoney(monthOverview.monthExpense) }}
               </span>
@@ -197,7 +197,7 @@
 
       <!-- 固定收入卡片（有数据时显示） -->
       <div v-if="recurringIncomes && recurringIncomes.length > 0" class="card fixed-income-card">
-        <h2 class="card-title">💰 固定收入</h2>
+        <h2 class="card-title">💰 {{ t('home.fixedIncome', '固定收入') }}</h2>
         <div class="space-y-2">
           <div 
             v-for="income in recurringIncomes" 
@@ -213,7 +213,7 @@
             </span>
           </div>
           <div class="pt-3 mt-2 border-t-2 border-gray-200 flex justify-between items-center">
-            <span class="text-base font-semibold text-gray-700">月度预计总收入</span>
+            <span class="text-base font-semibold text-gray-700">{{ t('home.monthlyEstimatedIncome', '月度预计总收入') }}</span>
             <span class="text-lg font-bold text-green-600">
               ¥{{ formatMoney(monthlyRecurringIncome) }}
             </span>
@@ -223,7 +223,7 @@
 
       <!-- 固定支出卡片（有数据时显示） -->
       <div v-if="installmentPlans && installmentPlans.length > 0" class="card fixed-expense-card">
-        <h2 class="card-title">💳 固定支出</h2>
+        <h2 class="card-title">💳 {{ t('home.fixedExpense', '固定支出') }}</h2>
         <div class="space-y-2">
           <div 
             v-for="plan in installmentPlans" 
@@ -231,15 +231,15 @@
             class="flex justify-between items-center py-3 border-b border-gray-100 last:border-0"
           >
             <div class="flex items-center gap-3">
-              <span class="text-base font-medium text-gray-700">分期 {{ plan.termMonths }}期</span>
-              <span class="text-xs text-gray-400">剩余本金 ¥{{ formatMoney(plan.principal) }}</span>
+              <span class="text-base font-medium text-gray-700">{{ t('home.installmentTerm', { term: plan.termMonths }, `分期 ${plan.termMonths}期`) }}</span>
+              <span class="text-xs text-gray-400">{{ t('home.remainingPrincipal', '剩余本金') }} ¥{{ formatMoney(plan.principal) }}</span>
             </div>
             <span class="text-base font-semibold text-orange-600">
-              ¥{{ formatMoney(plan.totalAmount / plan.termMonths) }}/月
+              ¥{{ formatMoney(plan.totalAmount / plan.termMonths) }}{{ t('home.perMonth', '/月') }}
             </span>
           </div>
           <div class="pt-3 mt-2 border-t-2 border-gray-200 flex justify-between items-center">
-            <span class="text-base font-semibold text-gray-700">月度还款总额</span>
+            <span class="text-base font-semibold text-gray-700">{{ t('home.monthlyRepayment', '月度还款总额') }}</span>
             <span class="text-lg font-bold text-orange-600">
               ¥{{ formatMoney(monthlyInstallmentPayment) }}
             </span>
@@ -431,39 +431,32 @@ function formatMoney(value: number): string {
 
 // 获取收入类型标签
 function getIncomeTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    salary: '💼 工资',
-    rent: '🏠 房租',
-    side: '💡 副业',
-    other: '📌 其他'
+  const icons: Record<string, string> = {
+    salary: '💼',
+    rent: '🏠',
+    side: '💡',
+    other: '📌'
   }
-  return labels[type] || '📌 其他'
+  const icon = icons[type] || '📌'
+  return `${icon} ${t(`home.incomeType.${type}`, type)}`
 }
 
 // 获取频率标签
 function getFrequencyLabel(frequency: string): string {
-  const labels: Record<string, string> = {
-    monthly: '每月',
-    bimonthly: '双月',
-    quarterly: '每季度',
-    semiannual: '半年',
-    weekly: '每周',
-    yearly: '每年'
-  }
-  return labels[frequency] || frequency
+  return t(`recurring.frequency.${frequency}`, frequency)
 }
 
 // 获取状态文本
 function getStatusText(status: string): string {
   switch (status) {
     case 'surplus':
-      return '✅ 收支盈余'
+      return `✅ ${t('home.statusSurplus', '收支盈余')}`
     case 'deficit':
-      return '⚠️ 支出超标'
+      return `⚠️ ${t('home.statusOverspend', '支出超标')}`
     case 'balanced':
-      return '⚖️ 收支平衡'
+      return `⚖️ ${t('home.statusBalance', '收支平衡')}`
     default:
-      return '未知'
+      return t('home.statusUnknown', '未知')
   }
 }
 

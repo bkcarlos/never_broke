@@ -175,7 +175,7 @@ const selectedDate = ref<string | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+const weekDays = computed(() => t('timeline.weekdays', '日,一,二,三,四,五,六').split(','))
 
 // 计算日历天数
 const calendarDays = computed(() => {
@@ -262,7 +262,7 @@ async function loadData() {
 
     timeline.value = await fetchDailySummary(fromDate, toDate, mode.value)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '未知错误'
+    error.value = e instanceof Error ? e.message : t('common.unknownError', '未知错误')
   } finally {
     loading.value = false
   }
@@ -274,7 +274,7 @@ async function selectDate(date: string) {
   try {
     dailyDetail.value = await fetchDailyDetail(date, mode.value)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '未知错误'
+    error.value = e instanceof Error ? e.message : t('common.unknownError', '未知错误')
   } finally {
     loading.value = false
   }

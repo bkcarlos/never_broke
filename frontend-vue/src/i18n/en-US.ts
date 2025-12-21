@@ -104,6 +104,11 @@ export default {
   'record.installment.feePlaceholder': 'Enter 0 if none',
   'record.installment.firstDueDate': 'First Due Date',
   'record.installment.hint': 'After saving, monthly repayment records will be auto-generated for statistics and cash flow forecasting.',
+  'record.installment.monthlyRate': 'Monthly Rate (%)',
+  'record.installment.monthlyRatePlaceholder': 'e.g., 0.5',
+  'record.installment.repayMethod': 'Repayment Method',
+  'record.installment.repayMethod.equalPrincipal': 'Equal Principal',
+  'record.installment.repayMethod.equalPayment': 'Equal Installment',
 
   // Reports Page
   'reports.title': 'Monthly Report',
@@ -464,6 +469,7 @@ export default {
   // Common
   'common.loading': 'Loading...',
   'common.error': 'Error',
+  'common.unknownError': 'Unknown error',
   'common.retry': 'Retry',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
@@ -472,6 +478,54 @@ export default {
   'common.year': '',
   'common.month': '',
   'common.required': '*',
+
+  // Recurring Income Page
+  'recurring.title': 'Fixed Income',
+  'recurring.subtitle': 'Manage your recurring fixed income',
+  'recurring.dueToday.title': 'Due Today',
+  'recurring.amount': 'Amount',
+  'recurring.account': 'Deposit Account',
+  'recurring.confirm': 'Confirm Received',
+  'recurring.section.active': 'Configured Recurring Income',
+
+  // Home Page Additional
+  'home.availableBalance': 'Available Balance',
+  'home.monthSummary': 'Monthly Summary',
+  'home.monthBalance': 'Monthly Balance',
+  'home.monthIncome': 'Monthly Income',
+  'home.monthExpense': 'Monthly Expense',
+  'home.fixedIncome': 'Fixed Income',
+  'home.fixedExpense': 'Fixed Expenses',
+  'home.monthlyEstimatedIncome': 'Est. Monthly Income',
+  'home.monthlyRepayment': 'Monthly Repayment',
+  'home.installmentTerm': '{term} Installments',
+  'home.remainingPrincipal': 'Remaining Principal',
+  'home.perMonth': '/mo',
+  'home.statusSurplus': 'Surplus',
+  'home.statusOverspend': 'Overspend',
+  'home.statusBalance': 'Balanced',
+  'home.statusUnknown': 'Unknown',
+  'home.incomeType.salary': 'Salary',
+  'home.incomeType.rent': 'Rent',
+  'home.incomeType.side': 'Side Job',
+  'home.incomeType.other': 'Other',
+  'home.otherCategory': 'Other',
+
+  // Timeline
+  'timeline.weekdays': 'Sun,Mon,Tue,Wed,Thu,Fri,Sat',
+
+  // Cities
+  'city.beijing': 'Beijing',
+  'city.shanghai': 'Shanghai',
+  'city.guangzhou': 'Guangzhou',
+  'city.shenzhen': 'Shenzhen',
+  'city.default': 'Other Cities',
+
+  // Salary Page Additional
+  'me.salary.selectAccount': 'Please select account',
+  'me.salary.saving': 'Saving...',
+  'me.salary.generating': 'Generating...',
+  'me.salary.total': 'Total',
 
   // Auth
   'auth.welcome': 'Welcome Back',
