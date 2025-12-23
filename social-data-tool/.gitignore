@@ -1,0 +1,14 @@
+# Binaries
+social-data-tool
+*.exe
+
+# Data files (可选择是否忽略)
+# data/*.json
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
