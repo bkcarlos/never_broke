@@ -2,8 +2,12 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"neverbroke/internal/categories"
 	"neverbroke/internal/ledger"
 	"neverbroke/internal/models"
+	"neverbroke/internal/money"
 
 	"gorm.io/gorm"
 )
@@ -34,10 +38,14 @@ func (r *pgTransactionRepository) GetByID(ctx context.Context, userID, id string
 }
 
 func (r *pgTransactionRepository) ListByUserBetween(ctx context.Context, userID, from, to string) ([]*ledger.Transaction, error) {
+	if len(from) < 10 || len(to) < 10 {
+		return nil, fmt.Errorf("invalid date range")
+	}
 	var dbTxs []models.Transaction
 
 	err := r.db.WithContext(ctx).
-		Where("user_id = ? AND occurred_at >= ? AND occurred_at < ?", userID, from, to).
+		Where("transactions.user_id = ? AND occurred_at >= ? AND occurred_at < ?", userID, from[:10], to[:10]).
+		Where("account_id IN (SELECT id FROM accounts WHERE user_id = ? AND currency = ?) OR (account_id IS NULL AND ? = 'CNY')", userID, money.Currency(ctx), money.Currency(ctx)).
 		Order("occurred_at DESC").
 		Find(&dbTxs).Error
 
@@ -46,8 +54,38 @@ func (r *pgTransactionRepository) ListByUserBetween(ctx context.Context, userID,
 	}
 
 	result := make([]*ledger.Transaction, len(dbTxs))
+	// Keep legacy reports and MCP readers consistent with reviewed workspace categories.
+	var overlays []struct {
+		TransactionID string
+		Payload       string
+	}
+	categoryOverrides := map[string]string{}
+	if r.db.Migrator().HasTable("workspace_states") {
+		if err := r.db.WithContext(ctx).Table("workspace_states AS ws").
+			Select("COALESCE(NULLIF(ci.transaction_id, ''), CASE WHEN ws.key LIKE 'tx:%' THEN substring(ws.key from 4) ELSE '' END) AS transaction_id, ws.payload").
+			Joins("LEFT JOIN curated_import_records AS ci ON ci.user_id = ws.user_id AND ci.source_key = ws.key").
+			Where("ws.user_id = ?", userID).Scan(&overlays).Error; err != nil {
+			return nil, err
+		}
+		for _, row := range overlays {
+			var edit struct {
+				Category string `json:"category"`
+			}
+			if err := json.Unmarshal([]byte(row.Payload), &edit); err != nil {
+				return nil, err
+			}
+			if edit.Category != "" {
+				categoryOverrides[row.TransactionID] = edit.Category
+			}
+		}
+	}
 	for i, dbTx := range dbTxs {
 		result[i] = toTransactionModel(&dbTx)
+		if category, ok := categoryOverrides[dbTx.ID]; ok {
+			result[i].CategoryKey = category
+		}
+		result[i].CategoryKey = categories.Resolve(result[i].CategoryKey).ID
+		result[i].Currency = money.Currency(ctx)
 	}
 
 	return result, nil

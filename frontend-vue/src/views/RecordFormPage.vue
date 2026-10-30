@@ -40,6 +40,8 @@
         </div>
       </div>
 
+      <button class="button" style="margin-bottom:18px" :class="{primary:mode==='refund'}" @click="switchMode('refund')">记录退款（冲减支出）</button>
+      <p v-if="mode==='refund'" class="notice">输入退回金额与原消费分类。退款计入退款发生日期，冲减支出，不作为收入。</p>
       <!-- 表单 -->
       <form @submit.prevent="onSubmit" class="space-y-6">
         <!-- 金额 -->
@@ -64,7 +66,7 @@
             {{ t('record.category') }}
           </label>
           <!-- 支出模式：快速选择按钮网格 -->
-          <div v-if="mode === 'expense'" class="grid grid-cols-4 gap-2">
+          <div v-if="(mode === 'expense' || mode === 'refund')" class="grid grid-cols-4 gap-2">
             <button
               v-for="cat in categories"
               :key="cat.key"
@@ -78,7 +80,7 @@
                   : 'bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50'
               ]"
             >
-              {{ t(`category.${cat.key}`) }}
+              {{cat.name}}
             </button>
           </div>
           <!-- 收入模式：快速选择按钮网格 -->
@@ -96,13 +98,13 @@
                   : 'bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50'
               ]"
             >
-              {{ t(`category.${cat.key}`) }}
+              {{cat.name}}
             </button>
           </div>
         </div>
 
         <!-- 账户选择 -->
-        <div v-if="mode === 'expense' || mode === 'income'">
+        <div v-if="mode === 'expense' || mode === 'income' || mode === 'refund'">
           <label class="block text-sm font-medium text-gray-700 mb-2">
             {{ t('record.account') }}
           </label>
@@ -306,6 +308,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {get} from '@/api/http'
+import {localDate} from '@/api/workspace'
+import type {Category} from '@/api/workspace'
 import { getAccounts } from '@/api/accounts'
 import { createTransaction } from '@/api/ledger'
 import { createExpenseInstallment } from '@/api/installments'
@@ -322,10 +327,10 @@ const route = useRoute()
 const router = useRouter()
 
 // 模式：expense, income, transfer
-const mode = ref<'expense' | 'income' | 'transfer'>('expense')
+const mode = ref<'expense' | 'income' | 'transfer' | 'refund'>('expense')
 
 // 切换模式时清空相关字段
-function switchMode(newMode: 'expense' | 'income' | 'transfer') {
+function switchMode(newMode: 'expense' | 'income' | 'transfer' | 'refund') {
   mode.value = newMode
   // 切换模式时清空分类选择
   categoryKey.value = ''
@@ -355,47 +360,15 @@ const monthlyRatePercent = ref<string>('0')
 const repayMethod = ref<InstallmentRepayMethod>('equal_principal')
 const firstDueDate = ref<string>('')
 
-// 分类列表
-const categories = computed(() => {
-  if (mode.value === 'expense') {
-    return [
-      { key: 'food' },
-      { key: 'transport' },
-      { key: 'shopping' },
-      { key: 'entertainment' },
-      { key: 'housing' },
-      { key: 'healthcare' },
-      { key: 'education' },
-      { key: 'communication' },
-      { key: 'clothing' },
-      { key: 'beauty' },
-      { key: 'sports' },
-      { key: 'travel' },
-      { key: 'gifts' },
-      { key: 'pets' },
-      { key: 'utilities' },
-      { key: 'other' }
-    ]
-  } else if (mode.value === 'income') {
-    return [
-      { key: 'salary' },
-      { key: 'bonus' },
-      { key: 'investment' },
-      { key: 'parttime' },
-      { key: 'finance' },
-      { key: 'rental' },
-      { key: 'refund' },
-      { key: 'redpacket' },
-      { key: 'other' }
-    ]
-  }
-  return []
-})
+const expenseCategories = ref<{key:string;name:string}[]>([])
+const categories = computed(() => mode.value === 'income'
+ ? ['salary','bonus','investment','parttime','finance','rental','redpacket','other'].map(key=>({key,name:t(`category.${key}`)}))
+ : expenseCategories.value)
 
 // 从路由参数初始化模式（如果存在）
 function initModeFromRoute() {
   const type = route.query.type as string
-  if (type === 'expense' || type === 'income' || type === 'transfer') {
+  if (type === 'expense' || type === 'income' || type === 'transfer' || type === 'refund') {
     mode.value = type
   }
 }
@@ -403,7 +376,7 @@ function initModeFromRoute() {
 // 初始化日期时间
 function initDateTime() {
   const now = new Date()
-  date.value = now.toISOString().split('T')[0]
+  date.value = localDate(now)
   const hours = String(now.getHours()).padStart(2, '0')
   const minutes = String(now.getMinutes()).padStart(2, '0')
   time.value = `${hours}:${minutes}`
@@ -412,7 +385,8 @@ function initDateTime() {
 // 加载账户列表
 async function loadAccounts() {
   try {
-    const list: Account[] = await getAccounts()
+    const [list, dictionary] = await Promise.all([getAccounts(),get<Category[]>('/workspace/categories')])
+    expenseCategories.value=dictionary.map(c=>({key:c.id,name:c.name}))
     accounts.value = list.filter((acc) => !acc.archived)
     
     // 设置默认账户
@@ -442,7 +416,7 @@ function initFirstDueDate() {
 // 构建请求 payload
 function buildPayload(): CreateTransactionPayload {
   const [datePart] = date.value.split('T')
-  const occurredAt = `${datePart}T${time.value}:00`
+  const occurredAt = new Date(`${datePart}T${time.value}:00`).toISOString()
   
   const payload: CreateTransactionPayload = {
     type: mode.value,
@@ -454,7 +428,7 @@ function buildPayload(): CreateTransactionPayload {
     payload.remark = remark.value
   }
 
-  if (mode.value === 'expense' || mode.value === 'income') {
+  if (mode.value === 'expense' || mode.value === 'income' || mode.value === 'refund') {
     payload.accountId = accountId.value
     if (categoryKey.value) {
       payload.categoryKey = categoryKey.value
@@ -472,8 +446,7 @@ async function submitNormalTransaction() {
   error.value = null
   const payload = buildPayload()
   await createTransaction(payload)
-  alert(t('record.success'))
-  router.back()
+  router.push('/detail')
 }
 
 // 提交分期支出

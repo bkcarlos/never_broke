@@ -1,4 +1,4 @@
-import { get, request } from './http'
+import { request } from './http'
 import type { MonthlyBudget } from '@/types'
 
 /**

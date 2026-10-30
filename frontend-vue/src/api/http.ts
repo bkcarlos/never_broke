@@ -17,7 +17,6 @@ export async function request<T>(
   options?: RequestInit
 ): Promise<T> {
   try {
-    console.log(`🌐 请求: ${BASE_URL}${url}`)
     
     // 添加认证头
     const headers: Record<string, string> = {
@@ -39,9 +38,15 @@ export async function request<T>(
       headers
     })
 
-    console.log(`📡 响应状态: ${response.status} ${response.statusText}`)
 
     if (!response.ok) {
+      let message = `请求失败（${response.status}），请稍后重试`
+      try {
+        const body: { message?: string } = await response.json()
+        if (body.message) message = body.message
+      } catch {
+        // A reverse proxy may return an empty body during a restart.
+      }
       // 401未授权，跳转到登录页
       if (response.status === 401) {
         localStorage.removeItem('access_token')
@@ -49,18 +54,16 @@ export async function request<T>(
       }
       throw new HttpError(
         response.status,
-        `HTTP Error: ${response.status} ${response.statusText}`
+        message
       )
     }
 
     const result: ApiResponse<T> = await response.json()
-    console.log(`📦 原始响应数据:`, result)
 
     if (result.code !== 0) {
       throw new HttpError(result.code, result.message)
     }
 
-    console.log(`✨ 解析后的数据:`, result.data)
     return result.data
   } catch (error) {
     console.error(`❌ 请求失败:`, error)

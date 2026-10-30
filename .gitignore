@@ -2,3 +2,14 @@ backend-go/migrations/0001_init.sql
 backend-go/tmp/*
 backend-go/.env
 .env
+
+deploy/neverbroke
+deploy/account.json
+
+# Local exports, credentials and generated Python caches
+draft_6aca3958_folder/
+**/__pycache__/
+*.pyc
+deploy/.env*
+deploy/sync.env
+deploy/*session*.json

@@ -1,7 +1,7 @@
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { getUserSettings, updateUserSettings } from '@/api/user'
-import type { UserSettings, Locale } from '@/types'
+import type { Locale } from '@/types'
 import { setLocale } from '@/i18n'
 
 export const useUserSettingsStore = defineStore('userSettings', () => {

@@ -197,7 +197,7 @@ export interface UpdateCreditLimitPayload {
 
 // ========== 交易相关类型 ==========
 
-export type TransactionType = 'expense' | 'income' | 'transfer'
+export type TransactionType = 'expense' | 'income' | 'transfer' | 'refund'
 
 export interface CreateTransactionPayload {
   type: TransactionType
@@ -211,6 +211,9 @@ export interface CreateTransactionPayload {
 }
 
 export interface Transaction {
+  currency?: string
+  projected?: boolean
+  amountUnknown?: boolean
   id: string
   type: TransactionType
   amount: number
@@ -448,6 +451,7 @@ export interface ProjectedTransaction {
 export type TimelineMode = 'history' | 'with_future'
 
 export interface DailySummary {
+  repayment?: number
   date: string
   income: number
   expense: number
@@ -465,17 +469,20 @@ export interface DailyTimeline {
 // ========== 现金流预测相关类型 ==========
 
 export type ForecastBase = 'total_assets' | 'account'
-export type ForecastStatus = 'safe' | 'warning' | 'danger'
+export type ForecastStatus = 'safe' | 'warning' | 'danger' | 'unknown'
 
 export interface DailyForecastPoint {
   date: string           // YYYY-MM-DD
-  openingBalance: number
+  openingBalance: number | null
   inflow: number
   outflow: number
-  closingBalance: number
+  closingBalance: number | null
 }
 
 export interface CashflowForecast {
+  balanceKnown: boolean
+  unknownAmounts: number
+  dailyBudget: number
   startDate: string
   endDate: string
   base: ForecastBase

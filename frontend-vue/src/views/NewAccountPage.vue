@@ -80,7 +80,7 @@
             :placeholder="t('newAccount.cardLast4Placeholder')"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             :class="{ 'border-red-500': errors.cardLast4 }"
-            @input="form.cardLast4 = form.cardLast4.replace(/\D/g, '')"
+            @input="form.cardLast4 = (form.cardLast4 || '').replace(/\D/g, '')"
           />
           <p v-if="errors.cardLast4" class="mt-1 text-sm text-red-500">{{ errors.cardLast4 }}</p>
           <p class="mt-1 text-xs text-gray-500">{{ t('newAccount.cardLast4Hint') }}</p>
@@ -294,7 +294,7 @@ function validateForm(): boolean {
       errors.institution = t('newAccount.error.institution')
       isValid = false
     }
-    if (!form.cardLast4 || form.cardLast4.length < 2 || form.cardLast4.length > 4) {
+    if (!form.cardLast4 || (form.cardLast4 || '').length < 2 || (form.cardLast4 || '').length > 4) {
       errors.cardLast4 = t('newAccount.error.cardLast4')
       isValid = false
     }

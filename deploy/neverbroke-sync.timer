@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily NeverBroke one-way sync (requires source authorization)
+[Timer]
+OnCalendar=*-*-* 08:00:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=120
+[Install]
+WantedBy=timers.target

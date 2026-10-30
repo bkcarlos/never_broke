@@ -6,11 +6,14 @@ import (
 	"sort"
 	"time"
 
+	"neverbroke/internal/curatedimport"
 	"neverbroke/internal/installment"
 	"neverbroke/internal/ledger"
 	"neverbroke/internal/models"
+	"neverbroke/internal/money"
 	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/repository"
+	"neverbroke/internal/workspace"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -36,7 +39,7 @@ func BuildDailySummary(
 	}
 
 	// 从 transactions 中取 [from, to] 的所有真实交易
-	transactions, err := store.Transactions().ListByUserBetween(ctx, userID, fromDate, toDate)
+	transactions, err := store.Transactions().ListByUserBetween(ctx, userID, fromDate, to.AddDate(0, 0, 1).Format("2006-01-02"))
 	if err != nil {
 		return DailyTimelineResponse{}, fmt.Errorf("failed to list transactions: %w", err)
 	}
@@ -108,7 +111,7 @@ func BuildDailySummaryWithDB(
 		return DailyTimelineResponse{}, fmt.Errorf("invalid toDate: %w", err)
 	}
 
-	transactions, err := store.Transactions().ListByUserBetween(ctx, userID, fromDate, toDate)
+	transactions, err := store.Transactions().ListByUserBetween(ctx, userID, fromDate, to.AddDate(0, 0, 1).Format("2006-01-02"))
 	if err != nil {
 		return DailyTimelineResponse{}, fmt.Errorf("failed to list transactions: %w", err)
 	}
@@ -140,11 +143,26 @@ func BuildDailySummaryWithDB(
 		}
 	}
 
+	// Imported bills are repayment obligations, separate from consumption.
+	if mode == TimelineModeWithFuture && db != nil {
+		schedules, err := importedSchedules(ctx, db, userID, fromDate, toDate)
+		if err != nil {
+			return DailyTimelineResponse{}, err
+		}
+		for _, r := range schedules {
+			if d := dailyMap[r.Date]; d != nil {
+				d.HasFuture = true
+				if r.AmountCents != nil {
+					d.Repayment += float64(*r.AmountCents) / 100
+				}
+			}
+		}
+	}
 	// 未来模式：叠加周期收入和分期还款
 	if mode == TimelineModeWithFuture && db != nil {
 		// 叠加周期收入
 		var recurringPlans []models.RecurringIncomePlan
-		db.Where("user_id = ? AND active = ?", userID, true).Find(&recurringPlans)
+		db.Where("user_id = ? AND active = ? AND currency = ?", userID, true, money.Currency(ctx)).Find(&recurringPlans)
 		for _, plan := range recurringPlans {
 			projectedDates := projectRecurringIncomeFromDB(&plan, from, to)
 			for _, date := range projectedDates {
@@ -157,20 +175,6 @@ func BuildDailySummaryWithDB(
 			}
 		}
 
-		// 叠加分期还款
-		var installmentPlans []models.InstallmentPlan
-		db.Where("user_id = ? AND status = ?", userID, "active").Find(&installmentPlans)
-		for _, plan := range installmentPlans {
-			schedule := calculateInstallmentScheduleFromDB(&plan, from, to)
-			for _, item := range schedule {
-				dateStr := item.DueDate
-				if daily, ok := dailyMap[dateStr]; ok {
-					daily.Expense += item.Total
-					daily.Net = daily.Income - daily.Expense
-					daily.HasFuture = true
-				}
-			}
-		}
 	}
 
 	var days []DailySummary
@@ -259,11 +263,24 @@ func BuildDailyDetailWithDB(
 		}
 	}
 
+	if mode == TimelineModeWithFuture && db != nil {
+		schedules, err := importedSchedules(ctx, db, userID, date, date)
+		if err != nil {
+			return DailyDetailResponse{}, err
+		}
+		for _, r := range schedules {
+			var amount float64
+			if r.AmountCents != nil {
+				amount = float64(*r.AmountCents) / 100
+			}
+			result = append(result, ledger.Transaction{ID: "schedule:" + r.Key, Currency: r.Currency, Projected: true, AmountUnknown: r.AmountCents == nil, CreateTransactionRequest: ledger.CreateTransactionRequest{Type: ledger.TransactionTypeTransfer, Amount: amount, OccurredAt: date + "T00:00:00+08:00", Remark: r.Description + "\n" + r.Note}})
+		}
+	}
 	// 未来模式：添加虚拟交易
 	if mode == TimelineModeWithFuture && db != nil {
 		// 添加周期收入虚拟交易
 		var recurringPlans []models.RecurringIncomePlan
-		db.Where("user_id = ? AND active = ?", userID, true).Find(&recurringPlans)
+		db.Where("user_id = ? AND active = ? AND currency = ?", userID, true, money.Currency(ctx)).Find(&recurringPlans)
 		for _, plan := range recurringPlans {
 			if plan.NextDueDate.Equal(targetDate) {
 				virtualTx := ledger.Transaction{
@@ -281,28 +298,6 @@ func BuildDailyDetailWithDB(
 			}
 		}
 
-		// 添加分期还款虚拟交易
-		var installmentPlans []models.InstallmentPlan
-		db.Where("user_id = ? AND status = ?", userID, "active").Find(&installmentPlans)
-		for _, plan := range installmentPlans {
-			schedule := calculateInstallmentScheduleFromDB(&plan, startTime, endTime)
-			for _, item := range schedule {
-				if item.DueDate == date {
-					virtualTx := ledger.Transaction{
-						ID: uuid.NewString(),
-						CreateTransactionRequest: ledger.CreateTransactionRequest{
-							Type:        ledger.TransactionTypeExpense,
-							Amount:      item.Total,
-							CategoryKey: "",
-							Remark:      fmt.Sprintf("预计支出：分期还款（第%d期）", item.Period),
-							OccurredAt:  date + "T00:00:00Z",
-							AccountID:   plan.AccountID,
-						},
-					}
-					result = append(result, virtualTx)
-				}
-			}
-		}
 	}
 
 	return DailyDetailResponse{
@@ -371,4 +366,21 @@ func calculateInstallmentScheduleFromDB(plan *models.InstallmentPlan, startDate,
 	}
 
 	return result
+}
+
+// importedSchedules keeps estimates and payment-status-unknown bills out of
+// expense totals. They are visible only when the user requests future items.
+func importedSchedules(ctx context.Context, db *gorm.DB, user, from, to string) ([]curatedimport.Record, error) {
+	items, _, err := workspace.Load(db.WithContext(ctx), user)
+	if err != nil {
+		return nil, err
+	}
+	out := []curatedimport.Record{}
+	for _, x := range items {
+		if x.Kind != "schedule" || x.Currency != money.Currency(ctx) || x.Date < from || x.Date > to || x.Edit.Status == "paid" || x.Edit.Status == "cancelled" || x.Edit.Status == "replaced" {
+			continue
+		}
+		out = append(out, curatedimport.Record{Key: x.Key, Kind: "schedule", Currency: x.Currency, Date: x.Date, AmountCents: x.Cents, Description: x.Description, Note: x.Note})
+	}
+	return out, nil
 }

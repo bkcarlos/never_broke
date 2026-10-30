@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"neverbroke/internal/auth"
@@ -273,7 +274,7 @@ func TestAuthFlow_ConcurrentRegistrations(t *testing.T) {
 				Email:    email,
 				Password: "TestPassword123!",
 				Nickname: "Concurrent User",
-				DeviceID: "device-" + string(rune(index)),
+				DeviceID: "device-" + strconv.Itoa(index),
 			}
 
 			body, _ := json.Marshal(registerReq)

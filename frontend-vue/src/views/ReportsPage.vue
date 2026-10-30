@@ -1,22 +1,23 @@
 <template>
   <div class="page-container">
     <div class="page-content">
+    <label class="block mb-3">统计币种 <select v-model="currency" @change="loadData" class="border rounded p-1"><option>CNY</option><option>USD</option></select> <span class="text-xs text-gray-500">退款冲减支出，不计入收入</span></label>
     <!-- 月份选择 -->
     <div class="month-selector bg-white rounded-lg shadow p-4 mb-4">
       <div class="flex items-center justify-between">
-        <button 
+        <button
           @click="changeMonth(-1)"
           class="px-3 py-1 text-blue-500 hover:bg-blue-50 rounded"
         >
           ← {{ t('reports.prevMonth') }}
         </button>
-        <input 
+        <input
           :value="selectedMonthStr"
-          type="month" 
+          type="month"
           @change="handleMonthChange"
           class="px-3 py-1 border rounded month-input"
         />
-        <button 
+        <button
           @click="changeMonth(1)"
           class="px-3 py-1 text-blue-500 hover:bg-blue-50 rounded"
         >
@@ -33,8 +34,8 @@
     <!-- 错误状态 -->
     <div v-else-if="error" class="text-center py-8">
       <p class="text-red-500 mb-4">{{ t('common.error') }}: {{ error }}</p>
-      <button 
-        @click="loadData" 
+      <button
+        @click="loadData"
         class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
       >
         {{ t('common.retry') }}
@@ -49,19 +50,19 @@
           <div>
             <p class="text-xs text-gray-500">{{ t('reports.totalIncome') }}</p>
             <p class="text-lg font-bold text-green-500">
-              ¥{{ formatAmount(report.totalIncome, showAmount) }}
+              {{ currency === 'USD' ? 'US$' : '¥' }}{{ formatAmount(report.totalIncome, showAmount) }}
             </p>
           </div>
           <div>
             <p class="text-xs text-gray-500">{{ t('reports.totalExpense') }}</p>
             <p class="text-lg font-bold text-red-500">
-              ¥{{ formatAmount(report.totalExpense, showAmount) }}
+              {{ currency === 'USD' ? 'US$' : '¥' }}{{ formatAmount(report.totalExpense, showAmount) }}
             </p>
           </div>
           <div>
             <p class="text-xs text-gray-500">{{ t('reports.netIncome') }}</p>
             <p class="text-lg font-bold" :class="report.netAmount >= 0 ? 'text-green-500' : 'text-red-500'">
-              ¥{{ formatAmount(report.netAmount, showAmount) }}
+              {{ currency === 'USD' ? 'US$' : '¥' }}{{ formatAmount(report.netAmount, showAmount) }}
             </p>
           </div>
         </div>
@@ -77,12 +78,12 @@
 
       <!-- Section 3: 分类饼图 -->
       <div class="bg-white rounded-lg shadow p-4 mb-4">
-        <h2 class="text-sm font-semibold text-gray-700 mb-3">{{ t('reports.categoryStats') }}</h2>
+        <h2 class="text-sm font-semibold text-gray-700 mb-3">{{ t('reports.categoryStats') }}（本月全部 {{ report.categories?.length || 0 }} 类）</h2><p class="text-xs text-gray-500">表格含退款冲减；饼图仅展示净支出为正的分类。</p>
         <div v-if="report.categories && report.categories.length > 0" class="flex flex-col items-center">
           <canvas ref="pieCanvas" class="w-full h-64 mb-4"></canvas>
           <div class="w-full space-y-2">
-            <div 
-              v-for="(cat, index) in report.categories.slice(0, 6)" 
+            <div
+              v-for="(cat, index) in report.categories"
               :key="cat.categoryKey"
               class="flex items-center justify-between py-2 border-b last:border-b-0"
             >
@@ -92,14 +93,14 @@
               </div>
               <div class="flex items-center gap-3">
                 <div class="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    class="bg-blue-500 h-2 rounded-full" 
-                    :style="{ width: `${cat.ratio * 100}%` }"
+                  <div
+                    class="bg-blue-500 h-2 rounded-full"
+                    :style="{ width: `${Math.max(0, Math.min(100, cat.ratio * 100))}%` }"
                   ></div>
                 </div>
                 <span class="text-sm text-gray-500 w-12 text-right">{{ (cat.ratio * 100).toFixed(1) }}%</span>
                 <span class="font-semibold w-24 text-right">
-                  ¥{{ formatAmount(cat.amount, showAmount) }}
+                  {{ currency === 'USD' ? 'US$' : '¥' }}{{ formatAmount(cat.amount, showAmount) }}
                 </span>
               </div>
             </div>
@@ -124,13 +125,13 @@
             {{ t('reports.topCategoriesDesc', '本月前三大支出分类：') }}
           </p>
           <ul class="space-y-1">
-            <li 
-              v-for="(cat, index) in report.topCategories" 
+            <li
+              v-for="(cat, index) in report.topCategories"
               :key="cat.categoryKey"
               class="text-sm text-gray-700"
             >
-              {{ index + 1 }}. {{ t(`category.${cat.categoryKey}`, cat.categoryKey) }} - 
-              ¥{{ formatAmount(cat.amount, showAmount) }} 
+              {{ index + 1 }}. {{ t(`category.${cat.categoryKey}`, cat.categoryKey) }} -
+              {{ currency === 'USD' ? 'US$' : '¥' }}{{ formatAmount(cat.amount, showAmount) }}
               ({{ (cat.ratio * 100).toFixed(1) }}%)
             </li>
           </ul>
@@ -148,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { fetchMonthlySummary } from '@/api/reports'
 import { t, formatAmount } from '@/i18n'
 import type { SummaryReport } from '@/types'
@@ -164,6 +165,7 @@ const pieCanvas = ref<HTMLCanvasElement | null>(null)
 
 // 默认当前月
 const now = new Date()
+const currency = ref('CNY')
 const selectedYear = ref(now.getFullYear())
 const selectedMonth = ref(now.getMonth() + 1)
 
@@ -189,16 +191,19 @@ const compareText = computed(() => {
 async function loadData() {
   loading.value = true
   error.value = null
-  
+
   try {
-    report.value = await fetchMonthlySummary(selectedYear.value, selectedMonth.value)
-    await nextTick()
-    drawTrendChart()
-    drawPieChart()
+    report.value = await fetchMonthlySummary(selectedYear.value, selectedMonth.value, currency.value)
   } catch (e) {
     error.value = e instanceof Error ? e.message : t('common.unknownError', '未知错误')
   } finally {
     loading.value = false
+  }
+  // Canvas elements mount only after the loading branch is removed.
+  if (!error.value) {
+    await nextTick()
+    drawTrendChart()
+    drawPieChart()
   }
 }
 
@@ -237,6 +242,8 @@ function drawTrendChart() {
     1
   )
 
+  const minValue = Math.min(0, ...trend.map(t => Math.min(t.income, t.expense)))
+  const span = maxValue - minValue
   const chartWidth = width - padding.left - padding.right
   const chartHeight = height - padding.top - padding.bottom
 
@@ -245,8 +252,8 @@ function drawTrendChart() {
   ctx.lineWidth = 2
   ctx.beginPath()
   trend.forEach((point, index) => {
-    const x = padding.left + (index / (trend.length - 1)) * chartWidth
-    const y = padding.top + chartHeight - (point.income / maxValue) * chartHeight
+    const x = padding.left + (index / Math.max(trend.length - 1, 1)) * chartWidth
+    const y = padding.top + chartHeight - ((point.income - minValue) / span) * chartHeight
     if (index === 0) {
       ctx.moveTo(x, y)
     } else {
@@ -259,8 +266,8 @@ function drawTrendChart() {
   ctx.strokeStyle = '#ef4444'
   ctx.beginPath()
   trend.forEach((point, index) => {
-    const x = padding.left + (index / (trend.length - 1)) * chartWidth
-    const y = padding.top + chartHeight - (point.expense / maxValue) * chartHeight
+    const x = padding.left + (index / Math.max(trend.length - 1, 1)) * chartWidth
+    const y = padding.top + chartHeight - ((point.expense - minValue) / span) * chartHeight
     if (index === 0) {
       ctx.moveTo(x, y)
     } else {
@@ -295,7 +302,7 @@ function drawPieChart() {
 
   ctx.clearRect(0, 0, width, height)
 
-  const categories = report.value.categories
+  const categories = report.value.categories.filter(c => c.amount > 0)
   const total = categories.reduce((sum, cat) => sum + cat.amount, 0)
   if (total === 0) return
 
@@ -314,19 +321,19 @@ function drawPieChart() {
   })
 }
 
-  onMounted(() => {
-    loadData()
-  })
-
-  // 监听窗口大小变化
-  window.addEventListener('resize', () => {
-    if (report.value) {
-      nextTick(() => {
-        drawTrendChart()
-        drawPieChart()
-      })
-    }
-  })
+function redrawCharts() {
+  if (report.value && !loading.value) {
+    nextTick(() => {
+      drawTrendChart()
+      drawPieChart()
+    })
+  }
+}
+onMounted(() => {
+  loadData()
+  window.addEventListener('resize', redrawCharts)
+})
+onUnmounted(() => window.removeEventListener('resize', redrawCharts))
 </script>
 
 <style scoped>

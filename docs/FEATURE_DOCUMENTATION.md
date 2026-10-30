@@ -6,7 +6,7 @@
 
 **当前版本**: v1.0.0
 
-**最后更新**: 2025年12月21日
+**最后更新**: 2026年10月30日
 
 ---
 
@@ -31,6 +31,7 @@
 17. [数据库设计](#数据库设计)
 18. [前端实现](#前端实现)
 19. [技术亮点](#技术亮点)
+20. [MCP 与 LLM 调用](#mcp-与-llm-调用)
 
 ---
 
@@ -4002,6 +4003,182 @@ type Store interface {
 
 ---
 
-**最后更新**: 2025年12月21日
+**最后更新**: 2026年10月30日
 **版本**: v1.0.0
 **文档维护**: NeverBroke Team
+
+
+## MCP 与 LLM 调用
+
+后端启动后同时提供 `http://localhost:8080/mcp`，使用官方 [MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk) 的 Streamable HTTP 传输，无需额外进程或模型 API Key。LLM 所在的客户端负责连接 MCP、发现工具及发起调用。
+
+每个请求必须携带 `Authorization: Bearer <access_token>`，包括初始化和工具发现。Token 通过现有 `/api/auth/login` 获取；过期后通过 `/api/auth/refresh` 刷新并更新客户端请求头。MCP 不提供自动登录、自动刷新或 OAuth 授权发现；只支持 OAuth 自动连接、不能设置 Bearer 请求头的客户端不能直接接入。
+
+支持 `url` / `headers` 的 MCP 客户端可使用以下配置（字段以客户端为准）：
+
+```json
+{
+  "mcpServers": {
+    "neverbroke": {
+      "url": "http://localhost:8080/mcp",
+      "headers": { "Authorization": "Bearer <access_token>" }
+    }
+  }
+}
+```
+
+Token 应保存在客户端的密钥配置中，不要提交到仓库或放进 LLM 提示词。远程连接使用 HTTPS，客户端必须能访问部署地址；这里的 localhost 指客户端所在机器。
+
+| 工具 | 用途 | 必填参数 |
+|------|------|----------|
+| `list_accounts` | 查询账户、余额和币种 | 无 |
+| `get_overview` | 查询财务概览 | 无 |
+| `get_daily_transactions` | 查询每日收支 | `date`：YYYY-MM-DD |
+| `get_monthly_report` | 查询月报、分类和趋势 | `month`：YYYY-MM |
+| `get_monthly_budget` | 查询月度预算 | `month`：YYYY-MM |
+| `forecast_cashflow` | 预测现金流 | `startDate`：YYYY-MM-DD；可选 `days`（默认 30，最多 366）、`base`、`accountId`、`safeAmount` |
+| `create_account` | 创建账户 | `type`、`currency`、`balance`；部分类型需要 `institution` |
+| `create_transaction` | 记录收入、支出或转账 | `type`、`amount`、`occurredAt`，以及相应账户 ID |
+| `set_monthly_budget` | 设置或覆盖预算 | `month`、`totalBudget` |
+
+工具描述及 JSON Schema 可通过 `tools/list` 获取。写入工具会实际修改数据，客户端应按用户意图发起调用；创建账户和交易不是幂等操作，不应在响应不确定时盲目重试。工具参数不接受用户身份；每次调用在进程内经过现有 REST 路由的 JWT 校验、账户归属校验及业务逻辑。成功结果保留 REST 的 `code/message/data` 结构，同时提供文本和结构化内容；业务错误返回 MCP `isError: true`。
+
+协议验证示例（先设置 `NEVERBROKE_ACCESS_TOKEN`）：
+
+```bash
+curl http://localhost:8080/mcp \
+  -H "Authorization: Bearer $NEVERBROKE_ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"example","version":"1.0"}}}'
+
+curl http://localhost:8080/mcp \
+  -H "Authorization: Bearer $NEVERBROKE_ACCESS_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'MCP-Protocol-Version: 2025-06-18' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_daily_transactions","arguments":{"date":"2026-10-30"}}}'
+```
+
+服务使用无状态模式，不依赖 Session ID；不提供旧版 HTTP+SSE `/sse` 或 stdio 入口。请求体限制为 1 MiB；浏览器 Origin 仅允许同源和现有开发前端。测试：`cd backend-go && go test -race ./internal/mcpserver ./internal/report ./internal/http/router`。
+
+
+### Docker 部署与长期 MCP 凭据
+
+`deploy/compose.yml` 提供独立 PostgreSQL 和后端，自动重启并持久化数据库、日志；后端健康检查为 `/healthz`。后端端口仅绑定宿主机 `127.0.0.1:18080`，Rakazo 通过共享 Docker 网络中的 `http://neverbroke:8080/mcp` 连接。网络名称默认 `rakazo_app`，可通过 `RAKAZO_NETWORK` 修改。
+
+构建与启动：
+
+```bash
+cd backend-go
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o ../deploy/neverbroke ./cmd/server
+cd ../deploy
+# 在目标服务器创建权限为 600 的 .env，再启动：
+docker compose up -d --build
+docker compose ps
+```
+
+`.env` 必填：`POSTGRES_PASSWORD`、`JWT_SECRET`（随机生成，至少 32 字节）、`NEVERBROKE_MCP_API_KEY`（独立随机密钥）、`NEVERBROKE_MCP_USER_ID`（已注册用户的数字 ID）。首次部署通过 `/api/auth/register` 注册用户，参数为 `email`、`password`、`nickname`、`device_id`，再将实际用户 ID 写入配置并重建 API 容器。
+
+MCP 专用密钥仅在 `/mcp` 接受，绑定一个用户，拥有该用户全部 MCP 工具权限；普通 REST 仍只接受 JWT。每次请求检查用户是否存在，并在进程内生成短期 JWT 复用原有鉴权。专用密钥不自动过期，也不随普通登录退出而失效：撤销或轮换需修改 `NEVERBROKE_MCP_API_KEY`、执行 `docker compose up -d`，再同步更新 Rakazo 的加密凭据。未配置专用密钥时维持普通 JWT 模式。
+
+Rakazo 添加 `streamable_http` 类型的服务，设置内网端点和 `Authorization: Bearer <专用密钥>`，测试应发现 12 个工具。部署方需已开启 `MCP_ALLOW_PRIVATE_ENDPOINT=true`；随后将服务分配给需要使用它的机器人，并保留原有工具分配。
+
+备份应包含 PostgreSQL 数据和部署 `.env`；不要执行 `docker compose down -v`，该命令会删除数据卷。账户初始为空，需由用户提供实际账户和余额后开始记账。
+
+
+### 前端部署
+
+前端构建使用锁定的 TypeScript 5.2.2，与现有 vue-tsc 1.8 检查器兼容。执行：
+
+```bash
+cd frontend-vue
+pnpm install --frozen-lockfile
+pnpm build
+# 将 dist/ 内容复制到服务器部署目录的 frontend/ 下。
+# 将 deploy/nginx.conf 和 deploy/compose.yml 同步至该部署目录。
+docker compose up -d web
+```
+
+Nginx 仅绑定宿主机 `127.0.0.1:80`，关闭公网直接访问；静态文件目录为部署目录下的 `frontend/`，所有 Vue 路由均回退到 `index.html`；`/api/` 同源转发至后端。资源文件长期缓存，HTML 不缓存。通过下述 Tailscale HTTPS 入口登录，公网 IP 的 HTTP 地址不可访问。MCP 仍使用内部端点，不通过前端网关开放。
+
+已有 Tailscale 的部署可追加独立 HTTPS 入口（不修改已有 443 服务）：`tailscale serve --bg --https=8443 http://127.0.0.1:80`，地址为 `https://<设备的 Tailscale 域名>:8443/`，仅已连接同一 Tailnet 的设备可访问。
+
+前端与 MCP 共用后端数据库。新注册用户有独立账本；要查看 MCP 使用的账本，必须登录 `NEVERBROKE_MCP_USER_ID` 对应的账户。
+
+### Reviewed historical bill imports
+
+`POST /api/import/curated/preview` and `/api/import/curated/commit` accept a version-1 bundle containing `accounts` and `records`. The ordinary Import Bills page now supports JSON upload, validation, preview, commit, browsing and following receipt/refund links. All endpoints use the authenticated owner; no owner ID is accepted from the upload. `cmd/import-curated --user-email <existing-email> [--commit]` uses the same service for controlled server-side imports from stdin.
+
+- Record keys are stable within each owner. Same key and content is skipped; changed content conflicts and rolls back the whole import. Account creation and ledger writes are in the same transaction, serialized on the owner's row.
+- Expense and refund amounts are positive integer cents in the bundle. Refunds are stored as signed negative expenses so they reduce spending rather than create income. Relations retain their confidence/status; a rule match does not become a confirmed order match.
+- Receipt, statement, reference, daily-summary and repayment-schedule records are retained outside the actual transaction ledger. Receipts do not create a second expense; forecasts do not increase historical spending.
+- Historical imports preserve existing balances. Newly created accounts start at zero, which is a placeholder to be reconciled separately, not a reconstructed current balance.
+- Reporting, timeline and ledger queries default to CNY and accept `currency=USD`. No exchange rate is invented. Month/day ranges use source-local date boundaries, including the last day. Timeline `with_future` shows imported repayment amounts separately from consumption.
+- Related metadata is available through the owner-scoped `/api/import/curated` endpoint. Email bodies and email URLs are not required.
+- PostgreSQL import tests run only against a database named `neverbroke_import_test_*` when `IMPORT_TEST_DATABASE=1`. They cover preview, replay, conflicts/rollback, partial refunds, currency separation, concurrency and owner isolation.
+
+
+## 账本工作台改版方案（2026-10-30）
+
+依据内部《消费账本统计逻辑盘点与 Neverbroke 功能补齐建议》版本 3；源文档链接不纳入公开仓库。以下为设计与验收契约，开发状态以验收记录为准。
+
+### 产品结构
+
+主导航：总览、交易账本、分析报表、核对工作台、账单与还款、导入与同步、账户；设置保留预算、薪资和偏好。桌面采用 216px 侧栏、56px 顶栏、紧凑筛选栏、44px 数据行及右侧详情抽屉；手机保留核心导航、筛选折叠区和全屏详情。所有页面共用字体、金额格式、按钮、表格、状态标签及空/错/加载状态。禁用白底白字、非语义渐变、过大统计卡片和不可操作的占位按钮。
+
+账本列：日期、商户/摘要、分类、账户、支付渠道、类型、金额、确认状态。筛选：日期范围、币种、银行/账户、类型、分类、来源状态、关键词。抽屉显示来源记录、凭证商品与订单、关联退款、处理历史。总览展示期间统计、最近交易、待处理事项及资料覆盖，未知余额明确显示待核实。
+
+### 数据与统计契约
+
+金额按整数分聚合。消费、退款、收入、转账、还款、凭证、参考、预测保留独立身份；退款底层兼容负支出，展示为退款，绝不增加收入。退款计入发生期。凭证和计划不进入消费总额。CNY/USD 单独统计；不自动换汇。消费总额、退款总额、净支出、消费笔数、平均单笔、待确认金额均明确返回。客单价仅用正消费。分类分析允许总额/净额切换，负净额用有符号条形图。图表标明币种、日期、账户、确认状态及实际覆盖范围；年度保留全部 12 个月位置，不把缺记录宣称为完整覆盖。
+
+分类采用稳定 ID、展示名和保守别名映射，手工与导入共用；未知细类不强行并入大类。历史原始内容保留，人工修订另存版本与审计；人工确认优先于自动规则。默认包括正式记录与每日摘要，并可筛除后者；此默认明确标记，不隐式更改既有基线。
+
+### P0：口径与安全更新
+
+1. 共用分类字典；手工退款使用退款入口；验收 26 元消费减 11 元退款得到净支出 15 元、收入 0。
+2. 全维度账本与统一聚合 API，按分对账；跨用户隔离；人民币与美元不能相加。
+3. 导入预览区分新增/未变/修订/疑似重复；提交携带预览版本，出现并发修改或未处理冲突则整体回滚。原始记录版本和批次留痕，历史导入仍不更新当前余额。撤销仅针对未被后续修改的批次，恢复前值与关联。
+4. 摘要升级正式账单按账户、币种、日期、金额、商户生成候选，用户选择保留/替换；不把近似候选当作自动确认。
+
+### P1：分析与业务处理
+
+1. 月度/年度分析：消费、退款、净额、笔数、平均单笔、完整时间轴、分类、商户 Top 15、渠道分布；点选维度回到账本核对。
+2. 分类/退款/凭证处理队列：动态统计待分类、平台待细分、退款待确认和凭证待匹配；支持候选选择、部分退款分配、解除关联、批量分类、规则预览与应用。校验同账户同币种、累计退款不超过消费；凭证匹配前后账本金额不变。
+3. 账单和还款：完整显示应还、最低还款、贷款余额和到期日；预计/已出账/已还/取消/已替代状态；显式选择正式账单替代的预测；不推断逾期。核验余额单独记录时间，不能从历史消费反算。
+4. 单向增量接入复用安全导入链路，保留批次、版本、数量、冲突、失败与最后成功时间。失败不发布部分结果，可重复重试。飞书暂为源数据修订端，本系统保存人工确认及覆盖值；冲突显式处理，不启用双向写回。
+
+### P2：分析与提醒
+
+订阅管理保留商户、金额、币种、周期、下次日期及启停；站内显示到期事项，外部邮件/消息通知需另有明确配置。分类预算、退款率、手续费/利息参考成本、凭证匹配率、未覆盖月份均使用真实记录，推断和缺失显式标注。跨币种折算是可选扩展，须有明确汇率来源和日期，本期不启用未经核验的折算。
+
+### 验证与发布
+
+先在独立测试库验证：重复导入 0 新增、冲突/错误全回滚、批次撤销、版本竞争、同币种退款上限、跨用户拒绝、年度空月、负净额、凭证不增消费。上线前备份数据库和静态资源，按币种核对交易笔数、消费、退款及净额；真实金额基线保存在部署方私有验收记录中。浏览器验证桌面和 390px 手机布局、筛选、详情与错误处理。保留 Tailscale 访问，公网端口不重新开放。
+
+外部依赖：真实账户余额和已还款情况需人工输入；邮件/飞书自动拉取需要可用的授权身份和源端增量配置，缺少时显示未连接，不声称正在自动同步。不保存邮件正文、邮件链接或邮件 ID。
+
+### 实现与核验记录
+
+本轮实现了 `/api/workspace` 工作台接口及对应界面：共享分类、正消费/退款/净额统计、年度/月度图表、商户和渠道下钻、原始字段明细、批量分类、退款分配、凭证关联与附件、修改历史恢复、带版本的设置、余额核验、还款状态与替代关系、分类预算、订阅关键词账单追踪和站内到期提醒。桌面侧栏和手机折叠筛选共用同一套数据；登录页移除了未实现的占位功能。
+
+安全导入支持差异分页、显式冲突决策、摘要替换、批次回滚和来源身份映射。回滚会检查后续版本、关联引用和附件；来源与账本的金额/币种不一致时拒绝发布。手工分类覆盖同样作用于原有月报和 MCP 查询。新 MCP 工具为 `query_ledger_workspace`、`get_ledger_record`、`get_repayment_projection`，总计 12 个工具。
+
+还款预测、日历及旧现金流 API 已接入统一的有效计划状态；已还、取消、被正式账单替代的预测退出未来现金流。信用卡余额不作为可花现金；未核验余额或未知应还金额使余额预测返回 `null`，风险状态为 `unknown`，不虚构 0 元余额或逾期。综合现金流沿用已启用的周期收入，并显式返回本月剩余预算的每日消费假设；未设置预算时不凭空添加消费。
+
+验证包括 Go 业务测试、独立 PostgreSQL 工作台测试、原有集成测试及 Vue 类型检查/生产构建。覆盖版本竞争、用户隔离、退款上限、原子回滚、正式替换与重放、撤销恢复、旧月报分类一致性、来源金额不平拒绝、未知余额和还款状态过滤。生产数据的隔离副本验证：各币种金额基线不变；完整来源包再次预览为新增 0、修订 0、冲突 0。390×844 手机布局、年度趋势与退款明细已做浏览器检查。
+
+### 单向同步运行方式与边界
+
+`scripts/sync_feishu.py` 通过已授权的 `lark-cli` 导出五张来源表，只请求不包含邮件正文/邮件标识的业务字段。逐页核验源版本、游标和记录唯一性；转换后调用差异预览，再由 `--commit` 发布无冲突批次。变更在应用中按记录增量处理；来源表仍做完整读取，当前未依赖不明确的源端变更游标。源端已有“分析日期”视为整理结果保留，缺少时才回退交易日期、记账日期；不在同步时静默重解释人工整理后的日期。
+
+源端配置通过 `NEVERBROKE_FEISHU_BASE_TOKEN` 和 `NEVERBROKE_FEISHU_TABLES` 传入，后者为含 `cmb`、`ceb`、`monthly`、`apple`、`calendar` 五个键的 JSON 对象，值为实际表 ID。源端标识保存在服务器权限为 600 的 `sync.env`，不提交到仓库。目标系统使用 `NEVERBROKE_URL`（默认服务器回环地址）、`NEVERBROKE_EMAIL`/`NEVERBROKE_PASSWORD`，或已有有效 `NEVERBROKE_TOKEN`。默认仅预览，`--output` 保存人工核对的数据包。运行结果写入 `/api/workspace/sync`，保留状态、数量和错误。
+
+`deploy/neverbroke-sync.service` 与 `.timer` 提供每日定时模板。服务器尚未配置飞书 CLI 授权，因此模板不自动启用，也不声称邮件已经持续进入系统。完成服务器源端授权后再设置受限的 `sync.env` 并启用定时器；授权凭据不得写入仓库。该任务读取飞书已整理数据，不替代 email-mcp 的邮件抓取和人工整理。飞书写回、外部消息通知及无汇率来源的跨币种折算不启用；账目核验结果、实际余额和已还状态需要真实业务证据。
+
+### 本次发布
+
+API 和前端通过 Docker Compose 发布。Web/API 仅绑定服务器回环地址，Tailscale 提供私有 HTTPS 入口。每次发布在部署目录的 backups/ 内保存数据库 dump、旧二进制和前端资源，并记录 Git 提交及新版本 SHA-256。实际主机及备份目录保留在服务器发布记录中。
+
+发布后再次验证上述金额基线、来源包零新增重放和未知余额返回。Rakazo 已刷新发现 12 个 MCP 工具，账单机器人沿用原有授权。服务器的同步脚本与定时模板已放置，但定时器未启用，等待源端授权。

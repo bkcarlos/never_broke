@@ -1,126 +1,26 @@
-<template>
-  <div class="page-container">
-    <div class="page-content px-4">
-      <!-- 顶部栏 -->
-      <div class="flex items-center gap-4 mb-6">
-        <button
-          @click="handleBack"
-          class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <Icon name="arrow-left" size="24px" class="text-gray-700" />
-        </button>
-        <h1 class="text-2xl font-bold text-gray-900">{{ t('import.title') }}</h1>
-      </div>
-
-      <!-- 说明卡片 -->
-      <div class="bg-blue-50 rounded-lg shadow p-4 mb-4">
-        <p class="text-sm text-gray-700">
-          {{ t('import.description') }}
-        </p>
-      </div>
-
-      <!-- 文本域 -->
-      <div class="bg-white rounded-lg shadow p-4 mb-4">
-        <textarea
-          v-model="rawText"
-          :placeholder="t('import.placeholder')"
-          class="w-full h-48 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-        />
-      </div>
-
-      <!-- 解析预览按钮 -->
-      <div class="mb-4">
-        <button
-          @click="handlePreview"
-          :disabled="loading"
-          class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-        >
-          {{ loading ? t('import.parsing') : t('import.parse') }}
-        </button>
-      </div>
-
-      <!-- 错误提示 -->
-      <div v-if="error" class="mb-4 p-4 bg-red-50 text-red-600 rounded-lg">
-        {{ error }}
-      </div>
-
-      <!-- 预览区域 -->
-      <div v-if="previewResult" class="bg-white rounded-lg shadow p-4">
-        <div class="mb-4">
-          <p class="text-lg font-semibold text-gray-900">
-            {{ t('import.result', { count: previewResult.count }) }}
-          </p>
-        </div>
-
-        <div class="space-y-3">
-          <div
-            v-for="(item, index) in previewResult.items"
-            :key="index"
-            class="border border-gray-200 rounded-lg p-4"
-          >
-            <div class="flex justify-between items-start mb-2">
-              <div>
-                <p class="font-medium text-gray-900">{{ item.remark }}</p>
-                <p class="text-sm text-gray-500">{{ item.date }}</p>
-              </div>
-              <p class="text-lg font-bold text-red-600">¥{{ item.amount.toFixed(2) }}</p>
-            </div>
-            <div class="mt-2">
-              <span class="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                {{ item.categoryGuess }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
+<template><div class="work-page"><header class="page-heading"><div><p class="eyebrow">IMPORT & SYNC</p><h1>导入与同步</h1><p class="subtitle">先看清差异，再发布到账本。所有更新可追踪。</p></div><RouterLink to="/review" class="button">核对工作台 →</RouterLink></header><div v-if="error" class="error-box" role="alert">{{error}}</div><div v-if="success" class="notice" role="status">{{success}}</div><div class="two-grid"><section class="panel"><div class="panel-head"><h2>导入整理后的账单</h2><span class="tag purple">JSON</span></div><div class="panel-body"><div class="file-drop"><p style="font-weight:500;margin-bottom:8px">选择账单数据包</p><p class="subtitle" style="margin-bottom:20px">预览不会写入账本。支持消费、退款、凭证和还款计划。</p><label class="button primary">选择 JSON 文件<input type="file" accept=".json,application/json" :disabled="busy" style="position:absolute;width:1px;height:1px;opacity:0" @change="choose"/></label><p class="subtitle">{{filename||'尚未选择文件'}}</p></div><p class="scope-note">历史导入不改变当前账户余额。同一来源记录修改会显示差异；疑似重复必须人工处理。</p></div></section><section class="panel"><div class="panel-head"><h2>连接与数据状态</h2><span class="tag amber">手动同步</span></div><div class="panel-body"><dl class="detail-grid"><dt>更新方式</dt><dd>整理后的 JSON 数据包 → 预览 → 发布</dd><dt>最近成功</dt><dd>{{lastSuccess?new Date(lastSuccess.createdAt).toLocaleString('zh-CN'):'暂无新批次'}}</dd><dt>最近拉取</dt><dd>{{latestSync?new Date(latestSync.createdAt).toLocaleString('zh-CN')+' · '+({success:'已发布',preview:'仅预览',conflict:'待人工处理',failed:'失败'}[latestSync.status]||latestSync.status):'暂无自动拉取记录，等待源端授权'}}</dd><dt v-if="latestSync?.error">处理提示</dt><dd v-if="latestSync?.error">{{latestSync.error}}</dd><dt>人工修订</dt><dd>独立保留，不被导入静默覆盖</dd></dl><p class="notice">现有历史记录已保留。新批次失败不会发布部分结果；修订来源后可以重新预览和重试。</p></div></section></div>
+<section v-if="preview" class="panel" style="margin-top:20px"><div class="panel-head"><h2>差异预览</h2><div class="actions"><span class="tag">新增 {{preview.new}}</span><span class="tag amber">修订 {{preview.updated}}</span><span class="tag">未变 {{preview.skipped}}</span></div></div><div class="panel-body"><p class="subtitle">修订需选择“保留”或“更新”；疑似重复需确认是独立交易还是跳过。本次未处理项 {{unresolved}} 条。</p><div class="actions" style="margin-top:12px"><button class="button" @click="keepChanges">保留全部修订</button><button class="button primary" :disabled="busy||unresolved>0" @click="commit">{{busy?'正在处理…':'确认发布此批次'}}</button><button class="button" :disabled="busy" @click="runPreview">重新预览</button></div></div><div class="table-scroll"><table class="ledger-table"><thead><tr><th>变化</th><th>日期 / 记录</th><th>原内容</th><th>新内容</th><th>处理方式</th></tr></thead><tbody><tr v-for="d in preview.differences.slice(diffPage*50,(diffPage+1)*50)" :key="d.key"><td><span class="tag" :class="d.type==='new'?'green':'amber'">{{({new:'新增',changed:'修订',duplicate:'疑似重复'})[d.type]}}</span></td><td>{{d.after.date}}<div class="cell-sub">{{d.after.description}}</div></td><td>{{d.before?.category||'—'}}<div class="cell-sub">{{d.before?amount(d.before.amountCents??null,d.before.currency,show):'—'}}</div></td><td>{{d.after.category||'—'}}<div class="cell-sub">{{amount(d.after.amountCents??null,d.after.currency,show)}}</div></td><td><select v-if="d.type!=='new'" v-model="resolutions[d.key].action" class="control"><option value="">请选择</option><option v-if="d.type==='changed'" value="keep">保留已有记录</option><option v-if="d.type==='changed'" value="update">采用来源修订</option><option v-if="d.type==='duplicate'" value="skip">跳过疑似重复</option><option v-if="d.type==='duplicate'" value="distinct">确认是独立交易</option><option v-if="d.type==='duplicate'" value="replace">正式账单替换摘要</option></select><select v-if="resolutions[d.key]?.action==='replace'" v-model="resolutions[d.key].target" class="control" aria-label="待替换的摘要"><option value="">选择摘要记录</option><option v-for="key in d.candidates" :key="key" :value="key">{{key}}</option></select><span v-if="d.type==='new'" class="subtle">将新增</span></td></tr></tbody></table></div><div class="pagination"><span>共 {{preview.differences.length}} 项差异</span><div class="actions"><button class="button" :disabled="diffPage===0" @click="diffPage--">上一页</button><span>{{diffPage+1}} / {{Math.max(1,Math.ceil(preview.differences.length/50))}}</span><button class="button" :disabled="(diffPage+1)*50>=preview.differences.length" @click="diffPage++">下一页</button></div></div></section>
+<section class="panel" style="margin-top:20px"><div class="panel-head"><h2>批次历史</h2><button class="button ghost" @click="loadBatches">刷新</button></div><div v-if="!batches.length" class="empty">尚无新版本导入批次。原有历史数据不受影响。</div><div class="table-scroll"><table v-if="batches.length" class="ledger-table"><thead><tr><th>时间 / 批次</th><th>状态</th><th>新增 / 修订 / 跳过</th><th>操作</th></tr></thead><tbody><tr v-for="b in batches" :key="b.id"><td>{{new Date(b.createdAt).toLocaleString('zh-CN')}}<div class="cell-sub">{{b.id}}</div></td><td>{{({applied:'已发布',failed:'失败',undone:'已撤销'})[b.status]||b.status}}<div class="cell-sub">{{b.error}}</div></td><td>{{b.new}} / {{b.updated}} / {{b.skipped}}</td><td><button v-if="b.status==='applied'" class="button danger" :disabled="busy" @click="undoID=b.id">撤销批次</button></td></tr></tbody></table></div></section><div v-if="undoID" class="notice"><p>将恢复该批次修改前的数据。若记录已被后续修改或引用，系统会拒绝撤销。</p><div class="actions" style="margin-top:10px"><button class="button danger" :disabled="busy" @click="undo">确认撤销</button><button class="button" @click="undoID=''">取消</button></div></div></div></template>
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { previewImport } from '@/api/importer'
-import type { ImportPreviewResult } from '@/types'
-import Icon from '@/components/Icon.vue'
-import { t } from '@/i18n'
-
-const router = useRouter()
-
-const rawText = ref<string>('')
-const loading = ref(false)
-const error = ref<string | null>(null)
-const previewResult = ref<ImportPreviewResult | null>(null)
-
-function handleBack() {
-  router.back()
-}
-
-async function handlePreview() {
-  if (!rawText.value.trim()) {
-    error.value = t('import.error.empty')
-    return
-  }
-
-  loading.value = true
-  error.value = null
-  previewResult.value = null
-
-  try {
-    const result = await previewImport(rawText.value)
-    previewResult.value = result
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : t('import.error.parse')
-  } finally {
-    loading.value = false
-  }
-}
+import {ref,computed,onMounted} from 'vue'
+import {get,post} from '@/api/http'
+import {getBatches,amount} from '@/api/workspace'
+import type {Batch} from '@/api/workspace'
+import {useUserSettingsStore} from '@/stores/userSettings'
+interface SourceRecord{key:string;date:string;description:string;category?:string;amountCents?:number;currency:string}
+interface Difference{key:string;type:'new'|'changed'|'duplicate';before?:SourceRecord;after:SourceRecord;candidates:string[]}
+interface Preview{token:string;new:number;updated:number;skipped:number;conflicts:number;differences:Difference[]}
+const settings=useUserSettingsStore(),show=computed(()=>settings.showAmount)
+const bundle=ref<unknown>(null),filename=ref(''),preview=ref<Preview|null>(null),resolutions=ref<Record<string,{action:string;target?:string}>>({}),batches=ref<Batch[]>([]),busy=ref(false),error=ref(''),success=ref(''),undoID=ref('')
+const unresolved=computed(()=>preview.value?.differences.filter(d=>d.type!=='new'&&(!resolutions.value[d.key]?.action||(resolutions.value[d.key]?.action==='replace'&&!resolutions.value[d.key]?.target))).length||0)
+const diffPage=ref(0),syncRuns=ref<{id:string;status:string;records:number;conflicts:number;error:string;createdAt:string}[]>([])
+const latestSync=computed(()=>syncRuns.value[0])
+const lastSuccess=computed(()=>batches.value.find(b=>b.status==='applied'))
+async function choose(e:Event){const f=(e.target as HTMLInputElement).files?.[0];if(!f)return;error.value='';success.value='';preview.value=null;try{if(f.size>16*1024*1024)throw Error('文件不能超过 16 MB');bundle.value=JSON.parse(await f.text());filename.value=f.name;await runPreview()}catch(e){error.value=String(e)}}
+async function runPreview(){busy.value=true;error.value='';try{diffPage.value=0;preview.value=await post<Preview>('/workspace/import/preview',{bundle:bundle.value});resolutions.value=Object.fromEntries(preview.value.differences.map(d=>[d.key,{action:''}]))}catch(e){preview.value=null;error.value=String(e)}finally{busy.value=false}}
+async function commit(){if(!preview.value)return;busy.value=true;error.value='';try{const b=await post<Batch>('/workspace/import/commit',{bundle:bundle.value,token:preview.value.token,resolutions:resolutions.value});success.value=`已发布：新增 ${b.new} 条，修订 ${b.updated} 条，跳过 ${b.skipped} 条。`;preview.value=null;await loadBatches()}catch(e){error.value=String(e);await loadBatches()}finally{busy.value=false}}
+function keepChanges(){preview.value?.differences.filter(d=>d.type==='changed').forEach(d=>resolutions.value[d.key]={action:'keep'})}
+async function loadBatches(){try{[batches.value,syncRuns.value]=await Promise.all([getBatches(),get<typeof syncRuns.value>('/workspace/sync')])}catch(e){error.value=String(e)}}
+async function undo(){busy.value=true;error.value='';try{await post('/workspace/batches/'+undoID.value+'/undo');undoID.value='';success.value='批次已撤销。';await loadBatches()}catch(e){error.value=String(e)}finally{busy.value=false}}
+onMounted(loadBatches)
 </script>
-
-<style scoped>
-/* 页面样式已移至全局样式文件 */
-</style>
-
-
-
-

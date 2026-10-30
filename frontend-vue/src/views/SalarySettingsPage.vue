@@ -132,7 +132,7 @@
                 :key="account.id"
                 :value="account.id"
               >
-                {{ account.name }}
+                {{ formatAccountDisplayName(account) }}
               </option>
             </select>
             <p v-if="errors.accountId" class="mt-1 text-sm text-red-500">{{ errors.accountId }}</p>
@@ -187,6 +187,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { listIncomePlans, createIncomePlan } from '@/api/incomePlans'
@@ -221,7 +222,7 @@ function getFrequencyLabel(frequency: IncomeFrequency): string {
 
 function getAccountName(accountId: string): string {
   const account = accounts.value.find(acc => acc.id === accountId)
-  return account ? account.name : accountId
+  return account ? formatAccountDisplayName(account) : accountId
 }
 
 function validateForm(): boolean {
@@ -267,7 +268,7 @@ function resetForm() {
   })
 }
 
-function handleEdit(plan: IncomePlan) {
+function handleEdit(_plan: IncomePlan) {
   alert(t('salary.todoEdit'))
   // editingPlan.value = plan
   // form.name = plan.name
@@ -278,7 +279,7 @@ function handleEdit(plan: IncomePlan) {
   // form.endDate = plan.endDate || ''
 }
 
-function handleDelete(id: string) {
+function handleDelete(_id: string) {
   alert(t('salary.todoDelete'))
 }
 

@@ -1,7 +1,6 @@
 package report
 
 import (
-	"context"
 	"neverbroke/common/logger"
 	"neverbroke/internal/http/response"
 	"neverbroke/internal/repository"
@@ -33,9 +32,13 @@ func (h *Handler) GetMonthlyReport(c *gin.Context) {
 		return
 	}
 
-	// 使用固定用户 ID
-	userID := "demo"
-	ctx := context.Background()
+	// 使用当前认证用户，避免报表跨用户读取
+	userID := c.GetString("user_id")
+	if userID == "" {
+		response.Unauthorized(c, "user not authenticated")
+		return
+	}
+	ctx := c.Request.Context()
 
 	logger.Debug("Fetching monthly report",
 		zap.String("month", month),
@@ -48,7 +51,7 @@ func (h *Handler) GetMonthlyReport(c *gin.Context) {
 		response.BadRequest(c, "invalid month format, expected YYYY-MM")
 		return
 	}
-	monthEnd := monthStart.AddDate(0, 1, 0).Add(-time.Second)
+	monthEnd := monthStart.AddDate(0, 1, 0)
 
 	// 从数据库获取本月交易
 	txs, err := h.store.Transactions().ListByUserBetween(ctx, userID,

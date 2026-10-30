@@ -251,6 +251,7 @@
       <div class="spending-overview">
         <div class="card spending-card">
           <h2 class="card-title">{{ t('home.spendOverview') }}</h2>
+          <p class="text-sm text-gray-500 mb-3">展示本月前三类，其余合并为其他。<RouterLink to="/reports" class="text-blue-600 underline">查看本月全部分类</RouterLink></p>
           
           <div class="spending-content">
             <!-- 左侧：扇形图 -->
@@ -261,7 +262,7 @@
             <!-- 右侧：TOP3 + 其他 列表 -->
             <div class="category-list">
               <div 
-                v-for="(item, index) in pieChartData" 
+                v-for="item in pieChartData"
                 :key="item.name"
                 class="category-item"
               >
@@ -353,12 +354,6 @@ const greeting = computed(() => {
   if (hour < 12) return t('home.greeting.morning')
   if (hour < 18) return t('home.greeting.afternoon')
   return t('home.greeting.evening')
-})
-
-// 当前月份
-const currentMonth = computed(() => {
-  const now = new Date()
-  return `${now.getFullYear()}${t('common.year')}${now.getMonth() + 1}${t('common.month')}`
 })
 
 // 预算使用百分比
@@ -460,11 +455,6 @@ function getStatusText(status: string): string {
   }
 }
 
-function getCategoryDotColor(index: number): string {
-  const colors = ['bg-indigo-500', 'bg-purple-500', 'bg-pink-500']
-  return colors[index] || 'bg-gray-500'
-}
-
 // 扇形图数据
 const pieChartData = computed(() => {
   if (!categoryTop.value || categoryTop.value.length === 0) {
@@ -490,7 +480,7 @@ const pieChartData = computed(() => {
     value: cat.amount,
     percent: cat.percent,
     color: colors[index],
-    label: t(`category.${cat.categoryKey}`)
+    label: t(`category.${cat.categoryKey}`, cat.categoryKey)
   }))
 
   // 如果有其他类别，添加到结果中
@@ -536,7 +526,7 @@ function initPieChart() {
       trigger: 'item',
       confine: true,
       appendToBody: false,
-      position: (point: number[], params: any, dom: HTMLElement, rect: any, size: any) => {
+      position: (point: number[], _params: any, _dom: HTMLElement, _rect: any, size: any) => {
         // 动态计算位置，确保 tooltip 不超出容器且不遮挡鼠标
         const [x, y] = point
         const viewWidth = size.viewSize[0]

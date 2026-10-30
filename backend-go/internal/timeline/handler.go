@@ -1,6 +1,7 @@
 package timeline
 
 import (
+	"gorm.io/gorm"
 	"neverbroke/common/logger"
 	"neverbroke/internal/http/response"
 	"neverbroke/internal/repository"
@@ -10,7 +11,7 @@ import (
 )
 
 // DailySummaryHandler 每日汇总处理器
-func DailySummaryHandler(store repository.Store) gin.HandlerFunc {
+func DailySummaryHandler(store repository.Store, databases ...*gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从上下文获取用户ID
 		userIDVal, exists := c.Get("user_id")
@@ -49,7 +50,11 @@ func DailySummaryHandler(store repository.Store) gin.HandlerFunc {
 			zap.String("mode", string(mode)),
 		)
 
-		result, err := BuildDailySummary(c.Request.Context(), store, userID, fromDate, toDate, mode)
+		var db *gorm.DB
+		if len(databases) > 0 {
+			db = databases[0]
+		}
+		result, err := BuildDailySummaryWithDB(c.Request.Context(), store, db, userID, fromDate, toDate, mode)
 		if err != nil {
 			logger.Error("Failed to build daily summary",
 				zap.String("userID", userID),
@@ -68,7 +73,7 @@ func DailySummaryHandler(store repository.Store) gin.HandlerFunc {
 }
 
 // DailyDetailHandler 每日明细处理器
-func DailyDetailHandler(store repository.Store) gin.HandlerFunc {
+func DailyDetailHandler(store repository.Store, databases ...*gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从上下文获取用户ID
 		userIDVal, exists := c.Get("user_id")
@@ -100,7 +105,11 @@ func DailyDetailHandler(store repository.Store) gin.HandlerFunc {
 			zap.String("mode", string(mode)),
 		)
 
-		result, err := BuildDailyDetail(c.Request.Context(), store, userID, date, mode)
+		var db *gorm.DB
+		if len(databases) > 0 {
+			db = databases[0]
+		}
+		result, err := BuildDailyDetailWithDB(c.Request.Context(), store, db, userID, date, mode)
 		if err != nil {
 			logger.Error("Failed to build daily detail",
 				zap.String("userID", userID),

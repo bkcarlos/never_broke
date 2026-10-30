@@ -12,6 +12,7 @@ const (
 
 // DailySummary 每日汇总
 type DailySummary struct {
+	Repayment float64 `json:"repayment"`
 	Date      string  `json:"date"` // YYYY-MM-DD
 	Income    float64 `json:"income"`
 	Expense   float64 `json:"expense"`

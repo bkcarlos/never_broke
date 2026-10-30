@@ -400,7 +400,7 @@ onMounted(async () => {
                   />
                 </div>
                 <p v-if="regionRule" class="text-xs text-gray-500 mt-1.5">
-                  📍 {{ regionRule.regionName }} 基数范围：¥{{ regionRule.ssBaseMin.toLocaleString() }} - ¥{{ regionRule.ssBaseMax.toLocaleString() }}
+                  📍 {{ regions.find(region => region.code === regionRule?.regionCode)?.name || regionRule.regionCode }} 基数范围：¥{{ regionRule.ssBaseMin.toLocaleString() }} - ¥{{ regionRule.ssBaseMax.toLocaleString() }}
                 </p>
               </div>
 

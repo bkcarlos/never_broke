@@ -119,7 +119,8 @@
       </div>
 
       <!-- 数据展示 -->
-      <div v-else-if="forecast">
+      <div v-else-if="forecast&&!forecast.balanceKnown" class="notice">余额尚未独立核验，或还款事项存在未知金额，暂不推算余额和资金风险。<RouterLink to="/accounts">核验账户</RouterLink> · <RouterLink to="/plans">查看已知还款安排</RouterLink></div>
+      <div v-else-if="forecast"><p class="notice">根据已启用的周期收入和有效还款计划预测；日常消费按本月剩余预算每天 {{formatAmount(forecast.dailyBudget)}} 元估算。未设置预算时不额外预估日常消费。</p>
         <!-- Section 2: 概览卡片 -->
         <div class="bg-white rounded-lg shadow p-4 mb-4">
           <h2 class="text-sm font-semibold text-gray-700 mb-3">{{ t('cashflow.overview') }}</h2>
@@ -205,7 +206,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import { fetchCashflowForecast } from '@/api/cashflow'
 import { getAccounts } from '@/api/accounts'
 import { t, formatAmount } from '@/i18n'
@@ -213,7 +213,6 @@ import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import Icon from '@/components/Icon.vue'
 import type { CashflowForecast, ForecastBase, Account } from '@/types'
 
-const router = useRouter()
 
 const daysOptions: number[] = [30, 60, 90]
 const selectedDays = ref<number>(30)
@@ -261,13 +260,13 @@ const statusText = computed(() => {
 
 const minBalance = computed(() => {
   if (!forecast.value || forecast.value.points.length === 0) return 0
-  return Math.min(...forecast.value.points.map(p => p.closingBalance))
+  return Math.min(...forecast.value.points.map(p => (p.closingBalance??0)))
 })
 
 const minBalanceDate = computed(() => {
   if (!forecast.value || forecast.value.points.length === 0) return ''
   const minPoint = forecast.value.points.reduce((min, p) => 
-    p.closingBalance < min.closingBalance ? p : min
+    (p.closingBalance??0) < (min.closingBalance??0) ? p : min
   )
   return minPoint.date
 })
@@ -347,7 +346,7 @@ function drawChart() {
   if (points.length === 0) return
 
   // 计算数据范围
-  const balances = points.map(p => p.closingBalance)
+  const balances = points.map(p => (p.closingBalance??0))
   const minBalance = Math.min(...balances, 0, forecast.value.safeAmount)
   const maxBalance = Math.max(...balances, forecast.value.safeAmount)
   const range = maxBalance - minBalance || 1
@@ -378,7 +377,7 @@ function drawChart() {
   ctx.beginPath()
   points.forEach((point, index) => {
     const x = padding.left + (index / (points.length - 1)) * chartWidth
-    const y = padding.top + chartHeight - ((point.closingBalance - minBalance) / range) * chartHeight
+    const y = padding.top + chartHeight - (((point.closingBalance??0) - minBalance) / range) * chartHeight
     if (index === 0) {
       ctx.moveTo(x, y)
     } else {
@@ -391,7 +390,7 @@ function drawChart() {
   ctx.fillStyle = '#3b82f6'
   points.forEach((point, index) => {
     const x = padding.left + (index / (points.length - 1)) * chartWidth
-    const y = padding.top + chartHeight - ((point.closingBalance - minBalance) / range) * chartHeight
+    const y = padding.top + chartHeight - (((point.closingBalance??0) - minBalance) / range) * chartHeight
     ctx.beginPath()
     ctx.arc(x, y, 3, 0, Math.PI * 2)
     ctx.fill()

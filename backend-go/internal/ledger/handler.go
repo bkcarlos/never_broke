@@ -3,8 +3,10 @@ package ledger
 import (
 	"context"
 	"fmt"
+	"math"
 	"neverbroke/common/logger"
 	"neverbroke/internal/accounts"
+	"neverbroke/internal/categories"
 	"neverbroke/internal/http/response"
 	dbModels "neverbroke/internal/models"
 	"neverbroke/internal/storage/models"
@@ -52,7 +54,7 @@ func (h *Handler) GetDailyTransactions(c *gin.Context) {
 		return
 	}
 	userID := userIDVal.(string)
-	ctx := context.Background()
+	ctx := c.Request.Context()
 
 	logger.Debug("Fetching daily transactions",
 		zap.String("date", date),
@@ -65,7 +67,7 @@ func (h *Handler) GetDailyTransactions(c *gin.Context) {
 		response.BadRequest(c, "invalid date format, expected YYYY-MM-DD")
 		return
 	}
-	dayEnd := dayStart.AddDate(0, 0, 1).Add(-time.Second)
+	dayEnd := dayStart.AddDate(0, 0, 1)
 
 	// 从数据库获取当日交易
 	txs, err := h.txStore.ListByUserBetween(ctx, userID,
@@ -81,7 +83,7 @@ func (h *Handler) GetDailyTransactions(c *gin.Context) {
 
 	// 计算统计数据
 	var totalIncome, totalExpense float64
-	var txList []models.DailyTransaction
+	txList := make([]models.DailyTransaction, 0, len(txs))
 
 	for _, tx := range txs {
 		// 统计收支
@@ -97,6 +99,7 @@ func (h *Handler) GetDailyTransactions(c *gin.Context) {
 
 		txList = append(txList, models.DailyTransaction{
 			ID:          tx.ID,
+			Currency:    tx.Currency,
 			Type:        string(tx.Type),
 			Amount:      tx.Amount,
 			CategoryKey: tx.CategoryKey,
@@ -130,11 +133,35 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 		return
 	}
 
-	if req.Amount <= 0 {
+	if req.Amount <= 0 || math.IsNaN(req.Amount) || math.IsInf(req.Amount, 0) || req.Amount > 99999999999.99 {
 		response.BadRequest(c, "amount must be > 0")
 		return
 	}
 
+	if math.Abs(req.Amount*100-math.Round(req.Amount*100)) > 0.000001 {
+		response.BadRequest(c, "amount must have at most two decimal places")
+		return
+	}
+	when, parseErr := time.Parse(time.RFC3339, req.OccurredAt)
+	if parseErr != nil {
+		when, parseErr = time.ParseInLocation("2006-01-02T15:04:05", req.OccurredAt, time.FixedZone("CST", 8*3600))
+	}
+	if parseErr != nil {
+		response.BadRequest(c, "occurredAt must be an ISO date-time")
+		return
+	}
+	req.OccurredAt = when.Format(time.RFC3339)
+	// Refunds always offset expense, including legacy clients using income/refund.
+	if req.Type == "refund" || (req.Type == TransactionTypeIncome && req.CategoryKey == "refund") {
+		req.Type = TransactionTypeExpense
+		req.Amount = -req.Amount
+		if req.CategoryKey == "refund" {
+			req.CategoryKey = "uncategorized"
+		}
+	}
+	if req.Type == TransactionTypeExpense {
+		req.CategoryKey = categories.Resolve(req.CategoryKey).ID
+	}
 	// 验证交易类型和账户
 	switch req.Type {
 	case TransactionTypeExpense, TransactionTypeIncome:
@@ -200,6 +227,21 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 		}
 	}
 
+	if h.db != nil && req.Type == TransactionTypeTransfer {
+		var a, b dbModels.Account
+		if e := h.db.Where("user_id = ? AND id = ?", userID.(string), req.FromAccountID).First(&a).Error; e != nil {
+			response.BadRequest(c, "account not found")
+			return
+		}
+		if e := h.db.Where("user_id = ? AND id = ?", userID.(string), req.ToAccountID).First(&b).Error; e != nil {
+			response.BadRequest(c, "account not found")
+			return
+		}
+		if a.Currency != b.Currency {
+			response.BadRequest(c, "cross-currency transfers require an explicit exchange rate")
+			return
+		}
+	}
 	// 在数据库事务中更新账户余额和保存交易记录
 	if h.db != nil {
 		err := h.db.Transaction(func(dbTx *gorm.DB) error {
@@ -208,7 +250,7 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 			case TransactionTypeExpense:
 				result := dbTx.Model(&dbModels.Account{}).
 					Where("id = ?", req.AccountID).
-					Update("balance", gorm.Expr("balance - ?", req.Amount))
+					Update("balance", gorm.Expr("CASE WHEN type = 'credit' THEN balance + ? ELSE balance - ? END", req.Amount, req.Amount))
 				if result.Error != nil {
 					return fmt.Errorf("failed to update account balance: %w", result.Error)
 				}
@@ -218,7 +260,7 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 			case TransactionTypeIncome:
 				result := dbTx.Model(&dbModels.Account{}).
 					Where("id = ?", req.AccountID).
-					Update("balance", gorm.Expr("balance + ?", req.Amount))
+					Update("balance", gorm.Expr("CASE WHEN type = 'credit' THEN balance - ? ELSE balance + ? END", req.Amount, req.Amount))
 				if result.Error != nil {
 					return fmt.Errorf("failed to update account balance: %w", result.Error)
 				}
@@ -229,7 +271,7 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 				// 更新转出账户
 				result := dbTx.Model(&dbModels.Account{}).
 					Where("id = ?", req.FromAccountID).
-					Update("balance", gorm.Expr("balance - ?", req.Amount))
+					Update("balance", gorm.Expr("CASE WHEN type = 'credit' THEN balance + ? ELSE balance - ? END", req.Amount, req.Amount))
 				if result.Error != nil {
 					return fmt.Errorf("failed to update from account balance: %w", result.Error)
 				}
@@ -240,7 +282,7 @@ func (h *Handler) CreateTransaction(c *gin.Context) {
 				// 更新转入账户
 				result = dbTx.Model(&dbModels.Account{}).
 					Where("id = ?", req.ToAccountID).
-					Update("balance", gorm.Expr("balance + ?", req.Amount))
+					Update("balance", gorm.Expr("CASE WHEN type = 'credit' THEN balance - ? ELSE balance + ? END", req.Amount, req.Amount))
 				if result.Error != nil {
 					return fmt.Errorf("failed to update to account balance: %w", result.Error)
 				}

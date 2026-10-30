@@ -1,0 +1,71 @@
+services:
+  web:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports: ["127.0.0.1:80:80"]
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [data, edge]
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: neverbroke
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: neverbroke
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U neverbroke -d neverbroke"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build: .
+    image: neverbroke:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GIN_MODE: release
+      JWT_SECRET: ${JWT_SECRET:?required}
+      TZ: Asia/Shanghai
+      NEVERBROKE_PG_HOST: db
+      NEVERBROKE_PG_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      NEVERBROKE_MCP_USER_ID: ${NEVERBROKE_MCP_USER_ID:?required}
+      NEVERBROKE_MCP_API_KEY: ${NEVERBROKE_MCP_API_KEY:?required}
+    ports: ["127.0.0.1:18080:8080"]
+    volumes:
+      - keys:/app/keys
+      - logs:/app/logs
+    networks:
+      data:
+      rakazo:
+        aliases: [neverbroke]
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+networks:
+  edge:
+  data:
+    internal: true
+  rakazo:
+    external: true
+    name: ${RAKAZO_NETWORK:-rakazo_app}
+volumes:
+  pgdata:
+  keys:
+  logs:

@@ -8,8 +8,10 @@ import (
 	"neverbroke/internal/installment"
 	"neverbroke/internal/ledger"
 	"neverbroke/internal/models"
+	"neverbroke/internal/money"
 	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/repository"
+	"neverbroke/internal/workspace"
 
 	"gorm.io/gorm"
 )
@@ -24,6 +26,9 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 			return CashflowForecastResponse{}, fmt.Errorf("failed to list accounts: %w", err)
 		}
 		for _, acc := range accounts {
+			if acc.Currency != "" && acc.Currency != money.Currency(ctx) {
+				continue
+			}
 			if !acc.Archived {
 				startingBalance += acc.Balance
 			}
@@ -35,6 +40,9 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 		acc, err := store.Accounts().GetByID(ctx, userID, req.AccountID)
 		if err != nil {
 			return CashflowForecastResponse{}, fmt.Errorf("failed to get account: %w", err)
+		}
+		if acc == nil || (acc.Currency != "" && acc.Currency != money.Currency(ctx)) {
+			return CashflowForecastResponse{}, fmt.Errorf("account currency does not match forecast currency")
 		}
 		startingBalance = acc.Balance
 	} else {
@@ -109,8 +117,8 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 	var points []DailyForecastPoint
 	currentBalance := startingBalance
 	current = startDate
-	var dangerDates []string
-	var warningDates []string
+	dangerDates := []string{}
+	warningDates := []string{}
 
 	for current.Before(endDate) {
 		dateStr := current.Format("2006-01-02")
@@ -126,10 +134,10 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 
 		point := DailyForecastPoint{
 			Date:           dateStr,
-			OpeningBalance: openingBalance,
+			OpeningBalance: &openingBalance,
 			Inflow:         inflow,
 			Outflow:        outflow,
-			ClosingBalance: closingBalance,
+			ClosingBalance: &closingBalance,
 		}
 		points = append(points, point)
 
@@ -156,6 +164,7 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 
 	return CashflowForecastResponse{
 		StartDate:    req.StartDate,
+		BalanceKnown: true, DailyBudget: dailyBudget,
 		EndDate:      endDate.Format("2006-01-02"),
 		Base:         req.Base,
 		AccountID:    req.AccountID,
@@ -169,32 +178,37 @@ func BuildForecast(ctx context.Context, store repository.Store, userID string, r
 
 // BuildForecastWithDB 构建现金流预测（使用db查询周期收入和分期）
 func BuildForecastWithDB(ctx context.Context, store repository.Store, db *gorm.DB, userID string, req CashflowForecastRequest) (CashflowForecastResponse, error) {
-	// 1. 计算起始余额
-	var startingBalance float64
-	if req.Base == ForecastBaseTotalAssets {
-		accounts, err := store.Accounts().ListByUser(ctx, userID)
-		if err != nil {
-			return CashflowForecastResponse{}, fmt.Errorf("failed to list accounts: %w", err)
-		}
-		for _, acc := range accounts {
-			if !acc.Archived {
-				startingBalance += acc.Balance
+	items, sourceAccounts, err := workspace.Load(db, userID)
+	if err != nil {
+		return CashflowForecastResponse{}, err
+	}
+	if req.Base == ForecastBaseAccount {
+		selected := []models.Account{}
+		for _, a := range sourceAccounts {
+			if a.ID == req.AccountID && a.Currency == money.Currency(ctx) && a.Type != "credit" {
+				selected = append(selected, a)
 			}
 		}
-	} else if req.Base == ForecastBaseAccount {
-		if req.AccountID == "" {
-			return CashflowForecastResponse{}, fmt.Errorf("accountId is required when base is account")
+		if len(selected) != 1 {
+			return CashflowForecastResponse{}, fmt.Errorf("请选择同币种的现金类账户；信用卡欠款不作为可用余额")
 		}
-		acc, err := store.Accounts().GetByID(ctx, userID, req.AccountID)
-		if err != nil {
-			return CashflowForecastResponse{}, fmt.Errorf("failed to get account: %w", err)
-		}
-		startingBalance = acc.Balance
+		sourceAccounts = selected
+	}
+	var settings []workspace.Setting
+	if err := db.Where("user_id = ?", userID).Find(&settings).Error; err != nil {
+		return CashflowForecastResponse{}, err
+	}
+	projection := workspace.Project(items, sourceAccounts, settings, money.Currency(ctx), req.StartDate, req.Days)
+	balanceKnown := projection.Starting != nil && projection.UnknownAmounts == 0
+	var startingBalance float64
+	if projection.Starting != nil {
+		startingBalance = float64(*projection.Starting) / 100
 	}
 
 	// 2. 解析起始日期
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {
+
 		return CashflowForecastResponse{}, fmt.Errorf("invalid startDate: %w", err)
 	}
 
@@ -204,27 +218,29 @@ func BuildForecastWithDB(ctx context.Context, store repository.Store, db *gorm.D
 	// 4. 获取周期收入计划
 	var recurringPlans []models.RecurringIncomePlan
 	if db != nil {
-		db.Where("user_id = ? AND active = ?", userID, true).Find(&recurringPlans)
-	}
-
-	// 5. 获取分期计划
-	var installmentPlans []models.InstallmentPlan
-	if db != nil {
-		db.Where("user_id = ? AND status = ?", userID, "active").Find(&installmentPlans)
+		if err := db.Where("user_id = ? AND active = ? AND currency = ?", userID, true, money.Currency(ctx)).Find(&recurringPlans).Error; err != nil {
+			return CashflowForecastResponse{}, err
+		}
 	}
 
 	// 6. 获取预算信息
 	now := time.Now()
-	var monthlyBudget float64 = 3000.0
+	var monthlyBudget float64
 	budgetData, err := store.Budgets().GetByMonth(ctx, userID, now.Format("2006-01"))
-	if err == nil && budgetData != nil && budgetData.TotalBudget > 0 {
+	if err != nil {
+		return CashflowForecastResponse{}, err
+	}
+	if money.Currency(ctx) == "CNY" && budgetData != nil && budgetData.TotalBudget > 0 {
 		monthlyBudget = budgetData.TotalBudget
 	}
 
 	// 计算本月已消费金额
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 	monthEnd := monthStart.AddDate(0, 1, 0)
-	transactions, _ := store.Transactions().ListByUserBetween(ctx, userID, monthStart.Format(time.RFC3339), monthEnd.Format(time.RFC3339))
+	transactions, err := store.Transactions().ListByUserBetween(ctx, userID, monthStart.Format(time.RFC3339), monthEnd.Format(time.RFC3339))
+	if err != nil {
+		return CashflowForecastResponse{}, err
+	}
 	var monthExpense float64
 	for _, tx := range transactions {
 		if tx.Type == ledger.TransactionTypeExpense {
@@ -264,19 +280,12 @@ func BuildForecastWithDB(ctx context.Context, store repository.Store, db *gorm.D
 		}
 	}
 
-	// 7.2 处理分期还款
-	for _, plan := range installmentPlans {
-		if plan.Status != "active" {
-			continue
+	// Include source bills and native installments exactly once, honoring review states.
+	for _, p := range projection.Points {
+		if dayFlows[p.Date] == nil {
+			dayFlows[p.Date] = &dayFlow{}
 		}
-		schedule := calculateInstallmentScheduleFromDB(&plan, startDate, endDate)
-		for _, item := range schedule {
-			dateStr := item.DueDate
-			if dayFlows[dateStr] == nil {
-				dayFlows[dateStr] = &dayFlow{}
-			}
-			dayFlows[dateStr].outflow += item.Total
-		}
+		dayFlows[p.Date].outflow += float64(p.Billed+p.Estimated) / 100
 	}
 
 	// 7.3 处理日常消费预估
@@ -294,8 +303,8 @@ func BuildForecastWithDB(ctx context.Context, store repository.Store, db *gorm.D
 	var points []DailyForecastPoint
 	currentBalance := startingBalance
 	current = startDate
-	var dangerDates []string
-	var warningDates []string
+	dangerDates := []string{}
+	warningDates := []string{}
 
 	for current.Before(endDate) {
 		dateStr := current.Format("2006-01-02")
@@ -311,10 +320,10 @@ func BuildForecastWithDB(ctx context.Context, store repository.Store, db *gorm.D
 
 		points = append(points, DailyForecastPoint{
 			Date:           dateStr,
-			OpeningBalance: openingBalance,
+			OpeningBalance: &openingBalance,
 			Inflow:         inflow,
 			Outflow:        outflow,
-			ClosingBalance: closingBalance,
+			ClosingBalance: &closingBalance,
 		})
 
 		if closingBalance < 0 {
@@ -336,8 +345,18 @@ func BuildForecastWithDB(ctx context.Context, store repository.Store, db *gorm.D
 		status = ForecastStatusSafe
 	}
 
+	if !balanceKnown {
+		status = ForecastStatus("unknown")
+		dangerDates = []string{}
+		warningDates = []string{}
+		for i := range points {
+			points[i].OpeningBalance = nil
+			points[i].ClosingBalance = nil
+		}
+	}
 	return CashflowForecastResponse{
 		StartDate:    req.StartDate,
+		BalanceKnown: balanceKnown, UnknownAmounts: projection.UnknownAmounts, DailyBudget: dailyBudget,
 		EndDate:      endDate.Format("2006-01-02"),
 		Base:         req.Base,
 		AccountID:    req.AccountID,

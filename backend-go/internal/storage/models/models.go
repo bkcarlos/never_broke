@@ -33,6 +33,7 @@ type HomeOverview struct {
 
 // DailyTransaction 每日账单
 type DailyTransaction struct {
+	Currency    string  `json:"currency,omitempty"`
 	ID          string  `json:"id"`
 	Type        string  `json:"type"` // income, expense, transfer
 	Amount      float64 `json:"amount"`
@@ -84,4 +85,3 @@ type UserSettings struct {
 	Locale     string `json:"locale"`
 	ShowAmount bool   `json:"showAmount"`
 }
-

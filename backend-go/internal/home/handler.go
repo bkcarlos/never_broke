@@ -6,6 +6,7 @@ import (
 	"neverbroke/internal/accounts"
 	"neverbroke/internal/http/response"
 	"neverbroke/internal/models"
+	"neverbroke/internal/money"
 	"neverbroke/internal/repository"
 	"time"
 
@@ -45,7 +46,7 @@ func (h *Handler) GetOverview(c *gin.Context) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := c.Request.Context()
 
 	logger.Debug("Fetching home overview", zap.String("userID", userID))
 
@@ -71,10 +72,10 @@ func (h *Handler) calculateOverview(ctx context.Context, userID string) (*HomeOv
 	now := time.Now()
 
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
-	monthEnd := monthStart.AddDate(0, 1, 0).Add(-time.Second)
+	monthEnd := monthStart.AddDate(0, 1, 0)
 
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
-	todayEnd := todayStart.AddDate(0, 0, 1).Add(-time.Second)
+	todayEnd := todayStart.AddDate(0, 0, 1)
 
 	// 1. 获取所有账户
 	accs, err := h.store.Accounts().ListByUser(ctx, userID)
@@ -198,6 +199,9 @@ func (h *Handler) calculateAssetSummary(ctx context.Context, accs []*accounts.Ac
 	var totalAssets, totalLiabilities, creditAvailable float64
 
 	for _, acc := range accs {
+		if acc.Currency != "" && acc.Currency != money.Currency(ctx) {
+			continue
+		}
 		if acc.Archived {
 			continue
 		}
@@ -218,6 +222,9 @@ func (h *Handler) calculateAssetSummary(ctx context.Context, accs []*accounts.Ac
 
 	var installmentLiabilities float64
 	for _, plan := range installmentPlans {
+		if plan.Currency != "" && plan.Currency != money.Currency(ctx) {
+			continue
+		}
 		if plan.Status == "active" {
 			remaining := plan.TotalAmount
 			if remaining > 0 {
@@ -259,7 +266,7 @@ func (h *Handler) GetAssetSummary(c *gin.Context) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := c.Request.Context()
 
 	logger.Debug("Fetching asset summary", zap.String("userID", userID))
 
@@ -291,13 +298,13 @@ func (h *Handler) GetBudgetStats(c *gin.Context) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := c.Request.Context()
 	now := time.Now()
 
 	logger.Debug("Fetching budget stats", zap.String("userID", userID))
 
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
-	monthEnd := monthStart.AddDate(0, 1, 0).Add(-time.Second)
+	monthEnd := monthStart.AddDate(0, 1, 0)
 
 	monthTxs, err := h.store.Transactions().ListByUserBetween(ctx, userID,
 		monthStart.Format(time.RFC3339),
@@ -342,7 +349,7 @@ func (h *Handler) GetPayCycle(c *gin.Context) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := c.Request.Context()
 	now := time.Now()
 
 	logger.Debug("Fetching pay cycle", zap.String("userID", userID))
@@ -380,13 +387,13 @@ func (h *Handler) GetCategoryStats(c *gin.Context) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := c.Request.Context()
 	now := time.Now()
 
 	logger.Debug("Fetching category stats", zap.String("userID", userID))
 
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
-	monthEnd := monthStart.AddDate(0, 1, 0).Add(-time.Second)
+	monthEnd := monthStart.AddDate(0, 1, 0)
 
 	monthTxs, err := h.store.Transactions().ListByUserBetween(ctx, userID,
 		monthStart.Format(time.RFC3339),
@@ -449,13 +456,13 @@ func (h *Handler) GetMonthOverview(c *gin.Context) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx := c.Request.Context()
 	now := time.Now()
 
 	logger.Debug("Fetching month overview", zap.String("userID", userID))
 
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
-	monthEnd := monthStart.AddDate(0, 1, 0).Add(-time.Second)
+	monthEnd := monthStart.AddDate(0, 1, 0)
 
 	monthTxs, err := h.store.Transactions().ListByUserBetween(ctx, userID,
 		monthStart.Format(time.RFC3339),

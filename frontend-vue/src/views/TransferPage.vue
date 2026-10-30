@@ -27,9 +27,9 @@
         <div class="mt-2 text-xs text-slate-500">
           <span v-if="fromAccount && toAccount">
             {{ t('transfer.summary', '从') }}
-            <span class="font-medium">{{ fromAccount.name }}</span>
+            <span class="font-medium">{{ formatAccountDisplayName(fromAccount) }}</span>
             {{ t('transfer.summaryTo', '转到') }}
-            <span class="font-medium">{{ toAccount.name }}</span>
+            <span class="font-medium">{{ formatAccountDisplayName(toAccount) }}</span>
           </span>
         </div>
       </section>
@@ -57,7 +57,7 @@
             :key="acc.id"
             :value="acc.id"
           >
-            {{ acc.name }}
+            {{ formatAccountDisplayName(acc) }}
           </option>
         </select>
 
@@ -86,7 +86,7 @@
             :key="acc.id"
             :value="acc.id"
           >
-            {{ acc.name }}
+            {{ formatAccountDisplayName(acc) }}
           </option>
         </select>
       </section>
@@ -145,6 +145,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { t } from '@/i18n'

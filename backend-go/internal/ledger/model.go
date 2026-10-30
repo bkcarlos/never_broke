@@ -23,7 +23,10 @@ type CreateTransactionRequest struct {
 
 // Transaction 交易模型
 type Transaction struct {
-	ID string `json:"id"`
+	Currency      string `json:"currency,omitempty"`
+	Projected     bool   `json:"projected,omitempty"`
+	AmountUnknown bool   `json:"amountUnknown,omitempty"`
+	ID            string `json:"id"`
 	CreateTransactionRequest
 
 	// 新增：分期关联信息（如果是分期每一期的还款）

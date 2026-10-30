@@ -1,6 +1,8 @@
 package router
 
 import (
+	"os"
+	"strconv"
 	"time"
 
 	"neverbroke/common/logger"
@@ -9,11 +11,14 @@ import (
 	"neverbroke/internal/budget"
 	"neverbroke/internal/cashflow"
 	"neverbroke/internal/citysocialrate"
+	"neverbroke/internal/curatedimport"
 	"neverbroke/internal/home"
 	"neverbroke/internal/importer"
 	"neverbroke/internal/incomeplan"
 	"neverbroke/internal/installment"
 	"neverbroke/internal/ledger"
+	"neverbroke/internal/mcpserver"
+	"neverbroke/internal/money"
 	"neverbroke/internal/payroll"
 	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/report"
@@ -21,6 +26,7 @@ import (
 	"neverbroke/internal/repository"
 	"neverbroke/internal/timeline"
 	"neverbroke/internal/user"
+	"neverbroke/internal/workspace"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -37,11 +43,13 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 	r.Use(logger.GinLogger())
 	r.Use(logger.GinRecovery())
 
+	r.GET("/healthz", func(c *gin.Context) { c.Status(204) })
+
 	// CORS 配置
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "MCP-Protocol-Version", "Mcp-Session-Id"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
@@ -107,6 +115,8 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 
 	// 注册路由函数
 	registerRoutes := func(group *gin.RouterGroup) {
+		group.Use(money.Middleware())
+		workspace.Register(group, db)
 		// 首页
 		group.GET("/home/overview", homeHandler.GetOverview)
 		group.GET("/home/asset-summary", homeHandler.GetAssetSummary)
@@ -137,6 +147,9 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 
 		// 导入
 		group.POST("/import/preview", importerHandler.PreviewHandler)
+		group.POST("/import/curated/preview", curatedimport.ImportHandler(db, false))
+		group.POST("/import/curated/commit", curatedimport.ImportHandler(db, true))
+		group.GET("/import/curated", curatedimport.ListHandler(db))
 
 		// 收入计划
 		group.GET("/income-plans", incomePlanHandler.ListIncomePlansHandler)
@@ -165,14 +178,14 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 		group.DELETE("/me/salary-plan/:id", recurringIncomeHandler.DeleteSalaryPlanHandler)
 
 		// 现金流预测
-		group.GET("/cashflow/forecast", cashflow.ForecastHandler(store))
+		group.GET("/cashflow/forecast", cashflow.ForecastHandler(store, db))
 
 		// 报表分析
 		group.GET("/reports/monthly-summary", reports.MonthlySummaryHandler(store))
 
 		// 时间线
-		group.GET("/timeline/daily-summary", timeline.DailySummaryHandler(store))
-		group.GET("/timeline/daily-detail", timeline.DailyDetailHandler(store))
+		group.GET("/timeline/daily-summary", timeline.DailySummaryHandler(store, db))
+		group.GET("/timeline/daily-detail", timeline.DailyDetailHandler(store, db))
 
 		// 薪资计算器
 		group.GET("/payroll/regions", payrollHandler.ListRegions)
@@ -187,6 +200,10 @@ func Setup(store repository.Store, db *gorm.DB) *gin.Engine {
 	// API v1 路由组
 	v1 := r.Group("/api/v1", tokenHandler.AuthMiddleware())
 	registerRoutes(v1)
+
+	// Every MCP request, including discovery, requires an access token.
+	mcpUserID, _ := strconv.Atoi(os.Getenv("NEVERBROKE_MCP_USER_ID"))
+	r.Any("/mcp", tokenHandler.MCPAuthMiddleware(os.Getenv("NEVERBROKE_MCP_API_KEY"), mcpUserID), gin.WrapH(mcpserver.NewHandler(r)))
 
 	return r
 }

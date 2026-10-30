@@ -13,7 +13,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: process.env.NEVERBROKE_DEV_API || 'http://localhost:8080',
         changeOrigin: true
       }
     }

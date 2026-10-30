@@ -1,0 +1,14 @@
+[Unit]
+Description=NeverBroke reviewed Feishu sync
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/neverbroke
+EnvironmentFile=/opt/neverbroke/sync.env
+ExecStart=/usr/bin/python3 /opt/neverbroke/scripts/sync_feishu.py --commit
+UMask=0077
+NoNewPrivileges=true
+TimeoutStartSec=600

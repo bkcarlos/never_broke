@@ -5,11 +5,13 @@ export async function fetchDailySummary(
   from: string,
   to: string,
   mode: TimelineMode,
+  currency = 'CNY',
 ): Promise<DailyTimeline> {
   const query = new URLSearchParams()
   query.set('from', from)
   query.set('to', to)
   query.set('mode', mode)
+  query.set('currency', currency)
 
   return request<DailyTimeline>(
     `/timeline/daily-summary?${query.toString()}`,
@@ -20,10 +22,12 @@ export async function fetchDailySummary(
 export async function fetchDailyDetail(
   date: string,
   mode: TimelineMode,
+  currency = 'CNY',
 ): Promise<{ date: string; mode: TimelineMode; transactions: Transaction[] }> {
   const query = new URLSearchParams()
   query.set('date', date)
   query.set('mode', mode)
+  query.set('currency', currency)
 
   return request<{
     date: string

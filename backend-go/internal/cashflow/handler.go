@@ -1,6 +1,8 @@
 package cashflow
 
 import (
+	"gorm.io/gorm"
+	"math"
 	"neverbroke/common/logger"
 	"neverbroke/internal/http/response"
 	"neverbroke/internal/repository"
@@ -11,7 +13,7 @@ import (
 )
 
 // ForecastHandler 现金流预测处理器
-func ForecastHandler(store repository.Store) gin.HandlerFunc {
+func ForecastHandler(store repository.Store, db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从上下文获取用户ID
 		userIDVal, exists := c.Get("user_id")
@@ -33,7 +35,7 @@ func ForecastHandler(store repository.Store) gin.HandlerFunc {
 			daysStr = "30" // 默认 30 天
 		}
 		days, err := strconv.Atoi(daysStr)
-		if err != nil || days <= 0 {
+		if err != nil || days <= 0 || days > 366 {
 			response.BadRequest(c, "invalid days parameter")
 			return
 		}
@@ -59,7 +61,7 @@ func ForecastHandler(store repository.Store) gin.HandlerFunc {
 			safeAmountStr = "2000" // 默认安全垫 2000
 		}
 		safeAmount, err := strconv.ParseFloat(safeAmountStr, 64)
-		if err != nil || safeAmount < 0 {
+		if err != nil || safeAmount < 0 || math.IsNaN(safeAmount) || math.IsInf(safeAmount, 0) {
 			response.BadRequest(c, "invalid safeAmount parameter")
 			return
 		}
@@ -79,7 +81,12 @@ func ForecastHandler(store repository.Store) gin.HandlerFunc {
 			zap.String("base", string(base)),
 		)
 
-		result, err := BuildForecast(c.Request.Context(), store, userID, req)
+		var result CashflowForecastResponse
+		if db != nil {
+			result, err = BuildForecastWithDB(c.Request.Context(), store, db, userID, req)
+		} else {
+			result, err = BuildForecast(c.Request.Context(), store, userID, req)
+		}
 		if err != nil {
 			logger.Error("Failed to build forecast",
 				zap.String("userID", userID),

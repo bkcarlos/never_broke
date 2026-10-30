@@ -3,6 +3,9 @@ import type { RouteRecordRaw } from 'vue-router'
 import { isAuthenticated } from '@/api/auth'
 
 const routes: RouteRecordRaw[] = [
+ {path:'/review',component:()=>import('@/views/WorkspacePage.vue')},
+ {path:'/plans',component:()=>import('@/views/WorkspacePage.vue')},
+ {path:'/insights',component:()=>import('@/views/InsightsPage.vue')},
   {
     path: '/login',
     name: 'Login',
@@ -12,13 +15,13 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Home',
-    component: () => import('@/views/HomePage.vue'),
+    component: () => import('@/views/WorkspacePage.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/detail',
     name: 'Detail',
-    component: () => import('@/views/DetailPage.vue')
+    component: () => import('@/views/WorkspacePage.vue')
   },
   {
     path: '/actions',
@@ -33,7 +36,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/reports',
     name: 'Reports',
-    component: () => import('@/views/ReportsPage.vue')
+    component: () => import('@/views/WorkspacePage.vue')
   },
   {
     path: '/profile',
@@ -43,7 +46,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/accounts',
     name: 'AccountManagement',
-    component: () => import('@/views/AccountManagementPage.vue')
+    component: () => import('@/views/AccountsWorkspacePage.vue')
   },
   {
     path: '/accounts/new',
@@ -104,7 +107,7 @@ const router = createRouter({
 })
 
 // 路由守卫：检查认证状态
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const requiresAuth = to.meta.requiresAuth !== false // 默认需要认证
   const authenticated = isAuthenticated()
 

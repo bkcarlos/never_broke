@@ -5,8 +5,13 @@ import type { DailyTransactionResponse, CreateTransactionPayload, Transaction } 
  * 获取指定日期的账单明细
  * @param date 日期，格式 YYYY-MM-DD
  */
-export function getDailyTransactions(date: string): Promise<DailyTransactionResponse> {
-  return get<DailyTransactionResponse>(`/transactions/daily?date=${date}`)
+export async function getDailyTransactions(date: string, currency = 'CNY'): Promise<DailyTransactionResponse> {
+  const result = await get<Omit<DailyTransactionResponse, 'list'> & {
+    list?: DailyTransactionResponse['list'] | null
+  }>(`/transactions/daily?date=${date}&currency=${currency}`)
+  // Older servers serialize an empty Go slice as null. Keep the UI contract
+  // stable during deployment and when displaying dates without transactions.
+  return { ...result, list: result.list ?? [] }
 }
 
 /**

@@ -24,6 +24,7 @@
       </button>
     </div>
 
+    <label class="block mb-3">币种 <select v-model="currency" @change="loadData" class="border rounded p-1"><option>CNY</option><option>USD</option></select></label>
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
       <p class="text-gray-500">{{ t('common.loading') }}</p>
@@ -48,13 +49,13 @@
           <div class="stat-box income">
             <p class="stat-label">{{ t('detail.totalIncome') }}</p>
             <p class="stat-amount text-green-600">
-              ¥{{ formatAmount(data.stats.totalIncome, showAmount) }}
+              {{ currency === 'USD' ? 'US$' : '¥' }}{{ formatAmount(data.stats.totalIncome, showAmount) }}
             </p>
           </div>
           <div class="stat-box expense">
             <p class="stat-label">{{ t('detail.totalExpense') }}</p>
             <p class="stat-amount text-red-600">
-              ¥{{ formatAmount(data.stats.totalExpense, showAmount) }}
+              {{ currency === 'USD' ? 'US$' : '¥' }}{{ formatAmount(data.stats.totalExpense, showAmount) }}
             </p>
           </div>
         </div>
@@ -70,21 +71,21 @@
           <div class="transaction-content">
             <div class="transaction-info">
               <div class="transaction-header">
-                <span class="transaction-category">{{ t(`category.${item.categoryKey}`) }}</span>
+                <span class="transaction-category">{{ t(`category.${item.categoryKey}`, item.categoryKey) }}</span>
                 <span class="transaction-time">{{ item.time }}</span>
               </div>
-              <p v-if="item.remark" class="transaction-remark">{{ item.remark }}</p>
+              <p v-if="item.remark" class="transaction-remark whitespace-pre-line">{{ item.remark }}</p><RouterLink :to="{path:'/settings/import-bills',query:{transactionId:item.id}}" class="text-xs text-blue-600">查看导入详情及关联收据</RouterLink>
             </div>
             <div class="transaction-amount">
               <p 
                 class="amount-value"
                 :class="{
-                  'text-green-600': item.type === 'income',
-                  'text-red-600': item.type === 'expense',
+                  'text-green-600': item.type === 'income' || (item.type === 'expense' && item.amount < 0),
+                  'text-red-600': item.type === 'expense' && item.amount >= 0,
                   'text-blue-600': item.type === 'transfer'
                 }"
               >
-                {{ item.type === 'income' ? '+' : '-' }}¥{{ formatAmount(item.amount, showAmount) }}
+                {{ item.type === 'income' || item.amount < 0 ? '+' : '-' }}{{ currency === 'USD' ? 'US$' : '¥' }}{{ formatAmount(Math.abs(item.amount), showAmount) }}
               </p>
             </div>
           </div>
@@ -110,6 +111,7 @@ import type { DailyTransactionResponse } from '@/types'
 import { useUserSettingsStore } from '@/stores/userSettings'
 
 const userSettingsStore = useUserSettingsStore()
+const currency = ref('CNY')
 const loading = ref(false)
 const error = ref<string | null>(null)
 const data = ref<DailyTransactionResponse | null>(null)
@@ -124,7 +126,7 @@ async function loadData() {
   error.value = null
   
   try {
-    data.value = await getDailyTransactions(selectedDate.value)
+    data.value = await getDailyTransactions(selectedDate.value, currency.value)
   } catch (e) {
     error.value = e instanceof Error ? e.message : t('common.unknownError', '未知错误')
   } finally {

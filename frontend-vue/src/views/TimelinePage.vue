@@ -1,6 +1,7 @@
 <template>
   <div class="page-container">
     <div class="page-content">
+      <label class="block mb-3">币种 <select v-model="currency" @change="selectedDate=null; dailyDetail=null; loadData()" class="border rounded p-1"><option>CNY</option><option>USD</option></select></label>
       <!-- 模式切换 + 区间选择 -->
       <div class="bg-white rounded-lg shadow p-4 mb-4">
         <!-- 模式切换 -->
@@ -102,6 +103,7 @@
             >
               {{ day.summary.net >= 0 ? '+' : '' }}{{ formatAmount(day.summary.net) }}
             </div>
+            <div v-if="day.summary?.repayment" class="text-xs text-blue-700">还款 {{ formatAmount(day.summary.repayment) }}</div>
             <div
               v-if="day.summary?.hasFuture"
               class="w-1 h-1 bg-blue-500 rounded-full mx-auto mt-1"
@@ -133,19 +135,19 @@
                     tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                   ]"
                 >
-                  {{ tx.type === 'income' ? t('detail.totalIncome') : t('detail.totalExpense') }}
+                  {{ tx.projected ? '还款安排' : tx.amount < 0 ? '退款' : tx.type === 'income' ? t('detail.totalIncome') : t('detail.totalExpense') }}
                 </span>
                 <span v-if="isProjected(tx)" class="text-xs text-blue-600">
                   {{ t('timeline.projected', '预计') }}
                 </span>
               </div>
-              <p class="text-sm text-gray-600 mt-1">{{ tx.remark || '-' }}</p>
+              <p class="text-sm text-gray-600 mt-1 whitespace-pre-line">{{ tx.remark || '-' }}</p><RouterLink v-if="!tx.projected" :to="{path:'/settings/import-bills',query:{transactionId:tx.id}}" class="text-xs text-blue-600">查看导入详情及关联收据</RouterLink>
             </div>
             <div
               class="text-lg font-semibold"
               :class="tx.type === 'income' ? 'text-green-600' : 'text-red-600'"
             >
-              {{ tx.type === 'income' ? '+' : '-' }}¥{{ formatAmount(tx.amount) }}
+              {{ tx.amountUnknown ? '金额待确认' : (tx.type === 'income' || tx.amount < 0 ? '+' : '-') + (currency === 'USD' ? 'US$' : '¥') + formatAmount(Math.abs(tx.amount)) }}
             </div>
           </div>
         </div>
@@ -158,12 +160,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { fetchDailySummary, fetchDailyDetail } from '@/api/timeline'
 import { t, formatAmount as baseFormatAmount } from '@/i18n'
-import Icon from '@/components/Icon.vue'
 import type { DailyTimeline, TimelineMode, Transaction } from '@/types'
 import { useUserSettingsStore } from '@/stores/userSettings'
 
 const userSettingsStore = useUserSettingsStore()
 const mode = ref<TimelineMode>('history')
+const currency = ref('CNY')
 
 // 包装 formatAmount 以使用 store 的 showAmount
 const formatAmount = (amount: number) => baseFormatAmount(amount, userSettingsStore.showAmount)
@@ -191,7 +193,7 @@ const calendarDays = computed(() => {
     day: number
     isCurrentMonth: boolean
     isToday: boolean
-    summary?: { net: number; hasFuture: boolean }
+    summary?: { net: number; hasFuture: boolean; repayment?: number }
   }> = []
 
   // 上月的日期
@@ -218,7 +220,7 @@ const calendarDays = computed(() => {
       day,
       isCurrentMonth: true,
       isToday: date.getTime() === new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime(),
-      summary: summary ? { net: summary.net, hasFuture: summary.hasFuture } : undefined,
+      summary: summary ? { net: summary.net, hasFuture: summary.hasFuture, repayment: summary.repayment } : undefined,
     })
   }
 
@@ -260,7 +262,7 @@ async function loadData() {
     const fromDate = formatDate(firstDay)
     const toDate = formatDate(lastDay)
 
-    timeline.value = await fetchDailySummary(fromDate, toDate, mode.value)
+    timeline.value = await fetchDailySummary(fromDate, toDate, mode.value, currency.value)
   } catch (e) {
     error.value = e instanceof Error ? e.message : t('common.unknownError', '未知错误')
   } finally {
@@ -272,7 +274,7 @@ async function selectDate(date: string) {
   selectedDate.value = date
   loading.value = true
   try {
-    dailyDetail.value = await fetchDailyDetail(date, mode.value)
+    dailyDetail.value = await fetchDailyDetail(date, mode.value, currency.value)
   } catch (e) {
     error.value = e instanceof Error ? e.message : t('common.unknownError', '未知错误')
   } finally {
@@ -281,6 +283,7 @@ async function selectDate(date: string) {
 }
 
 function isProjected(tx: Transaction): boolean {
+ if(tx.projected) return true
   return tx.remark?.includes('预计') || false
 }
 

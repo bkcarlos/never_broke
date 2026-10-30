@@ -9,6 +9,7 @@ import (
 	"neverbroke/internal/http/router"
 	"neverbroke/internal/models"
 	"neverbroke/internal/repository/postgres"
+	"neverbroke/internal/workspace"
 	"os"
 	"strings"
 
@@ -117,7 +118,10 @@ func autoMigrate(db *gorm.DB) error {
 		&auth.OAuthState{},
 		// 业务模型
 		&models.Account{},
+		&models.CuratedImportRecord{},
+		&workspace.State{}, &workspace.Change{}, &workspace.Setting{}, &workspace.Batch{}, &workspace.SourceAlias{}, &workspace.Attachment{}, &workspace.SyncRun{},
 		&models.Transaction{},
+		&models.Budget{},
 		&models.InstallmentPlan{},
 		&models.RecurringIncomePlan{},
 	)

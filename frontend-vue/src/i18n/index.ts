@@ -59,8 +59,9 @@ export function t(key: string, params?: Record<string, string | number> | string
 
   // 替换参数
   if (params && typeof params === 'object') {
-    return message.replace(/\{(\w+)\}/g, (match, key) => {
-      return params[key] !== undefined ? String(params[key]) : match
+    const values = params
+    return message.replace(/\{(\w+)\}/g, (match, key: string) => {
+      return values[key] !== undefined ? String(values[key]) : match
     })
   }
 
