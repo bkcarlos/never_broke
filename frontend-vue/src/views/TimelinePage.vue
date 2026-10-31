@@ -49,10 +49,7 @@
         <div v-for="metric in mobileMetrics" :key="metric.label" :title="money(metric.cents)" :aria-label="metric.label+' '+money(metric.cents)"><span>{{metric.label}}</span><strong :class="metric.tone">{{compactMoney(metric.cents)}}</strong></div>
       </div>
       <p v-if="data.totals.unknownRepayments" class="notice" role="status">有 {{data.totals.unknownRepayments}} 项还款金额待确认，上方仅合计已知金额。</p>
-      <p v-if="showRepayments && !data.totals.billedCount && !data.totals.estimatedCount" class="notice">
-        本月暂无待还款。
-        <RouterLink v-if="data.nextRepayment" :to="{path:'/timeline',query:{repayments:'1',month:data.nextRepayment.slice(0,7),day:data.nextRepayment,currency,account}}">下一笔 · {{data.nextRepayment.slice(5)}} →</RouterLink>
-      </p>
+
 
       <section class="panel month-calendar" :aria-busy="loading" aria-label="月历">
         <p class="calendar-scroll-hint">左右滑动查看整周，点击记录查看详情</p>
@@ -67,10 +64,10 @@
                   <span v-if="cell.day.entryCount" class="mobile-day-indicators"><span>{{cell.day.entryCount}}笔</span><i v-if="cell.day.refundCount" class="dot refund-dot"/><i v-if="cell.day.billedCount" class="dot billed-dot"/><i v-if="cell.day.estimatedCount" class="dot estimated-dot"/></span>
                 </button>
                 <button class="day-number" :aria-label="dayLabel(cell.day)" aria-haspopup="dialog" @click="selectDay(cell.day.date)">{{Number(cell.day.date.slice(-2))}}<span v-if="cell.day.date===today" class="today-label">今天</span><span class="day-count">{{cell.day.entryCount?cell.day.entryCount+' 笔':''}}</span></button>
-                <button v-for="event in cell.day.events" :key="event.key" class="calendar-event" :class="eventTone(event)" :aria-label="eventLabel(event)" :title="eventLabel(event)" aria-haspopup="dialog" @click="openRecord(event.key)">
+                <button v-for="event in dayPreview(cell.day)" :key="event.key" class="calendar-event" :class="eventTone(event)" :aria-label="eventLabel(event)" :title="eventLabel(event)" aria-haspopup="dialog" @click="openRecord(event.key)">
                   <span class="event-kind">{{event.kind==='schedule'&&event.status!=='billed'?'预计':eventKind(event)}}</span><span class="event-title">{{calendarTitle(event.title,event.kind)}}</span><strong class="event-amount">{{event.kind==='refund'?'+':''}}{{amount(event.cents,currency,settings.showAmount)}}</strong>
                 </button>
-                <button v-if="cell.day.entryCount>cell.day.events.length" class="day-more" aria-haspopup="dialog" @click="selectDay(cell.day.date)">还有 {{cell.day.entryCount-cell.day.events.length}} 笔 · 展开</button>
+                <button v-if="cell.day.entryCount>dayPreview(cell.day).length" class="day-more" :aria-label="'还有 '+(cell.day.entryCount-dayPreview(cell.day).length)+' 笔，点击查看'" aria-haspopup="dialog" @click="selectDay(cell.day.date)">还有 {{cell.day.entryCount-dayPreview(cell.day).length}} 笔<span class="day-more-label"> · 点击查看</span></button>
                 <span v-if="!cell.day.entryCount" class="day-empty">—</span>
               </section>
               <div v-else class="calendar-day outside" aria-hidden="true" />
@@ -97,6 +94,9 @@ import {useUserSettingsStore} from '@/stores/userSettings'
 import CalendarDayDialog from '@/components/CalendarDayDialog.vue'
 import RecordDrawer from '@/components/RecordDrawer.vue'
 import {calendarTitle,calendarKind} from '@/utils/calendarDisplay'
+
+// Three preview rows: show all up to three entries, otherwise reserve one for expansion.
+const dayPreview=(day:CalendarDay)=>day.events.slice(0,day.entryCount>3?2:3)
 
 const route=useRoute(), router=useRouter(), settings=useUserSettingsStore()
 const today=localDate(), month=ref(today.slice(0,7)), selectedDate=ref(today)
@@ -178,17 +178,41 @@ watch(()=>route.fullPath,()=>{
 
 <style scoped>
 .repayment-toggle{font-weight:550}.repayment-toggle.enabled{background:var(--soft);border-color:#bcbcf0;color:var(--brand)}.toggle-track{width:28px;height:16px;background:#c7ccd8;border-radius:9px;padding:2px;display:inline-flex;align-items:center;transition:background .15s}.toggle-track>span{width:12px;height:12px;background:white;border-radius:50%;transition:transform .15s}.enabled .toggle-track{background:var(--brand)}.enabled .toggle-track>span{transform:translateX(12px)}
-.calendar-toolbar{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px}.month-actions{flex-wrap:nowrap}.month-actions>.button{min-width:34px}.month-input{width:150px;font-weight:600}.calendar-filters{min-width:0}.calendar-filters select{max-width:230px}.calendar-metrics.pair{grid-template-columns:repeat(2,minmax(0,1fr))}.calendar-metrics .metric-value{font-size:clamp(18px,2.1vw,27px)}.spending{color:#5557ca}.billed{color:#3978aa}.estimated{color:#a57521}.refund-dot{background:var(--green)}.billed-dot{background:#3978aa}.estimated-dot{background:#b28b47}
-.calendar-scroll{overflow-x:auto;overscroll-behavior-x:contain}.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-width:980px}.calendar-week{background:#fafbfe;border-bottom:1px solid var(--line)}.calendar-week span{padding:13px 0;text-align:center;font-size:11px;color:var(--muted)}.calendar-day{min-width:0;min-height:110px;padding:6px;background:white;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px;position:relative}.calendar-day:nth-child(7n){border-right:0}.calendar-day.selected{background:#faf9ff;box-shadow:inset 0 0 0 2px #aaa9e5}.calendar-day.outside{background:#fafbfc}.day-number{font-size:12px;font-weight:600;color:#535d70;display:flex;align-items:center;gap:7px;background:transparent;min-height:28px;text-align:left;padding:0 3px;border-radius:4px}.day-number:hover{background:#ededfa}.today .day-number{color:var(--brand)}.today-label,.day-count{font-size:9px;font-weight:400}.day-count{margin-left:auto;color:var(--muted)}
+.calendar-toolbar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 12px}.month-actions{flex-wrap:nowrap}.month-actions>.button{min-width:34px}.month-input{width:150px;font-weight:600}.calendar-filters{min-width:0}.calendar-filters select{max-width:230px}.calendar-metrics.pair{grid-template-columns:repeat(2,minmax(0,1fr))}.calendar-metrics .metric-value{font-size:clamp(18px,2.1vw,27px)}.spending{color:#5557ca}.billed{color:#3978aa}.estimated{color:#a57521}.refund-dot{background:var(--green)}.billed-dot{background:#3978aa}.estimated-dot{background:#b28b47}
+.calendar-scroll{overflow-x:auto;overscroll-behavior-x:contain}.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-width:0}.calendar-week{background:#fafbfe;border-bottom:1px solid var(--line)}.calendar-week span{padding:7px 0;text-align:center;font-size:11px;color:var(--muted)}.calendar-day{min-width:0;min-height:82px;padding:6px;background:white;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px;position:relative}.calendar-day:nth-child(7n){border-right:0}.calendar-day.selected{background:#faf9ff;box-shadow:inset 0 0 0 2px #aaa9e5}.calendar-day.outside{background:#fafbfc}.day-number{font-size:12px;font-weight:600;color:#535d70;display:flex;align-items:center;gap:7px;background:transparent;min-height:28px;text-align:left;padding:0 3px;border-radius:4px}.day-number:hover{background:#ededfa}.today .day-number{color:var(--brand)}.today-label,.day-count{font-size:9px;font-weight:400}.day-count{margin-left:auto;color:var(--muted)}
 .calendar-event{border:1px solid #e6e5fa;background:#f3f2fc;border-left:3px solid #7774d6;border-radius:5px;padding:6px;text-align:left;width:100%;min-width:0;display:flex;flex-direction:column;gap:5px;min-height:48px}.calendar-event:hover{filter:brightness(.97)}.calendar-event.refund{background:#edf8f3;border-color:#d8eade;border-left-color:#54a889}.calendar-event.billed{background:#eef5fc;border-color:#dbe8f4;border-left-color:#548cb5}.calendar-event.estimated{background:#fff8ec;border-color:#f0e4c9;border-left-color:#bf9856}.event-title{font-size:11px;font-weight:500;line-height:1.5;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}.day-more{font-size:10px;color:var(--brand);background:transparent;text-align:left;padding:5px 3px;min-height:28px}.day-more:hover{background:#f0effb}.day-empty{font-size:12px;color:#c1c5d1;padding:4px}
 .calendar-legend{display:flex;flex-wrap:wrap;gap:14px;padding:13px 16px;font-size:10px}.calendar-legend>span:last-child{color:var(--muted);margin-left:auto}.calendar-scroll-hint{display:none}.error-box{margin-top:15px}
-@media(max-width:1100px){.calendar-scroll-hint{display:block;padding:10px 12px 0;color:var(--muted);font-size:10px}}
+
 /* Keep phone dates as full-width, tappable seven-column tiles. */
 .mobile-filter-toggle,.mobile-day-button,.mobile-calendar-summary{display:none}
 .calendar-event{flex-direction:row;align-items:center;gap:3px;min-height:30px;padding:5px 4px}
 .event-kind{flex-shrink:0;font-size:9px;white-space:nowrap}
 .event-title{display:block;flex:1;min-width:0;white-space:nowrap;text-overflow:ellipsis;font-size:10px}
 .event-amount{flex-shrink:0;white-space:nowrap;font-size:10px;font-weight:600;font-variant-numeric:tabular-nums}
+@media(min-width:768px){
+  .calendar-page{display:flex;flex-direction:column;min-height:100%;gap:8px}
+  .calendar-page>.page-heading,.calendar-metrics{margin:0}
+  .calendar-page>.scope-note{padding:0;font-size:10px}
+  .calendar-page>.notice{margin:0}
+  .month-calendar{flex:1;display:flex;flex-direction:column}
+  .calendar-scroll{flex:1;display:flex;flex-direction:column;overflow:visible}
+  .calendar-grid{flex:1;grid-template-rows:repeat(var(--calendar-weeks),minmax(110px,1fr))}
+  .calendar-day{padding:4px;gap:2px;min-height:110px}
+  .calendar-day>button{flex-shrink:0}
+  .day-number{min-height:22px}
+  .calendar-event{min-height:24px;padding:3px}
+  .day-more{min-height:24px;padding:3px;white-space:nowrap}
+  .calendar-legend{padding:7px 12px}
+  .calendar-metrics .metric{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center;padding:9px 12px}
+  .calendar-metrics .metric-value{font-size:20px;margin:0}
+  .calendar-metrics .metric-foot{grid-column:1 / -1}
+}
+@media(min-width:768px) and (max-width:1199px){
+  .calendar-event .event-kind{display:none}
+  .day-more-label{display:none}
+  .calendar-metrics .metric{display:block}
+  .calendar-metrics .metric-value{margin:4px 0}
+}
 @media(max-width:767px){
   .calendar-page{height:100%;display:flex;flex-direction:column;gap:8px;min-height:0}
   .calendar-page>*{flex-shrink:0}
