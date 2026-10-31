@@ -72,7 +72,21 @@ select.control {
 .projection-panel summary > :last-child { margin-left: auto; }
 
 @media (min-width: 768px) {
-  .workspace-home .workspace-content { grid-template-columns: minmax(0, 1fr) minmax(300px, .65fr); align-items: start; }
+  .workspace-home .workspace-content { grid-template-columns: minmax(0, 1fr) minmax(300px, .65fr); grid-template-rows: minmax(0, 1fr); align-items: stretch; }
+  /* Give the remaining viewport to real content; tables scroll within their panels. */
+  .workspace-home, .workspace-reports { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .workspace-home > *, .workspace-reports > * { flex-shrink: 0; }
+  .workspace-home .workspace-content { flex: 1 0 360px; min-height: 360px; }
+  .workspace-home .records-panel, .overview-analysis { display: flex; flex-direction: column; min-height: 0; }
+  .overview-analysis > .panel-head, .overview-analysis > .analysis-switch { flex-shrink: 0; }
+  .workspace-home .ledger-content { flex: 1; min-height: 0; overflow: auto; }
+  .workspace-home .ledger-content > .table-scroll { overflow: visible; }
+  .workspace-home .overview-analysis .chart { flex: 1; height: auto; min-height: 0; }
+  .workspace-reports .workspace-content { flex: 1 0 520px; min-height: 520px; grid-template-rows: minmax(0, 1.1fr) minmax(0, 1fr); }
+  .workspace-reports .workspace-content > .split-grid, .report-details { min-height: 0; align-items: stretch; }
+  .workspace-reports .workspace-content .panel { display: flex; flex-direction: column; min-height: 0; }
+  .workspace-reports .workspace-content .panel-head { flex-shrink: 0; }
+  .workspace-reports .chart { flex: 1; height: auto; min-height: 0; }
   .workspace-home .records-panel { grid-column: 1; grid-row: 1; }
   .workspace-home .overview-analysis { grid-column: 2; grid-row: 1; }
   .workspace-home .compact .ledger-table { table-layout: fixed; }
@@ -91,8 +105,7 @@ select.control {
   .records-panel .ledger-table th { position: sticky; top: 0; z-index: 1; }
   .projection-panel { flex-shrink: 0; }
   .projection-panel .panel-body { max-height: 260px; overflow: auto; }
-  .report-details { align-items: start; }
-  .report-details .panel-body { max-height: 210px; overflow: auto; }
+  .report-details .panel-body { flex: 1; min-height: 0; overflow: auto; }
   .workspace-reports .split-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
 }
 @media (min-width: 768px) and (max-width: 1199px) {
@@ -127,12 +140,10 @@ select.control {
 
 .report-period .tabs { padding: 0; }
 @media (min-width: 768px) {
-  .workspace-reports .chart { height: 230px; }
   .report-period > .tiny { display: none; }
 }
 @media (min-width: 768px) and (max-height: 800px) {
   .workspace-home .page-heading .subtitle { display: none; }
-  .workspace-home .overview-analysis .chart { height: 270px; }
   .workspace-home .compact .ledger-table td { padding-block: 6px; }
   .workspace-home .compact .cell-sub { line-height: 1.2; }
 }
