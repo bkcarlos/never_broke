@@ -119,6 +119,7 @@ const isLoginPage = computed(() => route.path === '/login')
 // 布局类名
 const layoutClass = computed(() => ({
   'layout-mobile': isMobile.value,
+  'calendar-layout': route.path === '/timeline',
   'layout-tablet': isTablet.value,
   'layout-desktop': !isMobile.value && !isTablet.value,
 }))
@@ -220,5 +221,5 @@ function handleSelect(action: RadialAction) {
 .app-layout{display:grid;height:100dvh;min-height:0;background:#f6f7fa;grid-template-areas:"sidebar header" "sidebar main";grid-template-columns:216px minmax(0,1fr);grid-template-rows:56px minmax(0,1fr)}
 .app-sidebar{grid-area:sidebar}.app-topbar{grid-area:header}.app-main{grid-area:main;min-width:0;overflow:auto;padding:28px}.layout-tablet{grid-template-columns:76px minmax(0,1fr)}.login-container{min-height:100dvh}
 .mobile-topbar{grid-area:header;background:#fff;border-bottom:1px solid #e6e8ee}.mobile-topbar-content{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 18px}.mobile-topbar-title{font-size:15px;font-weight:600}.mobile-icon-btn{display:grid;place-items:center;background:transparent;border:0;color:#667085}.bottom-nav{grid-area:footer;background:white;border-top:1px solid #e6e8ee;padding-bottom:env(safe-area-inset-bottom);z-index:30}.bottom-nav-content{display:flex;align-items:center;justify-content:space-around;height:59px}.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:#8a90a0;text-decoration:none;min-width:56px}.nav-item.active{color:#5658d7}.add-btn{width:38px;height:38px;background:#5859dc;color:white;border-radius:11px;font-size:25px}.rotate-45{display:block;transform:rotate(45deg)}
-.layout-mobile{grid-template-areas:"header" "main" "footer";grid-template-columns:minmax(0,1fr);grid-template-rows:52px minmax(0,1fr) auto}.layout-mobile .app-main{padding:18px 14px}.mobile-topbar-safe-area{padding-top:env(safe-area-inset-top)}
+.layout-mobile{grid-template-areas:"header" "main" "footer";grid-template-columns:minmax(0,1fr);grid-template-rows:52px minmax(0,1fr) auto}.layout-mobile .app-main{padding:18px 14px}.layout-mobile.calendar-layout .app-main{padding:10px}.mobile-topbar-safe-area{padding-top:env(safe-area-inset-top)}
 </style>
