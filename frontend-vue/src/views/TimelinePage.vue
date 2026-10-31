@@ -51,6 +51,7 @@
       </p>
 
       <section class="panel month-calendar" :aria-busy="loading" aria-label="月历">
+        <p class="calendar-scroll-hint">左右滑动查看整周，点击记录查看详情</p>
         <div class="calendar-scroll" tabindex="0" aria-label="月历详细记录，可左右滑动">
           <div class="calendar-week"><span v-for="day in weekdays" :key="day">{{day}}</span></div>
           <div class="calendar-grid">
@@ -68,7 +69,7 @@
             </template>
           </div>
         </div>
-        <p class="calendar-scroll-hint">左右滑动查看整周，点击记录查看详情</p><div class="calendar-legend"><span class="spending">● 消费</span><span class="refund">● 退款</span><span v-if="showRepayments" class="billed">● 已出账应还</span><span v-if="showRepayments" class="estimated">● 预计应还</span><span>{{currency}} · 点日期看明细</span></div>
+        <div class="calendar-legend"><span class="spending">● 消费</span><span class="refund">● 退款</span><span v-if="showRepayments" class="billed">● 已出账应还</span><span v-if="showRepayments" class="estimated">● 预计应还</span><span>{{currency}} · 点日期看明细</span></div>
       </section>
       <p class="scope-note">还款按到期日展示，不重复计入消费。已还、已取消、已替代的计划不计入应还；无记录不代表没有消费。日期格直接展示商户、事项与金额；点日期或“更多”弹窗查看全部记录。</p>
 
@@ -155,5 +156,5 @@ watch(()=>route.fullPath,()=>{
 .calendar-event{border:1px solid #e6e5fa;background:#f3f2fc;border-left:3px solid #7774d6;border-radius:5px;padding:6px;text-align:left;width:100%;min-width:0;display:flex;flex-direction:column;gap:5px;min-height:48px}.calendar-event:hover{filter:brightness(.97)}.calendar-event.refund{background:#edf8f3;border-color:#d8eade;border-left-color:#54a889}.calendar-event.billed{background:#eef5fc;border-color:#dbe8f4;border-left-color:#548cb5}.calendar-event.estimated{background:#fff8ec;border-color:#f0e4c9;border-left-color:#bf9856}.event-title{font-size:11px;font-weight:500;line-height:1.5;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}.event-meta{display:flex;justify-content:space-between;align-items:baseline;gap:4px;flex-wrap:wrap;font-size:9px}.event-meta strong{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.day-more{font-size:10px;color:var(--brand);background:transparent;text-align:left;padding:5px 3px;min-height:28px}.day-more:hover{background:#f0effb}.day-empty{font-size:12px;color:#c1c5d1;padding:4px}
 .calendar-legend{display:flex;flex-wrap:wrap;gap:14px;padding:13px 16px;font-size:10px}.calendar-legend>span:last-child{color:var(--muted);margin-left:auto}.calendar-scroll-hint{display:none}.error-box{margin-top:15px}
 @media(max-width:1100px){.calendar-scroll-hint{display:block;padding:10px 12px 0;color:var(--muted);font-size:10px}}
-@media(max-width:767px){.calendar-toolbar{padding:12px;gap:12px}.calendar-filters{width:100%;flex-wrap:nowrap}.calendar-filters select{min-width:0;flex:1;width:50%;max-width:none}.calendar-filters .workspace-currency{min-width:136px;flex:0 0 136px}.calendar-metrics .metric-value{font-size:21px}.month-actions{width:100%;justify-content:space-between;gap:4px}.month-input{width:145px}.calendar-week,.calendar-grid{min-width:840px}.calendar-day{padding:6px;gap:5px;min-height:140px}.day-number{min-height:32px}.calendar-week span{padding:10px 0}.calendar-legend{padding:12px 10px;gap:8px 12px}.calendar-legend>span:last-child{margin-left:0;width:100%}.calendar-scroll-hint{padding:10px 10px 0}}
+@media(max-width:767px){.calendar-toolbar{padding:12px;gap:12px}.calendar-filters{width:100%;flex-wrap:nowrap}.calendar-filters select{min-width:0;flex:1;width:50%;max-width:none}.calendar-filters .workspace-currency{min-width:136px;flex:0 0 136px}.calendar-metrics .metric-value{font-size:21px}.month-actions{width:100%;justify-content:space-between;gap:4px}.month-input{width:145px}.calendar-week,.calendar-grid{min-width:840px}.calendar-day{padding:6px;gap:5px;min-height:140px}.day-number{min-height:32px}.calendar-week span{padding:10px 0}.calendar-legend{padding:12px 10px;gap:8px 12px}.calendar-legend>span:last-child{margin-left:0;width:100%}.calendar-scroll-hint{padding:10px}}
 </style>
