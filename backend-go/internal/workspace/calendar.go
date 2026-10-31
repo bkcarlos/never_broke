@@ -133,5 +133,18 @@ func calendar(c *gin.Context, db *gorm.DB) {
 	offset, _ := strconv.Atoi(c.Query("offset"))
 	offset = max(0, min(len(rows), offset))
 	end := min(offset+50, len(rows))
-	response.OK(c, gin.H{"month": q.Month, "day": q.Day, "currency": q.Currency, "days": days, "totals": totals, "items": rows[offset:end], "total": len(rows), "offset": offset, "hasMore": end < len(rows), "accounts": accounts, "categories": categories.All})
+	response.OK(c, gin.H{"month": q.Month, "day": q.Day, "currency": q.Currency, "days": days, "totals": totals, "items": rows[offset:end], "total": len(rows), "offset": offset, "hasMore": end < len(rows), "accounts": accounts, "categories": categories.All, "nextRepayment": nextCalendarRepayment(items, q.Filter, time.Now().Format("2006-01-02"))})
+}
+
+func nextCalendarRepayment(items []Entry, f Filter, today string) string {
+	next := ""
+	for _, x := range items {
+		if x.Kind != "schedule" || x.Date < today || !Matches(x, f) || x.Edit.Status == "paid" || x.Edit.Status == "cancelled" || x.Edit.Status == "replaced" {
+			continue
+		}
+		if next == "" || x.Date < next {
+			next = x.Date
+		}
+	}
+	return next
 }

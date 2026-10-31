@@ -49,6 +49,10 @@
         </template>
       </div>
       <p v-if="data.totals.unknownRepayments" class="notice" role="status">有 {{data.totals.unknownRepayments}} 项还款金额待确认，上方仅合计已知金额。</p>
+      <p v-if="view!=='spending' && !data.totals.billedCount && !data.totals.estimatedCount" class="notice">
+        本月暂无待还款安排。
+        <RouterLink v-if="data.nextRepayment" :to="{path:'/timeline',query:{view:'repayment',month:data.nextRepayment.slice(0,7),day:data.nextRepayment,currency,account}}">查看下一笔安排 · {{data.nextRepayment}} →</RouterLink>
+      </p>
 
       <section class="panel month-calendar" :aria-busy="loading" aria-label="月历">
         <div class="calendar-week"><span v-for="day in weekdays" :key="day">{{day}}</span></div>
@@ -105,7 +109,7 @@ const money=(cents:number)=>amount(cents,currency.value,settings.showAmount)
 function compact(cents:number){
   if(!settings.showAmount)return '•••'
   const n=cents/100
-  return n>=10000?`${(n/10000).toFixed(1)}万`:n.toLocaleString('zh-CN',{maximumFractionDigits:2})
+  return n>=10000?`${(n/10000).toFixed(1)}万`:n>=1000?`${(n/1000).toFixed(1)}千`:n.toLocaleString('zh-CN',{maximumFractionDigits:2})
 }
 const cells=computed(()=>{
   if(!data.value)return []
@@ -139,7 +143,15 @@ function changeMonth(delta:number){
   selectMonth()
 }
 function goToday(){month.value=today.slice(0,7);selectMonth()}
-watch(()=>route.query.view,v=>{view.value=v==='spending'||v==='repayment'?v:'all';refresh()},{immediate:true})
+watch(()=>route.fullPath,()=>{
+  const q=route.query, m=String(q.month||''), d=String(q.day||'')
+  view.value=q.view==='spending'||q.view==='repayment'?q.view:'all'
+  month.value=/^(19\d{2}|20\d{2}|21\d{2}|2200)-(0[1-9]|1[0-2])$/.test(m)?m:today.slice(0,7)
+  const [y,n]=month.value.split('-').map(Number), last=new Date(y,n,0).getDate()
+  selectedDate.value=d.startsWith(month.value+'-')&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number(d.slice(-2))>=1&&Number(d.slice(-2))<=last?d:month.value===today.slice(0,7)?today:month.value+'-01'
+  currency.value=q.currency==='USD'?'USD':'CNY';account.value=String(q.account||'')
+  refresh()
+},{immediate:true})
 </script>
 
 <style scoped>

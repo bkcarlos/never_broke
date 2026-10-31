@@ -33,7 +33,7 @@ export interface CalendarMetric extends Metric {
 }
 export interface CalendarDay extends CalendarMetric {date:string}
 export interface CalendarResult {
-  month:string; day:string; currency:string; days:CalendarDay[]; totals:CalendarMetric
+  month:string; day:string; currency:string; nextRepayment:string; days:CalendarDay[]; totals:CalendarMetric
   items:Entry[]; total:number; offset:number; hasMore:boolean; accounts:Account[]; categories:Category[]
 }
 export const getCalendar=(f:Record<string,string|number>)=>get<CalendarResult>('/workspace/calendar?'+queryString(f))

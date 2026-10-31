@@ -36,6 +36,10 @@ func TestCalendarSeparatesSpendingRefundsAndActiveRepayments(t *testing.T) {
 	require.Equal(t, 1, total.UnknownRepayments)
 	require.Equal(t, total, days[28].CalendarMetric)
 	require.Len(t, detail, 5)
+	require.Equal(t, "2024-02-29", nextCalendarRepayment(rows, Filter{Currency: "CNY", Account: "a"}, "2024-02-28"))
+	require.Empty(t, nextCalendarRepayment(rows, Filter{Currency: "CNY"}, "2024-03-01"))
+	require.Empty(t, nextCalendarRepayment(rows, Filter{Currency: "USD"}, "2024-02-28"))
+	require.Empty(t, nextCalendarRepayment(rows, Filter{Currency: "CNY", Account: "another-account"}, "2024-02-28"))
 
 	q.View = "repayment"
 	_, total, detail, err = BuildCalendar(rows, q)
