@@ -31,7 +31,8 @@ export const blankEdit=():Edit=>({reviewed:false,relationReviewed:false,allocati
 export interface CalendarMetric extends Metric {
   billed:number; estimated:number; billedCount:number; estimatedCount:number; unknownRepayments:number
 }
-export interface CalendarDay extends CalendarMetric {date:string}
+export interface CalendarEvent {key:string;kind:string;title:string;categoryName:string;cents:number|null;status:string}
+export interface CalendarDay extends CalendarMetric {date:string;events:CalendarEvent[];entryCount:number}
 export interface CalendarResult {
   month:string; day:string; currency:string; nextRepayment:string; days:CalendarDay[]; totals:CalendarMetric
   items:Entry[]; total:number; offset:number; hasMore:boolean; accounts:Account[]; categories:Category[]

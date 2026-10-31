@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -36,6 +37,10 @@ func TestCalendarSeparatesSpendingRefundsAndActiveRepayments(t *testing.T) {
 	require.Equal(t, 1, total.UnknownRepayments)
 	require.Equal(t, total, days[28].CalendarMetric)
 	require.Len(t, detail, 5)
+	require.Equal(t, 5, days[28].EntryCount)
+	require.Len(t, days[28].Events, 4)
+	require.Empty(t, days[0].Events)
+	require.NotNil(t, days[0].Events)
 	require.Equal(t, "2024-02-29", nextCalendarRepayment(rows, Filter{Currency: "CNY", Account: "a"}, "2024-02-28"))
 	require.Empty(t, nextCalendarRepayment(rows, Filter{Currency: "CNY"}, "2024-03-01"))
 	require.Empty(t, nextCalendarRepayment(rows, Filter{Currency: "USD"}, "2024-02-28"))
@@ -57,6 +62,38 @@ func TestCalendarSeparatesSpendingRefundsAndActiveRepayments(t *testing.T) {
 	require.Equal(t, CalendarMetric{}, total)
 	require.Empty(t, detail)
 	require.NotNil(t, detail)
+}
+
+func TestCalendarPreviewsKeepTotalsAndRepaymentsWhenDayIsBusy(t *testing.T) {
+	rows := []Entry{}
+	for i := 0; i < 60; i++ {
+		rows = append(rows, Entry{Key: fmt.Sprint(i), Kind: "expense", Date: "2026-10-01", Currency: "CNY", Cents: cents(100), Merchant: "Test merchant", Description: "Source description", CategoryName: "Test category"})
+	}
+	for _, status := range []string{"billed", "estimated", "estimated"} {
+		rows = append(rows, Entry{Key: status + fmt.Sprint(len(rows)), Kind: "schedule", Date: "2026-10-01", Currency: "CNY", Description: "Repayment", Edit: Edit{Status: status}})
+	}
+	q := CalendarQuery{Month: "2026-10", Day: "2026-10-01", View: "all", Filter: Filter{Currency: "CNY"}}
+	days, total, detail, err := BuildCalendar(rows, q)
+	require.NoError(t, err)
+	require.Equal(t, int64(6000), total.Gross)
+	require.Len(t, detail, 63)
+	require.Equal(t, 63, days[0].EntryCount)
+	require.Len(t, days[0].Events, 5)
+	require.Equal(t, "Test merchant", days[0].Events[0].Title)
+	require.Equal(t, "Test category", days[0].Events[0].CategoryName)
+	require.Equal(t, "Repayment", days[0].Events[3].Title)
+	require.Equal(t, "billed", days[0].Events[3].Status)
+	require.Nil(t, days[0].Events[3].Cents)
+	q.View = "spending"
+	days, total, detail, err = BuildCalendar(rows, q)
+	require.NoError(t, err)
+	require.Len(t, days[0].Events, 3)
+	require.Equal(t, 60, days[0].EntryCount)
+	require.Len(t, detail, 60)
+	require.Equal(t, int64(6000), total.Gross)
+	for _, event := range days[0].Events {
+		require.Equal(t, "expense", event.Kind)
+	}
 }
 
 func TestCalendarEmptyMonthsAndValidation(t *testing.T) {

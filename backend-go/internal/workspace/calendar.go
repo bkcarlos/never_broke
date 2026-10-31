@@ -22,8 +22,45 @@ type CalendarMetric struct {
 }
 
 type CalendarDay struct {
-	Date string `json:"date"`
+	Date       string          `json:"date"`
+	Events     []CalendarEvent `json:"events"`
+	EntryCount int             `json:"entryCount"`
 	CalendarMetric
+	spendingShown, repaymentsShown int
+}
+
+type CalendarEvent struct {
+	Key          string `json:"key"`
+	Kind         string `json:"kind"`
+	Title        string `json:"title"`
+	CategoryName string `json:"categoryName"`
+	Cents        *int64 `json:"cents"`
+	Status       string `json:"status"`
+}
+
+// Keep each date readable without letting spending hide its repayment reminders.
+// Daily totals and the paginated drilldown still include every matching entry.
+func (d *CalendarDay) preview(x Entry) {
+	d.EntryCount++
+	if x.Kind == "schedule" {
+		if d.repaymentsShown >= 2 {
+			return
+		}
+		d.repaymentsShown++
+	} else {
+		if d.spendingShown >= 3 {
+			return
+		}
+		d.spendingShown++
+	}
+	title := x.Merchant
+	if title == "" {
+		title = x.Description
+	}
+	if title == "" {
+		title = "未填写摘要"
+	}
+	d.Events = append(d.Events, CalendarEvent{Key: x.Key, Kind: x.Kind, Title: title, CategoryName: x.CategoryName, Cents: x.Cents, Status: x.Edit.Status})
 }
 
 type CalendarQuery struct {
@@ -82,7 +119,7 @@ func BuildCalendar(items []Entry, q CalendarQuery) ([]CalendarDay, CalendarMetri
 	for d := first; d.Before(next); d = d.AddDate(0, 0, 1) {
 		date := d.Format("2006-01-02")
 		index[date] = len(days)
-		days = append(days, CalendarDay{Date: date})
+		days = append(days, CalendarDay{Date: date, Events: []CalendarEvent{}})
 	}
 	total, selected := CalendarMetric{}, []Entry{}
 	for _, x := range items {
@@ -106,6 +143,7 @@ func BuildCalendar(items []Entry, q CalendarQuery) ([]CalendarDay, CalendarMetri
 			continue
 		}
 		days[i].add(x)
+		days[i].preview(x)
 		total.add(x)
 		if x.Date == q.Day {
 			selected = append(selected, x)
