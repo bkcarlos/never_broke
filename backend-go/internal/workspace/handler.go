@@ -17,6 +17,7 @@ import (
 
 func Register(g *gin.RouterGroup, db *gorm.DB) {
 	attachmentRoutes(g, db)
+	g.GET("/workspace/calendar", func(c *gin.Context) { calendar(c, db) })
 	g.GET("/workspace/projection", func(c *gin.Context) {
 		items, accounts, e := Load(db.WithContext(c.Request.Context()), c.GetString("user_id"))
 		if e != nil {

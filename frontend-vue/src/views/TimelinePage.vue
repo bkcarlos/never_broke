@@ -1,305 +1,148 @@
 <template>
-  <div class="page-container">
-    <div class="page-content">
-      <label class="block mb-3">币种 <select v-model="currency" @change="selectedDate=null; dailyDetail=null; loadData()" class="border rounded p-1"><option>CNY</option><option>USD</option></select></label>
-      <!-- 模式切换 + 区间选择 -->
-      <div class="bg-white rounded-lg shadow p-4 mb-4">
-        <!-- 模式切换 -->
-        <div class="mb-4">
-          <label class="block text-xs text-gray-600 mb-2">{{ t('timeline.mode', '查看模式') }}</label>
-          <div class="flex gap-2">
-            <button
-              @click="mode = 'history'; loadData()"
-              :class="[
-                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                mode === 'history'
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              ]"
-            >
-              {{ t('timeline.history', '仅历史') }}
+  <div class="work-page calendar-page">
+    <header class="page-heading">
+      <div>
+        <p class="eyebrow">SPENDING & REPAYMENTS</p>
+        <h1>消费与还款日历</h1>
+        <p class="subtitle">每天花了多少，哪天需要还款，一眼看清。</p>
+      </div>
+      <div class="actions">
+        <RouterLink to="/detail" class="button">交易账本</RouterLink>
+        <RouterLink to="/plans" class="button">管理还款</RouterLink>
+      </div>
+    </header>
+
+    <section class="panel calendar-controls" aria-label="日历筛选">
+      <div class="calendar-toolbar">
+        <div class="actions month-actions">
+          <button class="button" aria-label="上个月" :disabled="month==='1900-01'" @click="changeMonth(-1)">‹</button>
+          <input v-model="month" type="month" min="1900-01" max="2200-12" class="control month-input" aria-label="选择月份" @change="selectMonth" />
+          <button class="button" aria-label="下个月" :disabled="month==='2200-12'" @click="changeMonth(1)">›</button>
+          <button class="button ghost" @click="goToday">本月</button>
+        </div>
+        <div class="actions calendar-filters">
+          <select v-model="account" class="control" aria-label="日历账户" @change="refresh">
+            <option value="">全部账户</option>
+            <option v-for="a in accounts.filter(a=>a.currency===currency)" :key="a.id" :value="a.id">{{accountName(a)}}</option>
+          </select>
+          <select v-model="currency" class="control workspace-currency" aria-label="日历币种" @change="account='';refresh()">
+            <option value="CNY">CNY · 人民币</option><option value="USD">USD · 美元</option>
+          </select>
+        </div>
+      </div>
+      <div class="tabs" aria-label="日历内容">
+        <button v-for="tab in views" :key="tab.key" :class="{active:view===tab.key}" :aria-pressed="view===tab.key" @click="view=tab.key;refresh()">{{tab.label}}</button>
+      </div>
+    </section>
+    <div v-if="error" class="error-box" role="alert">{{error}} <button class="button" @click="load">重试</button></div>
+    <div v-if="!data && loading" class="empty" role="status">正在读取日历…</div>
+
+    <template v-if="data">
+      <div class="metrics calendar-metrics" :class="{pair:view!=='all'}">
+        <template v-if="view!=='repayment'">
+          <div class="metric"><p class="metric-label"><i class="dot" />本月消费</p><div class="metric-value">{{money(data.totals.gross)}}</div><p class="metric-foot">{{data.totals.count}} 笔 · 不含还款</p></div>
+          <div class="metric"><p class="metric-label"><i class="dot refund-dot" />本月退款</p><div class="metric-value refund">{{money(data.totals.refund)}}</div><p class="metric-foot">{{data.totals.refundCount}} 笔 · 净支出 {{money(data.totals.net)}}</p></div>
+        </template>
+        <template v-if="view!=='spending'">
+          <div class="metric"><p class="metric-label"><i class="dot billed-dot" />本月已出账应还</p><div class="metric-value billed">{{money(data.totals.billed)}}</div><p class="metric-foot">{{data.totals.billedCount}} 项 · 未标记已还的正式计划</p></div>
+          <div class="metric"><p class="metric-label"><i class="dot estimated-dot" />本月预计应还</p><div class="metric-value estimated">{{money(data.totals.estimated)}}</div><p class="metric-foot">{{data.totals.estimatedCount}} 项 · 以正式账单为准</p></div>
+        </template>
+      </div>
+      <p v-if="data.totals.unknownRepayments" class="notice" role="status">有 {{data.totals.unknownRepayments}} 项还款金额待确认，上方仅合计已知金额。</p>
+
+      <section class="panel month-calendar" :aria-busy="loading" aria-label="月历">
+        <div class="calendar-week"><span v-for="day in weekdays" :key="day">{{day}}</span></div>
+        <div class="calendar-grid">
+          <template v-for="cell in cells" :key="cell.key">
+            <button v-if="cell.day" class="calendar-day" :class="{selected:cell.day.date===selectedDate,today:cell.day.date===today}" :aria-label="dayLabel(cell.day)" :aria-pressed="cell.day.date===selectedDate" @click="selectDay(cell.day.date)">
+              <span class="day-number">{{Number(cell.day.date.slice(-2))}}<span v-if="cell.day.date===today" class="today-label">今天</span></span>
+              <span v-if="cell.day.count" class="day-amount spending"><span class="day-label">消费</span><b>{{compact(cell.day.gross)}}</b></span>
+              <span v-if="cell.day.refundCount" class="day-amount refund"><span class="day-label">退款</span><b>{{compact(cell.day.refund)}}</b></span>
+              <span v-if="cell.day.billedCount" class="day-amount billed"><span class="day-label">应还</span><b>{{compact(cell.day.billed)}}</b></span>
+              <span v-if="cell.day.estimatedCount" class="day-amount estimated"><span class="day-label">预计</span><b>{{compact(cell.day.estimated)}}</b></span>
+              <span v-if="cell.day.unknownRepayments" class="day-unknown">金额待确认</span>
             </button>
-            <button
-              @click="mode = 'with_future'; loadData()"
-              :class="[
-                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                mode === 'with_future'
-                  ? 'bg-indigo-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              ]"
-            >
-              {{ t('timeline.withFuture', '含未来') }}
-            </button>
-          </div>
+            <div v-else class="calendar-day outside" aria-hidden="true" />
+          </template>
         </div>
+        <div class="calendar-legend"><span class="spending">● 消费</span><span class="refund">● 退款</span><span class="billed">● 已出账应还</span><span class="estimated">● 预计应还</span><span>{{currency}} · 点日期看明细</span></div>
+      </section>
+      <p class="scope-note">还款按到期日展示，不重复计入消费。已还、已取消、已替代的计划不计入应还；无记录不代表没有消费。格内金额采用简写，完整金额见下方明细。</p>
 
-        <!-- 区间选择 -->
-        <div class="flex items-center justify-between">
-          <button
-            @click="changeMonth(-1)"
-            class="px-3 py-1 text-blue-500 hover:bg-blue-50 rounded"
-          >
-            ← {{ t('reports.prevMonth') }}
-          </button>
-          <span class="text-sm font-medium">
-            {{ currentYear }}{{ t('common.year') }} {{ currentMonth }}{{ t('common.month') }}
-          </span>
-          <button
-            @click="changeMonth(1)"
-            class="px-3 py-1 text-blue-500 hover:bg-blue-50 rounded"
-          >
-            {{ t('reports.nextMonth') }} →
-          </button>
-        </div>
-      </div>
-
-      <!-- 加载状态 -->
-      <div v-if="loading && !timeline" class="text-center py-8">
-        <p class="text-gray-500">{{ t('common.loading') }}</p>
-      </div>
-
-      <!-- 错误状态 -->
-      <div v-else-if="error" class="text-center py-8">
-        <p class="text-red-500 mb-4">{{ t('common.error') }}: {{ error }}</p>
-        <button
-          @click="loadData()"
-          class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          {{ t('common.retry') }}
-        </button>
-      </div>
-
-      <!-- 日历视图 -->
-      <div v-else-if="timeline" class="bg-white rounded-lg shadow p-4 mb-4">
-        <div class="grid grid-cols-7 gap-2">
-          <!-- 星期标题 -->
-          <div
-            v-for="day in weekDays"
-            :key="day"
-            class="text-center text-xs text-gray-500 font-medium py-2"
-          >
-            {{ day }}
-          </div>
-          <!-- 日期格子 -->
-          <div
-            v-for="day in calendarDays"
-            :key="day.date"
-            @click="selectDate(day.date)"
-            :class="[
-              'p-2 border rounded-lg cursor-pointer transition-colors',
-              day.isCurrentMonth
-                ? day.date === selectedDate
-                  ? 'bg-indigo-100 border-indigo-500'
-                  : 'hover:bg-gray-50'
-                : 'opacity-40',
-              day.isToday ? 'ring-2 ring-blue-500' : ''
-            ]"
-          >
-            <div class="text-xs text-gray-600 mb-1">{{ day.day }}</div>
-            <div
-              v-if="day.summary"
-              class="text-xs font-medium"
-              :class="day.summary.net >= 0 ? 'text-green-600' : 'text-red-600'"
-            >
-              {{ day.summary.net >= 0 ? '+' : '' }}{{ formatAmount(day.summary.net) }}
-            </div>
-            <div v-if="day.summary?.repayment" class="text-xs text-blue-700">还款 {{ formatAmount(day.summary.repayment) }}</div>
-            <div
-              v-if="day.summary?.hasFuture"
-              class="w-1 h-1 bg-blue-500 rounded-full mx-auto mt-1"
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 当日明细列表 -->
-      <div v-if="selectedDate && dailyDetail" class="bg-white rounded-lg shadow p-4">
-        <h2 class="text-sm font-semibold text-gray-700 mb-3">
-          {{ selectedDate }}
-        </h2>
-        <div v-if="dailyDetail.transactions.length === 0" class="text-center py-8 text-gray-400">
-          {{ t('detail.noData') }}
-        </div>
-        <div v-else class="space-y-2">
-          <div
-            v-for="tx in dailyDetail.transactions"
-            :key="tx.id"
-            class="flex items-center justify-between p-3 border rounded-lg"
-            :class="isProjected(tx) ? 'bg-blue-50 border-blue-200' : ''"
-          >
-            <div class="flex-1">
-              <div class="flex items-center gap-2">
-                <span
-                  :class="[
-                    'px-2 py-1 rounded text-xs font-medium',
-                    tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  ]"
-                >
-                  {{ tx.projected ? '还款安排' : tx.amount < 0 ? '退款' : tx.type === 'income' ? t('detail.totalIncome') : t('detail.totalExpense') }}
-                </span>
-                <span v-if="isProjected(tx)" class="text-xs text-blue-600">
-                  {{ t('timeline.projected', '预计') }}
-                </span>
-              </div>
-              <p class="text-sm text-gray-600 mt-1 whitespace-pre-line">{{ tx.remark || '-' }}</p><RouterLink v-if="!tx.projected" :to="{path:'/settings/import-bills',query:{transactionId:tx.id}}" class="text-xs text-blue-600">查看导入详情及关联收据</RouterLink>
-            </div>
-            <div
-              class="text-lg font-semibold"
-              :class="tx.type === 'income' ? 'text-green-600' : 'text-red-600'"
-            >
-              {{ tx.amountUnknown ? '金额待确认' : (tx.type === 'income' || tx.amount < 0 ? '+' : '-') + (currency === 'USD' ? 'US$' : '¥') + formatAmount(Math.abs(tx.amount)) }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <section class="panel calendar-detail" :aria-busy="loading" aria-label="当日明细">
+        <div class="panel-head"><div><h2>{{selectedDate}} · {{views.find(t=>t.key===view)?.label}}明细</h2><p class="subtitle">{{loading?'正在更新…':`共 ${data.total} 条 · 点击记录查看与核对`}}</p></div><span class="tag">{{currency}}</span></div>
+        <template v-if="data.day===selectedDate">
+          <LedgerTable v-if="data.items.length" :items="data.items" :currency="currency" :show="settings.showAmount" @open="recordKey=$event" />
+          <div v-else class="empty"><strong>当天没有{{view==='repayment'?'待还款安排':view==='spending'?'消费或退款':'消费或待还款记录'}}</strong>点击日历中有金额的日期查看明细。</div>
+          <footer v-if="data.total>50" class="pagination"><span>{{data.offset+1}}–{{data.offset+data.items.length}} / {{data.total}}</span><div class="actions"><button class="button" :disabled="!data.offset||loading" @click="offset-=50;load()">上一页</button><button class="button" :disabled="!data.hasMore||loading" @click="offset+=50;load()">下一页</button></div></footer>
+        </template>
+        <div v-else class="empty">正在读取当日明细…</div>
+      </section>
+      <RecordDrawer v-if="recordKey" :record-key="recordKey" :categories="data.categories" :show="settings.showAmount" @close="recordKey=''" @open="recordKey=$event" @saved="load" />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { fetchDailySummary, fetchDailyDetail } from '@/api/timeline'
-import { t, formatAmount as baseFormatAmount } from '@/i18n'
-import type { DailyTimeline, TimelineMode, Transaction } from '@/types'
-import { useUserSettingsStore } from '@/stores/userSettings'
+import {computed, ref, watch} from 'vue'
+import {useRoute} from 'vue-router'
+import {getCalendar, amount, accountName, localDate} from '@/api/workspace'
+import type {Account, CalendarDay, CalendarResult} from '@/api/workspace'
+import {useUserSettingsStore} from '@/stores/userSettings'
+import LedgerTable from '@/components/LedgerTable.vue'
+import RecordDrawer from '@/components/RecordDrawer.vue'
 
-const userSettingsStore = useUserSettingsStore()
-const mode = ref<TimelineMode>('history')
-const currency = ref('CNY')
-
-// 包装 formatAmount 以使用 store 的 showAmount
-const formatAmount = (amount: number) => baseFormatAmount(amount, userSettingsStore.showAmount)
-const currentYear = ref(new Date().getFullYear())
-const currentMonth = ref(new Date().getMonth() + 1)
-const timeline = ref<DailyTimeline | null>(null)
-const dailyDetail = ref<{ date: string; mode: TimelineMode; transactions: Transaction[] } | null>(null)
-const selectedDate = ref<string | null>(null)
-const loading = ref(false)
-const error = ref<string | null>(null)
-
-const weekDays = computed(() => t('timeline.weekdays', '日,一,二,三,四,五,六').split(','))
-
-// 计算日历天数
-const calendarDays = computed(() => {
-  const year = currentYear.value
-  const month = currentMonth.value
-  const firstDay = new Date(year, month - 1, 1)
-  const lastDay = new Date(year, month, 0)
-  const firstDayWeek = firstDay.getDay()
-  const daysInMonth = lastDay.getDate()
-
-  const days: Array<{
-    date: string
-    day: number
-    isCurrentMonth: boolean
-    isToday: boolean
-    summary?: { net: number; hasFuture: boolean; repayment?: number }
-  }> = []
-
-  // 上月的日期
-  const prevMonthLastDay = new Date(year, month - 1, 0).getDate()
-  for (let i = firstDayWeek - 1; i >= 0; i--) {
-    const day = prevMonthLastDay - i
-    const date = new Date(year, month - 2, day)
-    days.push({
-      date: formatDate(date),
-      day,
-      isCurrentMonth: false,
-      isToday: false,
-    })
-  }
-
-  // 当月的日期
-  const today = new Date()
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month - 1, day)
-    const dateStr = formatDate(date)
-    const summary = timeline.value?.days.find(d => d.date === dateStr)
-    days.push({
-      date: dateStr,
-      day,
-      isCurrentMonth: true,
-      isToday: date.getTime() === new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime(),
-      summary: summary ? { net: summary.net, hasFuture: summary.hasFuture, repayment: summary.repayment } : undefined,
-    })
-  }
-
-  // 下月的日期（填满42个格子）
-  const remaining = 42 - days.length
-  for (let day = 1; day <= remaining; day++) {
-    const date = new Date(year, month, day)
-    days.push({
-      date: formatDate(date),
-      day,
-      isCurrentMonth: false,
-      isToday: false,
-    })
-  }
-
-  return days
+type View = 'all'|'spending'|'repayment'
+const route=useRoute(), settings=useUserSettingsStore()
+const today=localDate(), month=ref(today.slice(0,7)), selectedDate=ref(today)
+const currency=ref('CNY'), account=ref(''), view=ref<View>('all')
+const data=ref<CalendarResult|null>(null), accounts=ref<Account[]>([])
+const loading=ref(false), error=ref(''), recordKey=ref(''), offset=ref(0)
+const views:{key:View;label:string}[]=[{key:'all',label:'消费与还款'},{key:'spending',label:'消费日历'},{key:'repayment',label:'还款日历'}]
+const weekdays=['一','二','三','四','五','六','日']
+let sequence=0
+const money=(cents:number)=>amount(cents,currency.value,settings.showAmount)
+function compact(cents:number){
+  if(!settings.showAmount)return '•••'
+  const n=cents/100
+  return n>=10000?`${(n/10000).toFixed(1)}万`:n.toLocaleString('zh-CN',{maximumFractionDigits:2})
+}
+const cells=computed(()=>{
+  if(!data.value)return []
+  const [year,m]=month.value.split('-').map(Number)
+  const start=(new Date(year,m-1,1).getDay()+6)%7
+  const size=Math.ceil((start+data.value.days.length)/7)*7
+  return Array.from({length:size},(_,i)=>({key:i,day:data.value?.days[i-start]}))
 })
-
-function formatDate(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+function dayLabel(day:CalendarDay){
+  return `${day.date}，消费 ${money(day.gross)}，退款 ${money(day.refund)}，已出账应还 ${money(day.billed)}，预计应还 ${money(day.estimated)}${day.unknownRepayments?'，有金额待确认事项':''}`
 }
-
-function changeMonth(months: number) {
-  const date = new Date(currentYear.value, currentMonth.value - 1 + months, 1)
-  currentYear.value = date.getFullYear()
-  currentMonth.value = date.getMonth() + 1
-  loadData()
+async function load(){
+  const seq=++sequence
+  loading.value=true;error.value=''
+  try{
+    const result=await getCalendar({month:month.value,day:selectedDate.value,currency:currency.value,account:account.value,view:view.value,offset:offset.value})
+    if(seq===sequence){data.value=result;accounts.value=result.accounts||[]}
+  }catch(e){if(seq===sequence)error.value=e instanceof Error?e.message:String(e)}
+  finally{if(seq===sequence)loading.value=false}
 }
-
-async function loadData() {
-  loading.value = true
-  error.value = null
-
-  try {
-    const year = currentYear.value
-    const month = currentMonth.value
-    const firstDay = new Date(year, month - 1, 1)
-    const lastDay = new Date(year, month, 0)
-    const fromDate = formatDate(firstDay)
-    const toDate = formatDate(lastDay)
-
-    timeline.value = await fetchDailySummary(fromDate, toDate, mode.value, currency.value)
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : t('common.unknownError', '未知错误')
-  } finally {
-    loading.value = false
-  }
+function refresh(){offset.value=0;data.value=null;recordKey.value='';void load()}
+function selectDay(date:string){selectedDate.value=date;offset.value=0;void load()}
+function selectMonth(){
+  if(!/^(19\d{2}|20\d{2}|21\d{2}|2200)-(0[1-9]|1[0-2])$/.test(month.value))month.value=today.slice(0,7)
+  selectedDate.value=month.value===today.slice(0,7)?today:month.value+'-01'
+  refresh()
 }
-
-async function selectDate(date: string) {
-  selectedDate.value = date
-  loading.value = true
-  try {
-    dailyDetail.value = await fetchDailyDetail(date, mode.value, currency.value)
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : t('common.unknownError', '未知错误')
-  } finally {
-    loading.value = false
-  }
+function changeMonth(delta:number){
+  const [year,m]=month.value.split('-').map(Number)
+  month.value=localDate(new Date(year,m-1+delta,1)).slice(0,7)
+  selectMonth()
 }
-
-function isProjected(tx: Transaction): boolean {
- if(tx.projected) return true
-  return tx.remark?.includes('预计') || false
-}
-
-onMounted(() => {
-  loadData()
-})
+function goToday(){month.value=today.slice(0,7);selectMonth()}
+watch(()=>route.query.view,v=>{view.value=v==='spending'||v==='repayment'?v:'all';refresh()},{immediate:true})
 </script>
 
 <style scoped>
-.page-container {
-  min-height: 100vh;
-  padding-bottom: 80px;
-}
-
-.page-content {
-  /* 移除 max-width 限制，与其他页面保持一致 */
-  width: 100%;
-}
+.calendar-toolbar{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px}.month-actions{flex-wrap:nowrap}.month-actions>.button{min-width:34px}.month-input{width:150px;font-weight:600}.calendar-filters{min-width:0}.calendar-filters select{max-width:230px}.calendar-controls .tabs{border-bottom:0;border-top:1px solid var(--line)}.calendar-metrics.pair{grid-template-columns:repeat(2,minmax(0,1fr))}.calendar-metrics .metric-value{font-size:clamp(18px,2.1vw,27px)}.spending{color:#5557ca}.billed{color:#3978aa}.estimated{color:#a57521}.refund-dot{background:var(--green)}.billed-dot{background:#3978aa}.estimated-dot{background:#b28b47}.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}.calendar-week{background:#fafbfe;border-bottom:1px solid var(--line)}.calendar-week span{padding:13px 0;text-align:center;font-size:11px;color:var(--muted)}.calendar-day{min-width:0;min-height:125px;padding:10px 12px;background:white;text-align:left;border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:5px;position:relative}.calendar-day:nth-child(7n){border-right:0}.calendar-day:hover{background:#fafaff}.calendar-day.selected{background:#f5f4ff;box-shadow:inset 0 0 0 2px #7777d8;z-index:1}.calendar-day.outside{background:#fafbfc}.day-number{font-size:12px;font-weight:600;color:#535d70;display:flex;align-items:center;gap:7px;margin-bottom:5px}.today .day-number{color:var(--brand)}.today-label{font-size:9px;font-weight:400}.day-amount{display:flex;align-items:baseline;gap:5px;font-size:11px;font-variant-numeric:tabular-nums;line-height:1.4}.day-label{font-size:9px;flex-shrink:0}.day-amount b{font-weight:550;overflow-wrap:anywhere;min-width:0}.day-unknown{font-size:9px;color:#a57521}.calendar-legend{display:flex;flex-wrap:wrap;gap:14px;padding:13px 16px;font-size:10px}.calendar-legend>span:last-child{color:var(--muted);margin-left:auto}.calendar-detail{margin-top:15px}.error-box{margin-top:15px}
+@media(max-width:767px){.calendar-toolbar{padding:12px;gap:12px}.calendar-filters{width:100%;flex-wrap:nowrap}.calendar-filters select{min-width:0;flex:1;width:50%;max-width:none}.calendar-filters .workspace-currency{min-width:136px;flex:0 0 136px}.calendar-metrics .metric-value{font-size:21px}.month-actions{width:100%;justify-content:space-between;gap:4px}.month-input{width:145px}.calendar-day{padding:7px 4px;min-height:105px;gap:4px}.day-number{font-size:11px;margin-bottom:3px;gap:3px}.today-label{font-size:8px}.day-amount{font-size:10px;display:block;line-height:1.25}.day-label{display:none}.day-amount b{font-weight:550;letter-spacing:-.2px}.day-amount:before{content:'';display:inline-block;width:3px;height:3px;border-radius:50%;background:currentColor;vertical-align:middle;margin-right:2px}.day-unknown{font-size:8px;line-height:1.3}.calendar-week span{padding:10px 0}.calendar-legend{padding:12px 10px;gap:8px 12px}.calendar-legend>span:last-child{margin-left:0;width:100%}.calendar-controls .tabs{padding:0 9px}.calendar-detail .panel-head h2{font-size:13px}}
 </style>

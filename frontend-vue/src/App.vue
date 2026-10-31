@@ -10,6 +10,7 @@
         <div class="mobile-topbar-content">
           <h1 class="mobile-topbar-title">{{ pageTitle }}</h1>
           <div class="mobile-topbar-actions">
+            <RouterLink to="/timeline" class="mobile-icon-btn touch-target" aria-label="消费与还款日历"><Icon name="calendar" size="20px" /></RouterLink>
             <button 
               @click="userSettingsStore.toggleShowAmount" 
               class="mobile-icon-btn touch-target no-touch-zoom"
@@ -129,7 +130,7 @@ const pageTitle = computed(() => {
     '/detail': '交易账本',
     '/review':'核对工作台', '/plans':'账单与还款', '/insights':'订阅与预算', '/accounts':'账户管理', '/settings/import-bills':'导入与同步',
     '/reports': t('nav.reports'),
-    '/timeline': t('nav.timeline'),
+    '/timeline': '消费与还款日历',
     '/profile': t('nav.profile'),
     '/record': t('actions.record'),
   }

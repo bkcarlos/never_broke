@@ -27,3 +27,13 @@ export const accountName=(a:Account)=>bankName(a.institution)+(a.cardLast4?' · 
 export function localDate(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 export function amount(cents:number|null,currency='CNY',show=true){if(cents===null)return '待确认';if(!show)return '••••';return (currency==='USD'?'US$':'¥')+(cents/100).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 export const blankEdit=():Edit=>({reviewed:false,relationReviewed:false,allocations:[],relatedKeys:[]})
+
+export interface CalendarMetric extends Metric {
+  billed:number; estimated:number; billedCount:number; estimatedCount:number; unknownRepayments:number
+}
+export interface CalendarDay extends CalendarMetric {date:string}
+export interface CalendarResult {
+  month:string; day:string; currency:string; days:CalendarDay[]; totals:CalendarMetric
+  items:Entry[]; total:number; offset:number; hasMore:boolean; accounts:Account[]; categories:Category[]
+}
+export const getCalendar=(f:Record<string,string|number>)=>get<CalendarResult>('/workspace/calendar?'+queryString(f))
