@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { t } from '@/i18n'
+import {localDate} from '@/api/workspace'
+import PayrollRuleSource from '@/components/PayrollRuleSource.vue'
 import { getPayrollRegions, getPayrollRegionRule, calcSalary } from '@/api/payroll'
 import type {
   PayrollRegion,
@@ -13,8 +15,10 @@ import type {
 
 // 地区列表
 const regions = ref<PayrollRegion[]>([])
-const selectedRegionCode = ref('CN-DEFAULT')
-const selectedYear = ref(2025)
+const selectedRegionCode = ref('CN-BJ')
+const ruleDate = ref(localDate())
+const selectedYear = computed(()=>Number(ruleDate.value.slice(0,4)))
+let ruleSequence = 0
 
 // 地区规则
 const regionRule = ref<PayrollRegionRule | null>(null)
@@ -177,19 +181,26 @@ async function loadRegions() {
 
 // 加载地区规则
 async function loadRegionRule() {
-  try {
-    loading.value = true
-    regionRule.value = await getPayrollRegionRule(selectedRegionCode.value, selectedYear.value)
-    
-    if (regionRule.value) {
-      form.hfRatePerson = regionRule.value.defaultHfRatePerson
-      form.hfRateCompany = regionRule.value.defaultHfRateCompany
-    }
-  } catch (error) {
-    console.error('Failed to load region rule:', error)
-    errorMessage.value = t('payroll.error.loadRule')
-  } finally {
+  const sequence = ++ruleSequence
+  regionRule.value = null
+  result.value = null
+  errorMessage.value = ''
+  loading.value = true
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ruleDate.value)) {
+    errorMessage.value = '请选择基数适用日期'
     loading.value = false
+    return
+  }
+  try {
+    const rule = await getPayrollRegionRule(selectedRegionCode.value, ruleDate.value)
+    if (sequence !== ruleSequence) return
+    regionRule.value = rule
+    form.hfRatePerson = rule.defaultHfRatePerson
+    form.hfRateCompany = rule.defaultHfRateCompany
+  } catch (error) {
+    if (sequence === ruleSequence) errorMessage.value = error instanceof Error ? error.message : '官方基数加载失败'
+  } finally {
+    if (sequence === ruleSequence) loading.value = false
   }
 }
 
@@ -222,6 +233,7 @@ async function handleCalculate() {
     const request: CalcSalaryRequest = {
       regionCode: selectedRegionCode.value,
       year: selectedYear.value,
+      ruleDate: ruleDate.value,
       grossMonthly: form.grossMonthly,
       ssEnabled: form.ssEnabled,
       ssBaseMode: form.ssBaseMode,
@@ -238,9 +250,9 @@ async function handleCalculate() {
     }
 
     result.value = await calcSalary(request)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Failed to calculate salary:', error)
-    errorMessage.value = error.message || t('payroll.error.calcFailed')
+    errorMessage.value = error instanceof Error ? error.message : t('payroll.error.calcFailed')
   } finally {
     calculating.value = false
   }
@@ -252,7 +264,7 @@ watch(selectedRegionCode, () => {
   result.value = null
 })
 
-watch(selectedYear, () => {
+watch(ruleDate, () => {
   loadRegionRule()
   result.value = null
 })
@@ -324,6 +336,13 @@ onMounted(async () => {
                 </select>
               </div>
 
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">基数适用日期</label>
+                <input v-model="ruleDate" type="date" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg" />
+                <p class="text-xs text-gray-500 mt-1">全年测算统一使用所选日期的基数标准，不代表历史实际缴费。</p>
+                <div v-if="regionRule" class="text-xs text-blue-700 mt-2">社保基数 ¥{{regionRule.ssBaseMin.toLocaleString()}}–¥{{regionRule.ssBaseMax.toLocaleString()}}<br/>公积金基数 ¥{{regionRule.hfBaseMin.toLocaleString()}}–¥{{regionRule.hfBaseMax.toLocaleString()}}</div>
+                <PayrollRuleSource v-if="regionRule" :rule="regionRule" />
+              </div>
               <!-- 税前基本工资 -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">税前基本工资</label>

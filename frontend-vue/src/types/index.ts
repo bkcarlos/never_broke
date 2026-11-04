@@ -570,6 +570,11 @@ export interface PayrollRegion {
 }
 
 export interface PayrollRegionRule {
+  effectiveFrom: string
+  effectiveThrough: string
+  asOf: string
+  verifiedAt: string
+  sources: {name:string;url:string}[]
   regionCode: string
   year: number
   ssBaseMin: number
@@ -595,6 +600,7 @@ export interface SpecialDeduction {
 }
 
 export interface CalcSalaryRequest {
+  ruleDate?: string
   regionCode: string
   year: number
   grossMonthly: number

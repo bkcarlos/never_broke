@@ -125,6 +125,7 @@
                     class="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     :disabled="loadingRegionRule"
                   >
+                    <option v-if="!['beijing','shanghai'].includes(form.cityCode)" :value="form.cityCode">{{form.cityCode}}（暂无已核验基数）</option>
                     <!-- 优先使用 API 返回的地区列表 -->
                     <template v-if="regions.length > 0">
                       <option v-for="region in regions" :key="region.code" :value="mapRegionToCity(region.code)">
@@ -135,9 +136,6 @@
                     <template v-else>
                       <option value="beijing">{{ t('city.beijing') }}</option>
                       <option value="shanghai">{{ t('city.shanghai') }}</option>
-                      <option value="guangzhou">{{ t('city.guangzhou') }}</option>
-                      <option value="shenzhen">{{ t('city.shenzhen') }}</option>
-                      <option value="default">{{ t('city.default') }}</option>
                     </template>
                   </select>
                   <div v-if="loadingRegionRule" class="absolute right-10 top-1/2 -translate-y-1/2">
@@ -147,9 +145,11 @@
                     </svg>
                   </div>
                 </div>
-                <p v-if="regionRule" class="text-xs text-green-600 mt-1">
-                  {{ t('me.salary.regionRuleLoaded', { region: regionRule.regionCode }) }}
-                </p>
+                <label class="block text-sm text-gray-700 mt-3">基数适用日期
+                  <input v-model="ruleDate" type="date" class="w-full px-3 py-2 border border-gray-200 rounded-lg mt-1" @change="loadRegionRule(form.cityCode)" />
+                </label>
+                <p class="text-xs text-gray-500 mt-1">按所选日期查官方基数；方案起始日期另行设置。当前已核验北京、上海。</p>
+                <p v-if="ruleError" class="text-xs text-red-600 mt-2" role="alert">{{ruleError}} <button type="button" class="underline" @click="loadRegionRule(form.cityCode)">重试</button></p>
               </div>
             </div>
 
@@ -302,11 +302,11 @@
               </div>
 
               <!-- 缴费基数信息 -->
-              <div class="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+              <div v-if="currentCityLimit && regionRule" class="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg">
                 <div class="flex items-start gap-3">
                   <span class="text-xl">📊</span>
                   <div class="flex-1">
-                    <h4 class="font-medium text-blue-800 mb-2">{{ currentCityLimit.name }}社保基数范围（2024年）</h4>
+                    <h4 class="font-medium text-blue-800 mb-2">{{ currentCityLimit.name }}缴费基数范围（{{regionRule.year}}年度）</h4>
                     <div class="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <div class="text-blue-600 mb-1">社保基数</div>
@@ -332,10 +332,12 @@
                       </div>
                     </div>
                     
+                    <PayrollRuleSource :rule="regionRule" />
+                    <p v-if="currentPlan" class="text-xs text-blue-700 mt-2">保存工资方案后，日历将使用这里的基数重新预估。</p>
                     <!-- 实际使用的基数 -->
                     <div v-if="form.preTaxMonthly > 0" class="mt-3 pt-3 border-t border-blue-200">
-                      <div class="text-blue-700 font-medium mb-1">你的实际缴费基数</div>
-                      <div class="grid grid-cols-2 gap-4 text-sm">
+                      <div class="text-blue-700 font-medium mb-1">按当前月薪估算的缴费基数</div>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                         <div class="flex items-center justify-between">
                           <span class="text-gray-600">社保基数</span>
                           <div class="flex items-center gap-2">
@@ -756,6 +758,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import {localDate} from '@/api/workspace'
+import PayrollRuleSource from '@/components/PayrollRuleSource.vue'
 import { useRouter } from 'vue-router'
 import { t } from '@/i18n'
 import type {
@@ -787,6 +791,9 @@ const salaryPreview = ref<SalaryPreviewResponse | null>(null)
 // 地区列表和规则
 const regions = ref<PayrollRegion[]>([])
 const regionRule = ref<PayrollRegionRule | null>(null)
+const ruleDate = ref(localDate())
+const ruleError = ref('')
+let ruleSequence = 0
 
 // 是否使用自定义比例
 const customRatesEnabled = ref(false)
@@ -868,33 +875,18 @@ const totalSpecialDeduction = computed(() => {
          specialDeductions.pensionMonthly
 })
 
-// 默认基数限制（当 API 未返回时使用）
-const defaultCityLimit = {
-  name: '默认',
-  ssMin: 4000,
-  ssMax: 25000,
-  hfMin: 2000,
-  hfMax: 30000
-}
-
-// 获取当前城市基数限制（从 API 获取）
-const currentCityLimit = computed(() => {
-  if (regionRule.value) {
-    return {
-      name: getCityName(form.value.cityCode),
-      ssMin: regionRule.value.ssBaseMin,
-      ssMax: regionRule.value.ssBaseMax,
-      hfMin: regionRule.value.hfBaseMin,
-      hfMax: regionRule.value.hfBaseMax
-    }
-  }
-  return { ...defaultCityLimit, name: getCityName(form.value.cityCode) }
-})
+// Missing source data stays unknown; never substitute a generic national range.
+const currentCityLimit = computed(() => regionRule.value ? {
+  name: getCityName(form.value.cityCode),
+  ssMin: regionRule.value.ssBaseMin, ssMax: regionRule.value.ssBaseMax,
+  hfMin: regionRule.value.hfBaseMin, hfMax: regionRule.value.hfBaseMax,
+} : null)
 
 // 计算实际社保缴费基数（考虑上下限）
 const actualSsBase = computed(() => {
   const salary = form.value.preTaxMonthly
   const limit = currentCityLimit.value
+  if (!limit) return 0
   if (salary < limit.ssMin) return limit.ssMin
   if (salary > limit.ssMax) return limit.ssMax
   return salary
@@ -904,15 +896,16 @@ const actualSsBase = computed(() => {
 const actualHfBase = computed(() => {
   const salary = form.value.preTaxMonthly
   const limit = currentCityLimit.value
+  if (!limit) return 0
   if (salary < limit.hfMin) return limit.hfMin
   if (salary > limit.hfMax) return limit.hfMax
   return salary
 })
 
 // 是否触及基数上限
-const isAtSsMaxBase = computed(() => form.value.preTaxMonthly > currentCityLimit.value.ssMax)
-const isAtSsMinBase = computed(() => form.value.preTaxMonthly < currentCityLimit.value.ssMin)
-const isAtHfMaxBase = computed(() => form.value.preTaxMonthly > currentCityLimit.value.hfMax)
+const isAtSsMaxBase = computed(() => !!currentCityLimit.value && form.value.preTaxMonthly > currentCityLimit.value.ssMax)
+const isAtSsMinBase = computed(() => !!currentCityLimit.value && form.value.preTaxMonthly < currentCityLimit.value.ssMin)
+const isAtHfMaxBase = computed(() => !!currentCityLimit.value && form.value.preTaxMonthly > currentCityLimit.value.hfMax)
 
 const form = ref({
   preTaxMonthly: 0,
@@ -954,6 +947,7 @@ const roundMoney = (value: number) => Math.round(value * 100) / 100
 
 const isFormValid = computed(() => {
   return (
+    !!regionRule.value && !loadingRegionRule.value &&
     form.value.preTaxMonthly > 0 &&
     form.value.cityCode !== '' &&
     form.value.startDate !== '' &&
@@ -1010,24 +1004,24 @@ function getAccountName(accountId: string): string {
 
 // 加载地区规则
 async function loadRegionRule(cityCode: string) {
-  if (!cityCode) return
-  
+  const sequence = ++ruleSequence
   loadingRegionRule.value = true
-  try {
-    // 将本地城市代码映射到 API 的地区代码
-    const regionCode = mapCityToRegionCode(cityCode)
-    const rule = await getPayrollRegionRule(regionCode, 2025)
-    regionRule.value = rule
-    
-    // 更新公积金比例范围
-    if (rule) {
-      form.value.hfRate = rule.defaultHfRatePerson
-    }
-  } catch (error) {
-    console.error('Failed to load region rule:', error)
-    regionRule.value = null
-  } finally {
+  regionRule.value = null
+  ruleError.value = ''
+  salaryPreview.value = null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ruleDate.value)) {
+    ruleError.value = '请选择基数适用日期'
     loadingRegionRule.value = false
+    return
+  }
+  try {
+    const rule = await getPayrollRegionRule(mapCityToRegionCode(cityCode), ruleDate.value)
+    if (sequence !== ruleSequence) return
+    regionRule.value = rule
+  } catch (error) {
+    if (sequence === ruleSequence) ruleError.value = error instanceof Error ? error.message : '官方基数加载失败，请重试'
+  } finally {
+    if (sequence === ruleSequence) loadingRegionRule.value = false
   }
 }
 
@@ -1036,11 +1030,11 @@ function mapCityToRegionCode(cityCode: string): string {
   const mapping: Record<string, string> = {
     'beijing': 'CN-BJ',
     'shanghai': 'CN-SH', 
-    'guangzhou': 'CN-GZ',
-    'shenzhen': 'CN-SZ',
+    'guangzhou': 'CN-GD-GZ',
+    'shenzhen': 'CN-GD-SZ',
     'default': 'CN-DEFAULT'
   }
-  return mapping[cityCode] || 'CN-DEFAULT'
+  return mapping[cityCode] || cityCode
 }
 
 // 将 API 地区代码映射回本地城市代码
@@ -1048,19 +1042,21 @@ function mapRegionToCity(regionCode: string): string {
   const mapping: Record<string, string> = {
     'CN-BJ': 'beijing',
     'CN-SH': 'shanghai',
-    'CN-GZ': 'guangzhou',
-    'CN-SZ': 'shenzhen',
+    'CN-GD-GZ': 'guangzhou',
+    'CN-GD-SZ': 'shenzhen',
     'CN-DEFAULT': 'default'
   }
-  return mapping[regionCode] || 'default'
+  return mapping[regionCode] || regionCode
 }
 
 // 城市变化时重新加载规则
 async function handleCityChange() {
   await loadRegionRule(form.value.cityCode)
+  if (regionRule.value) form.value.hfRate = regionRule.value.defaultHfRatePerson
 }
 
 async function handlePreviewOnly() {
+  if (!isFormValid.value) return
   previewing.value = true
   errorMessage.value = null
 
@@ -1085,6 +1081,7 @@ async function handlePreviewOnly() {
 }
 
 async function handleSaveAndPreview() {
+  if (!isFormValid.value) return
   saving.value = true
   errorMessage.value = null
 

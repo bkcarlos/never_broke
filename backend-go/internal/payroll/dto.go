@@ -19,6 +19,11 @@ type RegionListItem struct {
 
 // RegionRuleResponse 地区规则响应
 type RegionRuleResponse struct {
+	EffectiveFrom        string          `json:"effectiveFrom"`
+	EffectiveThrough     string          `json:"effectiveThrough"`
+	AsOf                 string          `json:"asOf"`
+	VerifiedAt           string          `json:"verifiedAt"`
+	Sources              []RuleSource    `json:"sources"`
 	RegionCode           string          `json:"regionCode"`
 	Year                 int             `json:"year"`
 	SSBaseMin            decimal.Decimal `json:"ssBaseMin"`
@@ -55,6 +60,7 @@ type SSRateDetail struct {
 
 // CalcSalaryRequest 薪资计算请求
 type CalcSalaryRequest struct {
+	RuleDate     string          `json:"ruleDate,omitempty"`
 	RegionCode   string          `json:"regionCode" binding:"required"`
 	Year         int             `json:"year" binding:"required,min=2020,max=2030"`
 	GrossMonthly decimal.Decimal `json:"grossMonthly" binding:"required"`
