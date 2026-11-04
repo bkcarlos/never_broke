@@ -168,10 +168,15 @@ func calendar(c *gin.Context, db *gorm.DB) {
 		response.BadRequest(c, err.Error())
 		return
 	}
+	salaries, err := loadCalendarSalaries(db.WithContext(c.Request.Context()), c.GetString("user_id"), q)
+	if err != nil {
+		response.InternalError(c, "读取薪资预估失败")
+		return
+	}
 	offset, _ := strconv.Atoi(c.Query("offset"))
 	offset = max(0, min(len(rows), offset))
 	end := min(offset+50, len(rows))
-	response.OK(c, gin.H{"month": q.Month, "day": q.Day, "currency": q.Currency, "days": days, "totals": totals, "items": rows[offset:end], "total": len(rows), "offset": offset, "hasMore": end < len(rows), "accounts": accounts, "categories": categories.All, "nextRepayment": nextCalendarRepayment(items, q.Filter, time.Now().Format("2006-01-02"))})
+	response.OK(c, gin.H{"salaries": salaries, "month": q.Month, "day": q.Day, "currency": q.Currency, "days": days, "totals": totals, "items": rows[offset:end], "total": len(rows), "offset": offset, "hasMore": end < len(rows), "accounts": accounts, "categories": categories.All, "nextRepayment": nextCalendarRepayment(items, q.Filter, time.Now().Format("2006-01-02"))})
 }
 
 func nextCalendarRepayment(items []Entry, f Filter, today string) string {

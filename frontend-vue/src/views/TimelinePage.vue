@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">SPENDING & REPAYMENTS</p>
         <h1>账本日历</h1>
-        <p class="subtitle">每天花了多少，哪天需要还款，一眼看清。</p>
+        <p class="subtitle">每天花了多少，哪天发薪、需要还款，一眼看清。</p>
       </div>
       <div class="actions">
         <button class="button repayment-toggle" :class="{enabled:showRepayments}" role="switch" :aria-checked="showRepayments" @click="toggleRepayments"><span class="toggle-track" aria-hidden="true"><span /></span>显示还款项</button>
@@ -48,6 +48,7 @@
       <div class="mobile-calendar-summary" :class="{pair:!showRepayments}">
         <div v-for="metric in mobileMetrics" :key="metric.label" :title="money(metric.cents)" :aria-label="metric.label+' '+money(metric.cents)"><span>{{metric.label}}</span><strong :class="metric.tone">{{compactMoney(metric.cents)}}</strong></div>
       </div>
+      <div v-if="salaries.length" class="salary-summary" role="status"><span><strong>本月预估到手薪资</strong><small>{{salaries.length}} 次发薪 · 点击日历中的薪资查看扣除明细</small></span><strong>{{money(salaryTotal)}}</strong></div>
       <p v-if="data.totals.unknownRepayments" class="notice" role="status">有 {{data.totals.unknownRepayments}} 项还款金额待确认，上方仅合计已知金额。</p>
 
 
@@ -61,26 +62,29 @@
                 <button class="mobile-day-button" :aria-label="dayLabel(cell.day)" aria-haspopup="dialog" @click="selectDay(cell.day.date)">
                   <span class="mobile-day-date">{{Number(cell.day.date.slice(-2))}}</span>
                   <span class="mobile-day-amount" :class="{refund:!cell.day.count&&cell.day.refundCount}">{{cell.day.count?compactAmount(cell.day.gross):cell.day.refundCount?'+'+compactAmount(cell.day.refund):cell.day.entryCount?'还款':''}}</span>
+                  <span v-if="salariesOn(cell.day.date).length" class="mobile-salary-amount">薪 +{{compactAmount(salaryOnTotal(cell.day.date))}}</span>
                   <span v-if="cell.day.entryCount" class="mobile-day-indicators"><span>{{cell.day.entryCount}}笔</span><i v-if="cell.day.refundCount" class="dot refund-dot"/><i v-if="cell.day.billedCount" class="dot billed-dot"/><i v-if="cell.day.estimatedCount" class="dot estimated-dot"/></span>
                 </button>
                 <button class="day-number" :aria-label="dayLabel(cell.day)" aria-haspopup="dialog" @click="selectDay(cell.day.date)">{{Number(cell.day.date.slice(-2))}}<span v-if="cell.day.date===today" class="today-label">今天</span><span class="day-count">{{cell.day.entryCount?cell.day.entryCount+' 笔':''}}</span></button>
+                <button v-for="salary in salariesOn(cell.day.date)" :key="salary.key" class="calendar-event salary-event" :aria-label="'预估到手薪资 '+money(Math.round(salary.postTax*100))+'，点击查看扣除明细'" :title="salary.title+' · 预估到手 '+money(Math.round(salary.postTax*100))" aria-haspopup="dialog" @click="openSalary(salary)"><span class="event-kind">预估到手</span><span class="event-title">{{salary.title}}</span><strong class="event-amount">+{{money(Math.round(salary.postTax*100))}}</strong></button>
                 <button v-for="event in dayPreview(cell.day)" :key="event.key" class="calendar-event" :class="eventTone(event)" :aria-label="eventLabel(event)" :title="eventLabel(event)" aria-haspopup="dialog" @click="openRecord(event.key)">
                   <span class="event-kind">{{event.kind==='schedule'&&event.status!=='billed'?'预计':eventKind(event)}}</span><span class="event-title">{{calendarTitle(event.title,event.kind)}}</span><strong class="event-amount">{{event.kind==='refund'?'+':''}}{{amount(event.cents,currency,settings.showAmount)}}</strong>
                 </button>
                 <button v-if="cell.day.entryCount>dayPreview(cell.day).length" class="day-more" :aria-label="'还有 '+(cell.day.entryCount-dayPreview(cell.day).length)+' 笔，点击查看'" aria-haspopup="dialog" @click="selectDay(cell.day.date)">还有 {{cell.day.entryCount-dayPreview(cell.day).length}} 笔<span class="day-more-label"> · 点击查看</span></button>
-                <span v-if="!cell.day.entryCount" class="day-empty">—</span>
+                <span v-if="!cell.day.entryCount&&!salariesOn(cell.day.date).length" class="day-empty">—</span>
               </section>
               <div v-else class="calendar-day outside" aria-hidden="true" />
             </template>
           </div>
         </div>
-        <div class="calendar-legend"><span class="spending">● 消费</span><span class="refund">● 退款</span><span v-if="showRepayments" class="billed">● 已出账应还</span><span v-if="showRepayments" class="estimated">● 预计应还</span><span>{{currency}} · 点日期看明细</span></div>
+        <div class="calendar-legend"><span v-if="salaries.length" class="salary-tone">● 预估薪资</span><span class="spending">● 消费</span><span class="refund">● 退款</span><span v-if="showRepayments" class="billed">● 已出账应还</span><span v-if="showRepayments" class="estimated">● 预计应还</span><span>{{currency}} · 点日期看明细</span></div>
       </section>
-      <p class="scope-note">还款按到期日展示，不重复计入消费。已还、已取消、已替代的计划不计入应还；无记录不代表没有消费。日期格直接展示商户、事项与金额；点日期或“更多”弹窗查看全部记录。</p>
+      <p class="scope-note">薪资按发薪日展示预估到手金额，不计入实际收入或消费；历史月份也按当前有效方案估算。还款按到期日展示，不重复计入消费。已还、已取消、已替代的计划不计入应还；无记录不代表没有消费。日期格直接展示商户、事项与金额；点日期或“更多”弹窗查看全部记录。</p>
 
       <RecordDrawer v-if="recordKey" :record-key="recordKey" :categories="data.categories" :show="settings.showAmount" @close="recordKey=''" @open="recordKey=$event" @saved="load" />
     </template>
-    <CalendarDayDialog v-if="dayOpen" :date="selectedDate" :currency="currency" :repayments="showRepayments" :data="data" :loading="loading" :error="error" :show="settings.showAmount" @close="dayOpen=false" @open="openRecord" @page="offset=$event;load()" @retry="load" />
+    <CalendarSalaryDialog v-if="selectedSalary" :salary="selectedSalary" :account-label="salaryAccountLabel" :show="settings.showAmount" @close="selectedSalary=null" />
+    <CalendarDayDialog v-if="dayOpen" :date="selectedDate" :currency="currency" :repayments="showRepayments" :data="data" :loading="loading" :error="error" :show="settings.showAmount" @close="dayOpen=false" @open="openRecord" @salary="openSalary" @page="offset=$event;load()" @retry="load" />
   </div>
 </template>
 
@@ -89,14 +93,18 @@ import {computed, nextTick, ref, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import type {LocationQueryRaw} from 'vue-router'
 import {getCalendar, amount, accountName, localDate} from '@/api/workspace'
-import type {Account, CalendarDay, CalendarEvent, CalendarResult} from '@/api/workspace'
+import type {Account, CalendarDay, CalendarEvent, CalendarResult, CalendarSalary} from '@/api/workspace'
 import {useUserSettingsStore} from '@/stores/userSettings'
 import CalendarDayDialog from '@/components/CalendarDayDialog.vue'
+import CalendarSalaryDialog from '@/components/CalendarSalaryDialog.vue'
 import RecordDrawer from '@/components/RecordDrawer.vue'
 import {calendarTitle,calendarKind} from '@/utils/calendarDisplay'
 
-// Three preview rows: show all up to three entries, otherwise reserve one for expansion.
-const dayPreview=(day:CalendarDay)=>day.events.slice(0,day.entryCount>3?2:3)
+// Keep salary visible within the three preview rows, reserving a row for expansion.
+const dayPreview=(day:CalendarDay)=>{
+  const capacity=Math.max(1,3-salariesOn(day.date).length)
+  return day.events.slice(0,day.entryCount>capacity?capacity-1:capacity)
+}
 
 const route=useRoute(), router=useRouter(), settings=useUserSettingsStore()
 const today=localDate(), month=ref(today.slice(0,7)), selectedDate=ref(today)
@@ -104,6 +112,21 @@ const currency=ref('CNY'), account=ref(''), showRepayments=ref(false)
 const data=ref<CalendarResult|null>(null), accounts=ref<Account[]>([])
 const loading=ref(false), error=ref(''), recordKey=ref(''), offset=ref(0), dayOpen=ref(false)
 const filtersOpen=ref(false)
+const selectedSalary=ref<CalendarSalary|null>(null)
+const salaries=computed(()=>data.value?.salaries||[])
+const salariesByDate=computed(()=>{
+  const result:Record<string,CalendarSalary[]>={}
+  for(const salary of salaries.value)(result[salary.date]||=[]).push(salary)
+  return result
+})
+const salariesOn=(date:string)=>salariesByDate.value[date]||[]
+const salaryOnTotal=(date:string)=>salariesOn(date).reduce((sum,s)=>sum+Math.round(s.postTax*100),0)
+const salaryTotal=computed(()=>salaries.value.reduce((sum,s)=>sum+Math.round(s.postTax*100),0))
+const salaryAccountLabel=computed(()=>{
+  const account=accounts.value.find(a=>a.id===selectedSalary.value?.accountId)
+  return account?accountName(account):'薪资到账账户'
+})
+async function openSalary(salary:CalendarSalary){dayOpen.value=false;await nextTick();selectedSalary.value=salary}
 const weekdays=['一','二','三','四','五','六','日']
 let sequence=0
 const money=(cents:number)=>amount(cents,currency.value,settings.showAmount)
@@ -136,7 +159,7 @@ const cells=computed(()=>{
   return Array.from({length:size},(_,i)=>({key:i,day:data.value?.days[i-start]}))
 })
 function dayLabel(day:CalendarDay){
-  return `${day.date}，消费 ${money(day.gross)}，退款 ${money(day.refund)}`+(showRepayments.value?`，已出账应还 ${money(day.billed)}，预计应还 ${money(day.estimated)}${day.unknownRepayments?'，有金额待确认事项':''}`:'')
+  return (salariesOn(day.date).length?`预估到手薪资 ${money(salaryOnTotal(day.date))}，`:'')+`${day.date}，消费 ${money(day.gross)}，退款 ${money(day.refund)}`+(showRepayments.value?`，已出账应还 ${money(day.billed)}，预计应还 ${money(day.estimated)}${day.unknownRepayments?'，有金额待确认事项':''}`:'')
 }
 async function load(){
   const seq=++sequence
@@ -152,7 +175,7 @@ function toggleRepayments(){
   delete query.view
   void router.replace({path:'/timeline',query})
 }
-function refresh(){offset.value=0;data.value=null;recordKey.value='';dayOpen.value=false;void load()}
+function refresh(){offset.value=0;data.value=null;recordKey.value='';selectedSalary.value=null;dayOpen.value=false;void load()}
 function selectDay(date:string){selectedDate.value=date;offset.value=0;dayOpen.value=true;void load()}
 function selectMonth(){
   if(!/^(19\d{2}|20\d{2}|21\d{2}|2200)-(0[1-9]|1[0-2])$/.test(month.value))month.value=today.slice(0,7)
@@ -177,6 +200,9 @@ watch(()=>route.fullPath,()=>{
 </script>
 
 <style scoped>
+.salary-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#edf8f3;border:1px solid #d8eade;border-radius:9px;color:#21745a}.salary-summary>span{display:flex;flex-direction:column;gap:5px}.salary-summary strong{font-size:14px;font-variant-numeric:tabular-nums}.salary-summary small{font-size:11px}.salary-tone{color:#21745a}.calendar-event.salary-event{background:#edf8f3;border-color:#d8eade;border-left-color:#329476;color:#21745a}.mobile-salary-amount{color:#21745a;font-size:9px;line-height:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:767px){.salary-summary{padding:8px 10px}.salary-summary strong{font-size:12px}.salary-summary small{font-size:9px}.calendar-day:has(.mobile-salary-amount) .mobile-day-amount:empty{display:none}}
+
 .repayment-toggle{font-weight:550}.repayment-toggle.enabled{background:var(--soft);border-color:#bcbcf0;color:var(--brand)}.toggle-track{width:28px;height:16px;background:#c7ccd8;border-radius:9px;padding:2px;display:inline-flex;align-items:center;transition:background .15s}.toggle-track>span{width:12px;height:12px;background:white;border-radius:50%;transition:transform .15s}.enabled .toggle-track{background:var(--brand)}.enabled .toggle-track>span{transform:translateX(12px)}
 .calendar-toolbar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 12px}.month-actions{flex-wrap:nowrap}.month-actions>.button{min-width:34px}.month-input{width:150px;font-weight:600}.calendar-filters{min-width:0}.calendar-filters select{max-width:230px}.calendar-metrics.pair{grid-template-columns:repeat(2,minmax(0,1fr))}.calendar-metrics .metric-value{font-size:clamp(18px,2.1vw,27px)}.spending{color:#5557ca}.billed{color:#3978aa}.estimated{color:#a57521}.refund-dot{background:var(--green)}.billed-dot{background:#3978aa}.estimated-dot{background:#b28b47}
 .calendar-scroll{overflow-x:auto;overscroll-behavior-x:contain}.calendar-week,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));min-width:0}.calendar-week{background:#fafbfe;border-bottom:1px solid var(--line)}.calendar-week span{padding:7px 0;text-align:center;font-size:11px;color:var(--muted)}.calendar-day{min-width:0;min-height:82px;padding:6px;background:white;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px;position:relative}.calendar-day:nth-child(7n){border-right:0}.calendar-day.selected{background:#faf9ff;box-shadow:inset 0 0 0 2px #aaa9e5}.calendar-day.outside{background:#fafbfc}.day-number{font-size:12px;font-weight:600;color:#535d70;display:flex;align-items:center;gap:7px;background:transparent;min-height:28px;text-align:left;padding:0 3px;border-radius:4px}.day-number:hover{background:#ededfa}.today .day-number{color:var(--brand)}.today-label,.day-count{font-size:9px;font-weight:400}.day-count{margin-left:auto;color:var(--muted)}

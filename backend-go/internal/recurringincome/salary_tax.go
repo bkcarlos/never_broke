@@ -1,6 +1,7 @@
 package recurringincome
 
 import (
+	"errors"
 	"math"
 	"neverbroke/internal/citysocialrate"
 	"time"
@@ -75,104 +76,100 @@ func PreviewSalaryToYearEnd(req SalaryPreviewRequest) (SalaryPreviewResponse, er
 		return SalaryPreviewResponse{}, err
 	}
 
-	year := startDate.Year()
-	// 如果接近年底，预览到下一年年底，确保至少有一个月的数据
-	yearEnd := time.Date(year, 12, 31, 0, 0, 0, 0, startDate.Location())
+	result, err := PreviewSalaryYear(req, startDate.Year())
+	if err == nil && len(result.Items) == 0 {
+		return PreviewSalaryYear(req, startDate.Year()+1)
+	}
+	return result, err
+}
 
-	// 获取社保比例：优先使用自定义比例，否则使用城市默认比例
-	var socialRate float64
+func roundSalary(value float64) float64 { return math.Round(value*100) / 100 }
+
+// PreviewSalaryYear preserves the plan's original cadence and resets cumulative tax each year.
+func PreviewSalaryYear(req SalaryPreviewRequest, year int) (SalaryPreviewResponse, error) {
+	startDate, err := time.Parse("2006-01-02", req.StartDate)
+	if err != nil {
+		return SalaryPreviewResponse{}, err
+	}
+	if req.PayDay < 1 || req.PayDay > 31 || req.PreTaxAmount <= 0 || req.ExtraDeductions < 0 {
+		return SalaryPreviewResponse{}, errors.New("invalid salary configuration")
+	}
+	socialRate := GetSocialSecurityRate(req.CityCode)
 	if req.SocialRate != nil {
 		socialRate = *req.SocialRate
+	}
+	if socialRate < 0 || socialRate > 1 {
+		return SalaryPreviewResponse{}, errors.New("invalid social rate")
+	}
+	var contributions *SalaryContributionAmounts
+	socialSecurity := roundSalary(req.PreTaxAmount * socialRate)
+	if c := req.Contributions; c != nil {
+		if c.SocialBase < 0 || c.HousingBase < 0 {
+			return SalaryPreviewResponse{}, errors.New("invalid contribution base")
+		}
+		for _, rate := range []float64{c.PensionRate, c.MedicalRate, c.UnemploymentRate, c.HousingRate} {
+			if rate < 0 || rate > 1 {
+				return SalaryPreviewResponse{}, errors.New("invalid contribution rate")
+			}
+		}
+		contributions = &SalaryContributionAmounts{
+			Pension: roundSalary(c.SocialBase * c.PensionRate), Medical: roundSalary(c.SocialBase * c.MedicalRate),
+			Unemployment: roundSalary(c.SocialBase * c.UnemploymentRate), Housing: roundSalary(c.HousingBase * c.HousingRate),
+		}
+		socialSecurity = roundSalary(contributions.Pension + contributions.Medical + contributions.Unemployment + contributions.Housing)
+	}
+	if socialSecurity > req.PreTaxAmount {
+		return SalaryPreviewResponse{}, errors.New("contributions exceed salary")
+	}
+	step := 1
+	switch req.Frequency {
+	case FrequencyMonthly, "", FrequencyWeekly:
+	case FrequencyBimonthly:
+		step = 2
+	case FrequencyQuarterly:
+		step = 3
+	case FrequencySemiannual:
+		step = 6
+	case FrequencyYearly:
+		step = 12
+	default:
+		return SalaryPreviewResponse{}, errors.New("invalid salary frequency")
+	}
+	payDates := []time.Time{}
+	yearEnd := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC)
+	if req.Frequency == FrequencyWeekly {
+		for date := startDate; date.Before(yearEnd); date = date.AddDate(0, 0, 7) {
+			if date.Year() == year {
+				payDates = append(payDates, date)
+			}
+		}
 	} else {
-		socialRate = GetSocialSecurityRate(req.CityCode)
-	}
-
-	// 计算发薪日期列表
-	var payDates []time.Time
-	currentDate := startDate
-
-	// 根据频率生成发薪日期
-	for !currentDate.After(yearEnd) {
-		// 设置发薪日
-		payDate := time.Date(currentDate.Year(), currentDate.Month(), req.PayDay, 0, 0, 0, 0, currentDate.Location())
-		// 如果发薪日小于当前日期，则使用当前日期所在月份的发薪日
-		if payDate.Before(currentDate) {
-			payDate = AddMonths(payDate, 1)
+		month := time.Date(startDate.Year(), startDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+		// Clamp before advancing so February and 30-day months never overflow.
+		payDate := func(month time.Time) time.Time {
+			last := month.AddDate(0, 1, -1).Day()
+			return month.AddDate(0, 0, min(req.PayDay, last)-1)
 		}
-
-		if payDate.After(yearEnd) {
-			break
+		if payDate(month).Before(startDate) {
+			month = month.AddDate(0, 1, 0)
 		}
-
-		payDates = append(payDates, payDate)
-
-		// 计算下一个发薪日期
-		switch req.Frequency {
-		case FrequencyMonthly:
-			currentDate = AddMonths(currentDate, 1)
-		case FrequencyBimonthly:
-			currentDate = AddMonths(currentDate, 2)
-		case FrequencyQuarterly:
-			currentDate = AddMonths(currentDate, 3)
-		case FrequencySemiannual:
-			currentDate = AddMonths(currentDate, 6)
-		case FrequencyWeekly:
-			currentDate = currentDate.AddDate(0, 0, 7)
-		case FrequencyYearly:
-			currentDate = currentDate.AddDate(1, 0, 0)
-		default:
-			currentDate = AddMonths(currentDate, 1)
-		}
-	}
-
-	// 如果当年没有发薪日（接近年底的情况），扩展到下一年
-	if len(payDates) == 0 {
-		year = year + 1
-		yearEnd = time.Date(year, 12, 31, 0, 0, 0, 0, startDate.Location())
-		currentDate = startDate
-
-		for !currentDate.After(yearEnd) {
-			payDate := time.Date(currentDate.Year(), currentDate.Month(), req.PayDay, 0, 0, 0, 0, currentDate.Location())
-			if payDate.Before(currentDate) {
-				payDate = AddMonths(payDate, 1)
-			}
-
-			if payDate.After(yearEnd) {
-				break
-			}
-
-			payDates = append(payDates, payDate)
-
-			switch req.Frequency {
-			case FrequencyMonthly:
-				currentDate = AddMonths(currentDate, 1)
-			case FrequencyBimonthly:
-				currentDate = AddMonths(currentDate, 2)
-			case FrequencyQuarterly:
-				currentDate = AddMonths(currentDate, 3)
-			case FrequencySemiannual:
-				currentDate = AddMonths(currentDate, 6)
-			case FrequencyWeekly:
-				currentDate = currentDate.AddDate(0, 0, 7)
-			case FrequencyYearly:
-				currentDate = currentDate.AddDate(1, 0, 0)
-			default:
-				currentDate = AddMonths(currentDate, 1)
+		for ; month.Before(yearEnd); month = month.AddDate(0, step, 0) {
+			if month.Year() == year {
+				payDates = append(payDates, payDate(month))
 			}
 		}
 	}
 
 	// 计算每次发薪的明细
-	var items []SalaryPreviewItem
+	items := []SalaryPreviewItem{}
 	var cumulativePreTax float64
 	var cumulativeTax float64
 	var cumulativeTaxableIncome float64
 
 	for _, payDate := range payDates {
-		preTax := req.PreTaxAmount
-		socialSecurity := preTax * socialRate
+		preTax := roundSalary(req.PreTaxAmount)
 		// 应纳税所得额 = 税前 - 社保 - 基本免税额 - 专项附加扣除
-		taxableIncome := preTax - socialSecurity - MonthlyDeduction - req.ExtraDeductions
+		taxableIncome := roundSalary(preTax - socialSecurity - MonthlyDeduction - req.ExtraDeductions)
 		if taxableIncome < 0 {
 			taxableIncome = 0
 		}
@@ -182,18 +179,19 @@ func PreviewSalaryToYearEnd(req SalaryPreviewRequest) (SalaryPreviewResponse, er
 		cumulativeTaxableIncome += taxableIncome
 
 		// 计算累计个税
-		cumulativeTaxTotal := CalculateTax(cumulativeTaxableIncome)
+		cumulativeTaxTotal := roundSalary(CalculateTax(cumulativeTaxableIncome))
 		// 本次应缴个税 = 累计个税 - 已缴个税
-		currentTax := cumulativeTaxTotal - cumulativeTax
+		currentTax := roundSalary(cumulativeTaxTotal - cumulativeTax)
 		if currentTax < 0 {
 			currentTax = 0
 		}
 		cumulativeTax = cumulativeTaxTotal
 
 		// 实际到手
-		postTax := preTax - socialSecurity - currentTax
+		postTax := roundSalary(preTax - socialSecurity - currentTax)
 
 		items = append(items, SalaryPreviewItem{
+			Contributions:    contributions,
 			Date:             payDate.Format("2006-01-02"),
 			PreTax:           preTax,
 			SocialSecurity:   socialSecurity,

@@ -370,6 +370,7 @@ export interface RecurringIncomePlan {
   createdAt: string
 
   // 薪资专用字段
+  salaryContributions?: SalaryContributions
   salaryPreTaxMonthly?: number
   salarySocialRate?: number
   salaryExtraDeductions?: number
@@ -403,7 +404,24 @@ export interface RecurringIncomeRealizeResult {
 
 // ========== 工资预览相关类型 ==========
 
+export interface SalaryContributions {
+  socialBase: number
+  housingBase: number
+  pensionRate: number
+  medicalRate: number
+  unemploymentRate: number
+  housingRate: number
+}
+export interface SalaryContributionAmounts {
+  pension: number
+  medical: number
+  unemployment: number
+  injury: number
+  maternity: number
+  housing: number
+}
 export interface SalaryPreviewRequest {
+  contributions?: SalaryContributions
   preTaxAmount: number
   cityCode: string
   startDate: string // YYYY-MM-DD
@@ -415,6 +433,7 @@ export interface SalaryPreviewRequest {
 }
 
 export interface SalaryPreviewItem {
+  contributions?: SalaryContributionAmounts
   date: string
   preTax: number
   socialSecurity: number
@@ -530,6 +549,7 @@ export interface CitySocialRateDetail {
 // ========== 薪资方案配置相关类型 ==========
 
 export interface SalaryPlanConfig {
+  contributions?: SalaryContributions
   preTaxMonthly: number
   cityCode: string
   startDate: string

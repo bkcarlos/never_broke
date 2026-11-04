@@ -942,6 +942,16 @@ const currentSocialRate = computed(() => {
   return 0.08 + 0.02 + 0.002 + form.value.hfRate
 })
 
+const contributionConfig = computed(() => ({
+  socialBase: Number(actualSsBase.value),
+  housingBase: Number(actualHfBase.value),
+  pensionRate: customRatesEnabled.value ? ssRates.pensionPerson : 0.08,
+  medicalRate: customRatesEnabled.value ? ssRates.medicalPerson : 0.02,
+  unemploymentRate: customRatesEnabled.value ? ssRates.unemploymentPerson : 0.002,
+  housingRate: form.value.hfRate,
+}))
+const roundMoney = (value: number) => Math.round(value * 100) / 100
+
 const isFormValid = computed(() => {
   return (
     form.value.preTaxMonthly > 0 &&
@@ -955,11 +965,11 @@ const isFormValid = computed(() => {
 
 // 公积金计算（基于限制后的基数）
 const monthlyHousingFundPerson = computed(() => {
-  return Math.round(actualHfBase.value * form.value.hfRate)
+  return roundMoney(actualHfBase.value * form.value.hfRate)
 })
 
 const monthlyHousingFundCompany = computed(() => {
-  return Math.round(actualHfBase.value * form.value.hfRate)
+  return roundMoney(actualHfBase.value * form.value.hfRate)
 })
 
 const monthlyHousingFundTotal = computed(() => {
@@ -973,11 +983,8 @@ const yearlyHousingFundTotal = computed(() => {
 
 // 社保计算（基于限制后的基数，不含公积金）
 const monthlySocialSecurityOnly = computed(() => {
-  const base = actualSsBase.value
-  if (customRatesEnabled.value) {
-    return Math.round(base * (ssRates.pensionPerson + ssRates.medicalPerson + ssRates.unemploymentPerson))
-  }
-  return Math.round(base * (0.08 + 0.02 + 0.002))
+  const c = contributionConfig.value
+  return roundMoney(c.socialBase*c.pensionRate) + roundMoney(c.socialBase*c.medicalRate) + roundMoney(c.socialBase*c.unemploymentRate)
 })
 
 // 全年社保+公积金总额（个人部分）
@@ -1066,6 +1073,7 @@ async function handlePreviewOnly() {
       frequency: 'monthly',
       currency: form.value.currency,
       socialRate: currentSocialRate.value,
+      contributions: contributionConfig.value,
       extraDeductions: totalSpecialDeduction.value,
     })
     salaryPreview.value = preview
@@ -1087,6 +1095,7 @@ async function handleSaveAndPreview() {
       startDate: form.value.startDate,
       payDay: form.value.payDay,
       socialRate: currentSocialRate.value,
+      contributions: contributionConfig.value,
       extraDeductions: totalSpecialDeduction.value,
       accountId: form.value.accountId,
       currency: form.value.currency,
@@ -1130,11 +1139,13 @@ async function handleEditPlan() {
     specialDeductionEnabled.value = false
   }
 
-  // 如果有自定义比例，恢复
-  const savedRate = currentPlan.value.salarySocialRate || 0
-  if (savedRate > 0) {
-    // 尝试反推各项比例（简化处理）
-    customRatesEnabled.value = false
+  const contributions = currentPlan.value.salaryContributions
+  customRatesEnabled.value = !!contributions
+  if (contributions) {
+    ssRates.pensionPerson = contributions.pensionRate
+    ssRates.medicalPerson = contributions.medicalRate
+    ssRates.unemploymentPerson = contributions.unemploymentRate
+    form.value.hfRate = contributions.housingRate
   }
 }
 

@@ -1,6 +1,7 @@
 package recurringincome
 
 import (
+	"encoding/json"
 	"neverbroke/common/logger"
 	"neverbroke/internal/http/response"
 	"neverbroke/internal/ledger"
@@ -97,6 +98,9 @@ func toBusinessModel(p *models.RecurringIncomePlan) RecurringIncomePlan {
 		plan.SalaryStartDate = p.SalaryStartDate.Format("2006-01-02")
 	}
 
+	if p.SalaryContributions != nil {
+		_ = json.Unmarshal([]byte(*p.SalaryContributions), &plan.SalaryContributions)
+	}
 	return plan
 }
 
@@ -583,6 +587,7 @@ func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
 		Currency:        req.Currency,
 		SocialRate:      &socialRate,
 		ExtraDeductions: req.ExtraDeductions,
+		Contributions:   req.Contributions,
 	}
 
 	preview, err := PreviewSalaryToYearEnd(previewReq)
@@ -598,12 +603,6 @@ func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
 	}
 
 	postTaxAmount := preview.Items[0].PostTax
-
-	// 停用现有工资方案
-	h.db.Model(&models.RecurringIncomePlan{}).
-		Where("user_id = ? AND type = ? AND active = ?",
-			userID.(string), string(RecurringIncomeTypeSalary), true).
-		Update("active", false)
 
 	// 解析日期
 	nextDueDate, _ := time.Parse("2006-01-02", preview.Items[0].Date)
@@ -630,11 +629,24 @@ func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
 		SalaryStartDate:       &startDate,
 	}
 
+	if req.Contributions != nil {
+		raw, _ := json.Marshal(req.Contributions)
+		value := string(raw)
+		dbPlan.SalaryContributions = &value
+	}
 	if req.CityCode != "" {
 		dbPlan.CityCode = &req.CityCode
 	}
 
-	if err := h.db.Create(dbPlan).Error; err != nil {
+	// Keep the previous configuration active if saving the new details fails.
+	if err := h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.RecurringIncomePlan{}).
+			Where("user_id = ? AND type = ? AND active = ?", userID.(string), string(RecurringIncomeTypeSalary), true).
+			Update("active", false).Error; err != nil {
+			return err
+		}
+		return tx.Create(dbPlan).Error
+	}); err != nil {
 		logger.Error("Failed to create salary plan", zap.Error(err))
 		response.InternalError(c, "failed to create salary plan")
 		return

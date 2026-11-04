@@ -86,6 +86,7 @@ type RecurringIncomePlan struct {
 	CityCode              *string    `gorm:"type:varchar(50)" json:"cityCode,omitempty"`
 	Active                bool       `gorm:"not null;default:true" json:"active"`
 	CreatedAt             time.Time  `gorm:"type:timestamptz;not null" json:"createdAt"`
+	SalaryContributions   *string    `gorm:"type:text" json:"salaryContributions,omitempty"`
 	SalaryPreTaxMonthly   *float64   `gorm:"type:decimal(15,2)" json:"salaryPreTaxMonthly,omitempty"`
 	SalarySocialRate      *float64   `gorm:"type:decimal(5,4)" json:"salarySocialRate,omitempty"`
 	SalaryExtraDeductions *float64   `gorm:"type:decimal(15,2)" json:"salaryExtraDeductions,omitempty"`

@@ -40,11 +40,12 @@ type RecurringIncomePlan struct {
 	CreatedAt     string                   `json:"createdAt"`
 
 	// 薪资专用配置（可选）
-	SalaryPreTaxMonthly   float64 `json:"salaryPreTaxMonthly,omitempty"`
-	SalarySocialRate      float64 `json:"salarySocialRate,omitempty"`
-	SalaryExtraDeductions float64 `json:"salaryExtraDeductions,omitempty"`
-	SalaryPayDay          int     `json:"salaryPayDay,omitempty"`
-	SalaryStartDate       string  `json:"salaryStartDate,omitempty"` // YYYY-MM-DD
+	SalaryContributions   *SalaryContributions `json:"salaryContributions,omitempty"`
+	SalaryPreTaxMonthly   float64              `json:"salaryPreTaxMonthly,omitempty"`
+	SalarySocialRate      float64              `json:"salarySocialRate,omitempty"`
+	SalaryExtraDeductions float64              `json:"salaryExtraDeductions,omitempty"`
+	SalaryPayDay          int                  `json:"salaryPayDay,omitempty"`
+	SalaryStartDate       string               `json:"salaryStartDate,omitempty"` // YYYY-MM-DD
 }
 
 // UpsertRecurringIncomeRequest 新建/更新请求
@@ -63,8 +64,29 @@ type UpsertRecurringIncomeRequest struct {
 	Active      bool                     `json:"active"`
 }
 
+// SalaryContributions stores the configured personal contribution bases and rates.
+// Legacy plans have only a combined rate and must not invent an itemized split.
+type SalaryContributions struct {
+	SocialBase       float64 `json:"socialBase"`
+	HousingBase      float64 `json:"housingBase"`
+	PensionRate      float64 `json:"pensionRate"`
+	MedicalRate      float64 `json:"medicalRate"`
+	UnemploymentRate float64 `json:"unemploymentRate"`
+	HousingRate      float64 `json:"housingRate"`
+}
+
+type SalaryContributionAmounts struct {
+	Pension      float64 `json:"pension"`
+	Medical      float64 `json:"medical"`
+	Unemployment float64 `json:"unemployment"`
+	Injury       float64 `json:"injury"`
+	Maternity    float64 `json:"maternity"`
+	Housing      float64 `json:"housing"`
+}
+
 // SalaryPreviewRequest 工资预览请求：从 startDate 到当年年底
 type SalaryPreviewRequest struct {
+	Contributions   *SalaryContributions     `json:"contributions,omitempty"`
 	PreTaxAmount    float64                  `json:"preTaxAmount"`              // 每次发薪税前金额
 	CityCode        string                   `json:"cityCode"`                  // 纳税城市，如 "beijing", "shanghai"
 	StartDate       string                   `json:"startDate"`                 // 开始执行日期 YYYY-MM-DD
@@ -77,14 +99,15 @@ type SalaryPreviewRequest struct {
 
 // SalaryPreviewItem 单次发薪预览
 type SalaryPreviewItem struct {
-	Date             string  `json:"date"`             // 发薪日
-	PreTax           float64 `json:"preTax"`           // 税前
-	SocialSecurity   float64 `json:"socialSecurity"`   // 五险一金个人部分（简化）
-	TaxableIncome    float64 `json:"taxableIncome"`    // 应纳税所得额
-	TaxAmount        float64 `json:"taxAmount"`        // 个税
-	PostTax          float64 `json:"postTax"`          // 实际到手
-	CumulativePreTax float64 `json:"cumulativePreTax"` // 累计税前（方便对照中国个税累积制）
-	CumulativeTax    float64 `json:"cumulativeTax"`    // 累计个税
+	Contributions    *SalaryContributionAmounts `json:"contributions,omitempty"`
+	Date             string                     `json:"date"`             // 发薪日
+	PreTax           float64                    `json:"preTax"`           // 税前
+	SocialSecurity   float64                    `json:"socialSecurity"`   // 五险一金个人部分（简化）
+	TaxableIncome    float64                    `json:"taxableIncome"`    // 应纳税所得额
+	TaxAmount        float64                    `json:"taxAmount"`        // 个税
+	PostTax          float64                    `json:"postTax"`          // 实际到手
+	CumulativePreTax float64                    `json:"cumulativePreTax"` // 累计税前（方便对照中国个税累积制）
+	CumulativeTax    float64                    `json:"cumulativeTax"`    // 累计个税
 }
 
 // SalaryPreviewResponse 工资预览响应
@@ -110,14 +133,15 @@ type ProjectedTransaction struct {
 
 // UpsertSalaryPlanRequest 保存工资方案请求
 type UpsertSalaryPlanRequest struct {
-	PreTaxMonthly   float64 `json:"preTaxMonthly"`
-	CityCode        string  `json:"cityCode"`
-	StartDate       string  `json:"startDate"`
-	PayDay          int     `json:"payDay"`
-	SocialRate      float64 `json:"socialRate"`
-	ExtraDeductions float64 `json:"extraDeductions"`
-	AccountID       string  `json:"accountId"`
-	Currency        string  `json:"currency"`
+	Contributions   *SalaryContributions `json:"contributions,omitempty"`
+	PreTaxMonthly   float64              `json:"preTaxMonthly"`
+	CityCode        string               `json:"cityCode"`
+	StartDate       string               `json:"startDate"`
+	PayDay          int                  `json:"payDay"`
+	SocialRate      float64              `json:"socialRate"`
+	ExtraDeductions float64              `json:"extraDeductions"`
+	AccountID       string               `json:"accountId"`
+	Currency        string               `json:"currency"`
 }
 
 // UpsertSalaryPlanResponse 保存工资方案响应

@@ -1,3 +1,4 @@
+import type {SalaryPreviewItem, SalaryContributions} from '@/types'
 import { get, post } from './http'
 export interface Category {id:string;name:string;aliases:string[]}
 export interface Allocation {key:string;cents:number}
@@ -33,7 +34,12 @@ export interface CalendarMetric extends Metric {
 }
 export interface CalendarEvent {key:string;kind:string;title:string;categoryName:string;cents:number|null;status:string}
 export interface CalendarDay extends CalendarMetric {date:string;events:CalendarEvent[];entryCount:number}
+export interface CalendarSalary extends SalaryPreviewItem {
+  key:string; title:string; accountId:string; currency:string; cityCode:string
+  basicDeduction:number; extraDeductions:number; configuration?:SalaryContributions
+}
 export interface CalendarResult {
+  salaries:CalendarSalary[]
   month:string; day:string; currency:string; nextRepayment:string; days:CalendarDay[]; totals:CalendarMetric
   items:Entry[]; total:number; offset:number; hasMore:boolean; accounts:Account[]; categories:Category[]
 }
