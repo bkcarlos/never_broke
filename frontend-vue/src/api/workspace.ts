@@ -12,7 +12,7 @@ export interface Result {quality:{receipts:number;matchedReceipts:number;refunds
 export interface Change {id:string;key:string;before:string;after:string;reason:string;createdAt:string}
 export interface Attachment {id:string;name:string;mime:string;size:number}
 export interface Detail {attachments:Attachment[];record:Entry;related:Entry[];candidates:Entry[];history:Change[]}
-export interface Setting {key:string;kind:string;name:string;currency:string;cents:number;category:string;match:string;date:string;period:string;enabled:boolean;version:number;updatedAt?:string}
+export interface Setting {accountId?:string;endDate?:string;key:string;kind:string;name:string;currency:string;cents:number;category:string;match:string;date:string;period:string;enabled:boolean;version:number;updatedAt?:string}
 export interface Batch {id:string;status:string;new:number;updated:number;skipped:number;error?:string;createdAt:string}
 export function queryString(filters:Record<string,string|number>) {const q=new URLSearchParams();Object.entries(filters).forEach(([k,v])=>{if(v!==''&&v!==undefined)q.set(k,String(v))});return q.toString()}
 export const getWorkspace=(f:Record<string,string|number>)=>get<Result>('/workspace?'+queryString(f))

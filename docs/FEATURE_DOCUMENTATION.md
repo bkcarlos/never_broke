@@ -48,7 +48,7 @@
 | 周期收入管理 | ✅ 100% | 多种收入类型和频率，自动实现，投射 |
 | 薪资控制系统 | ✅ 100% | 城市社保，个税计算，全年预览 |
 | 预算管理 | ✅ 80% | 月度预算设置和查询（未来可扩展分类预算） |
-| 现金流预测 | ✅ 100% | 30/60/90天预测，安全垫提醒，危险标记 |
+| 现金流预测 | ✅ 100% | 月度收支预测、固定支出管理、缺口及安全垫提醒 |
 | 报表分析 | ✅ 100% | 月度报表，分类统计，趋势分析，同比环比 |
 | 时间线视图 | ✅ 100% | 每日汇总，历史+未来模式，明细查看 |
 | 数据导入 | ✅ 70% | 导入预览，智能分类（未来可扩展多格式） |
@@ -1982,176 +1982,36 @@ Content-Type: application/json
 
 ## 现金流预测
 
-### 功能概述
+### 每月收支与资金缺口
 
-基于历史数据和未来计划，预测未来30/60/90天的现金流情况，帮助用户提前规避资金风险。
+入口：侧栏「收支预测」、首页或账单与还款页的「收支预测与固定支出」，路径 `/cashflow`。支持本月起 3、6、12 个自然月，CNY / USD 分开计算，以及全部现金账户 / 单账户范围。
 
-### 预测逻辑
+- 每月展示实际与预计收入、现金支出、结余、月末余额、未来最低余额、首次缺口日期和最大缺口金额；月中开始时，本月已发生收支仅加入月度统计，不再次影响当前余额。
+- 点击月份查看收入、固定支出、日常消费预留、还款的构成，以及每天的预计事项和日终余额。月度收不抵支和月内短期资金缺口分别标识。
+- 工资沿用薪资历史版本的逐月税后预估及累计个税，按发薪日计入；其他启用的周期收入按计划计入。
+- 近三个完整月的可用历史日均与本月已过日期日均按 70% / 30% 组合；仅有一个来源时使用该来源。退款冲减消费，转账、分期还款和匹配固定支出关键词的流水不进入普通消费日均。预算耗尽不会停止已有消费趋势。
+- 无消费历史时，全部账户范围可按各月已设置预算、扣除已消费与固定支出后估算；单账户不套用全局预算。缺少历史与预算的月份标注「日常消费待补充」，不把已知计划之外的消费当作确定的零。
+- 现金口径：信用卡历史消费不再计作现金流出，还款按到期日计入，现金账户之间内部转账不计总收入或总支出；未来日常消费按当日预留资金估算。同日收支按日终净额处理，不推断日内到账顺序。
+- 已还、取消、被替代的还款不计入。已记账的同日同金额、同名称收入，以及按关键词、日期、金额匹配的固定支出不重复计入余额。固定支出关键词应明确，避免误排除其他消费。
+- 未核验余额或未知应还金额时，仍展示月度已知收支，余额和缺口为 `null`；无日常消费依据时不显示资金安全。单账户存在未明确扣款归属的还款或固定支出时，提示补全账户或切换全部现金账户。
 
-**数据来源**:
-1. 当前账户余额
-2. 未来周期收入（工资、房租等）
-3. 未来分期还款
-4. 历史平均支出
+### 固定支出管理
 
-**计算公式**:
-```
-每日余额 = 期初余额 + 当日流入 - 当日流出
-```
+预测页内「管理固定支出」支持新增、编辑、停用 / 启用；字段包括名称、每次金额、每周 / 每月 / 每季度 / 每年周期、首次或下次扣款日期、可选结束日期、现金类扣款账户、账单匹配关键词。月底日期遇到短月取月末，之后月份恢复原扣款日；结束日期含当天。未指定账户的计划仅计入全部账户范围。
 
-### 数据模型
+已有订阅与新增固定支出共用 `workspace_settings`，分别使用 `subscription` / `fixed_expense` 类型，保存沿用 `POST /api/workspace/settings` 的用户隔离、版本冲突检查和变更历史。新增可空字段 `accountId`、`endDate`，服务器自动迁移，亦提供 `0011_fixed_expense_settings.sql`。预测及计划保存均不会自动生成消费流水。
 
-```typescript
-interface CashflowForecast {
-  startDate: string
-  endDate: string
-  base: 'total_assets' | 'account'
-  accountId?: string
-  safeAmount: number              // 安全垫金额
-  points: DailyForecastPoint[]
-  status: 'safe' | 'warning' | 'danger'
-  dangerDates: string[]           // 余额<0的日期
-  warningDates: string[]          // 余额<安全垫的日期
-}
+### API
 
-interface DailyForecastPoint {
-  date: string
-  openingBalance: number          // 期初余额
-  inflow: number                  // 流入
-  outflow: number                 // 流出
-  closingBalance: number          // 期末余额
-}
-```
+`GET /api/cashflow/forecast?startDate=YYYY-MM-DD&days=90&base=total_assets&safeAmount=2000&currency=CNY`，`days` 为 1–366，结束日期不包含当天。单账户使用 `base=account&accountId=...`。
 
-### API接口
+保留 `points`、`balanceKnown`、`dangerDates`、`warningDates`、`status` 等字段，新增：
 
-```http
-GET /api/v1/cashflow/forecast?startDate=2024-12-18&days=90&base=total_assets&safeAmount=5000
+- `months`：月度收支、分类构成、最低余额与缺口；`partial` 标识未覆盖完整月末的区间。
+- `points[].events`：当日收入、固定支出、日常消费预留、还款的名称和金额。
+- `currency`、`spendingKnown`、`historyDays`、`warnings`：币种、日常消费依据完整性、历史样本天数和假设说明。
 
-Response 200:
-{
-  "code": 0,
-  "message": "OK",
-  "data": {
-    "startDate": "2024-12-18",
-    "endDate": "2025-03-17",
-    "base": "total_assets",
-    "safeAmount": 5000.00,
-    "points": [
-      {
-        "date": "2024-12-18",
-        "openingBalance": 50000.00,
-        "inflow": 0.00,
-        "outflow": 500.00,
-        "closingBalance": 49500.00
-      },
-      {
-        "date": "2024-12-19",
-        "openingBalance": 49500.00,
-        "inflow": 0.00,
-        "outflow": 300.00,
-        "closingBalance": 49200.00
-      },
-      {
-        "date": "2025-01-15",
-        "openingBalance": 35000.00,
-        "inflow": 15000.00,        // 工资
-        "outflow": 866.63,         // 分期还款
-        "closingBalance": 49133.37
-      }
-    ],
-    "status": "safe",
-    "dangerDates": [],
-    "warningDates": ["2024-12-30", "2024-12-31"]
-  }
-}
-```
-
-### 计算逻辑
-
-```go
-func ForecastCashflow(req CashflowForecastRequest) CashflowForecastResponse {
-    // 1. 获取起始余额
-    balance := GetCurrentBalance(req.Base, req.AccountID)
-    
-    // 2. 获取未来收入（周期收入）
-    futureIncomes := GetProjectedIncomes(req.StartDate, req.Days)
-    
-    // 3. 获取未来支出（分期还款）
-    futureExpenses := GetProjectedExpenses(req.StartDate, req.Days)
-    
-    // 4. 计算历史平均日支出
-    avgDailyExpense := CalculateAvgDailyExpense()
-    
-    // 5. 逐日计算
-    points := make([]DailyForecastPoint, req.Days)
-    dangerDates := []string{}
-    warningDates := []string{}
-    
-    for i := 0; i < req.Days; i++ {
-        date := req.StartDate.AddDate(0, 0, i)
-        
-        // 当日流入
-        inflow := GetInflowForDate(futureIncomes, date)
-        
-        // 当日流出
-        outflow := GetOutflowForDate(futureExpenses, date)
-        if outflow == 0 {
-            outflow = avgDailyExpense  // 使用历史平均
-        }
-        
-        // 计算余额
-        closingBalance := balance + inflow - outflow
-        
-        points[i] = DailyForecastPoint{
-            Date:           date.Format("2006-01-02"),
-            OpeningBalance: balance,
-            Inflow:         inflow,
-            Outflow:        outflow,
-            ClosingBalance: closingBalance,
-        }
-        
-        // 判断状态
-        if closingBalance < 0 {
-            dangerDates = append(dangerDates, date.Format("2006-01-02"))
-        } else if closingBalance < req.SafeAmount {
-            warningDates = append(warningDates, date.Format("2006-01-02"))
-        }
-        
-        balance = closingBalance
-    }
-    
-    // 6. 确定整体状态
-    status := "safe"
-    if len(dangerDates) > 0 {
-        status = "danger"
-    } else if len(warningDates) > 0 {
-        status = "warning"
-    }
-    
-    return CashflowForecastResponse{
-        StartDate:    req.StartDate.Format("2006-01-02"),
-        EndDate:      req.StartDate.AddDate(0, 0, req.Days-1).Format("2006-01-02"),
-        Base:         req.Base,
-        AccountID:    req.AccountID,
-        SafeAmount:   req.SafeAmount,
-        Points:       points,
-        Status:       status,
-        DangerDates:  dangerDates,
-        WarningDates: warningDates,
-    }
-}
-```
-
-### 前端页面
-
-**现金流预测页面** (`CashflowForecastPage.vue`):
-- 选择预测天数（30/60/90天）
-- 选择预测基准（总资产/单个账户）
-- 设置安全垫金额
-- 显示预测曲线图
-- 高亮危险日期和警告日期
-- 显示关键事件（收入/支出）
+计算使用整数分，接口保持元单位。风险为 `danger`（日终余额 < 0）、`warning`（低于安全垫）、`safe` 或 `unknown`（信息不足）。
 
 ---
 
@@ -3411,33 +3271,12 @@ onMounted(() => {
 })
 ```
 
-#### 6. CashflowForecastPage.vue - 现金流预测
-**功能**:
-- 30/60/90天预测选择
-- 折线图展示
-- 危险日期标记
-- 预测参数配置
+#### 6. CashflowForecastPage.vue - 每月收支预测
 
-**图表配置**:
-```typescript
-const chartOption = computed(() => ({
-  xAxis: {
-    type: 'category',
-    data: forecast.value?.points.map(p => p.date) || []
-  },
-  yAxis: {
-    type: 'value'
-  },
-  series: [{
-    name: '预测余额',
-    type: 'line',
-    data: forecast.value?.points.map(p => p.closingBalance) || [],
-    markLine: {
-      data: [{ yAxis: safeAmount.value, label: { text: '安全线' } }]
-    }
-  }]
-}))
-```
+- 本月起 3/6/12 个自然月，币种及账户范围筛选。
+- 月度收支卡片、逐日余额 SVG 曲线、资金缺口日期及构成明细。
+- `FixedExpenseManager.vue` 提供房租、订阅等固定支出的新增、编辑与启停。
+- 遵循全局金额隐藏设置，展示预测依据和缺失信息。
 
 #### 7. MeSalaryPage.vue - 薪资控制
 **功能**:
@@ -3873,7 +3712,7 @@ type CalcSalaryMonth struct {
 - 安全垫机制
 
 **可视化展示**:
-- ECharts折线图
+- SVG 余额曲线与月度收支卡片
 - 危险日期标记（红色）
 - 警告日期标记（黄色）
 - 安全线（虚线）
@@ -4184,7 +4023,7 @@ Nginx 仅绑定宿主机 `127.0.0.1:80`，关闭公网直接访问；静态文�
 
 安全导入支持差异分页、显式冲突决策、摘要替换、批次回滚和来源身份映射。回滚会检查后续版本、关联引用和附件；来源与账本的金额/币种不一致时拒绝发布。手工分类覆盖同样作用于原有月报和 MCP 查询。新 MCP 工具为 `query_ledger_workspace`、`get_ledger_record`、`get_repayment_projection`，总计 12 个工具。
 
-还款预测、日历及旧现金流 API 已接入统一的有效计划状态；已还、取消、被正式账单替代的预测退出未来现金流。信用卡余额不作为可花现金；未核验余额或未知应还金额使余额预测返回 `null`，风险状态为 `unknown`，不虚构 0 元余额或逾期。综合现金流沿用已启用的周期收入，并显式返回本月剩余预算的每日消费假设；未设置预算时不凭空添加消费。
+还款预测、日历及旧现金流 API 已接入统一的有效计划状态；已还、取消、被正式账单替代的预测退出未来现金流。信用卡余额不作为可花现金；未核验余额或未知应还金额使余额预测返回 `null`，风险状态为 `unknown`，不虚构 0 元余额或逾期。综合现金流使用逐月税后工资、周期收入、固定支出及有效还款计划，日常消费优先采用历史趋势，无历史时才按当月预算估算；假设与缺失显式返回，详见「现金流预测」。
 
 验证包括 Go 业务测试、独立 PostgreSQL 工作台测试、原有集成测试及 Vue 类型检查/生产构建。覆盖版本竞争、用户隔离、退款上限、原子回滚、正式替换与重放、撤销恢复、旧月报分类一致性、来源金额不平拒绝、未知余额和还款状态过滤。生产数据的隔离副本验证：各币种金额基线不变；完整来源包再次预览为新增 0、修订 0、冲突 0。390×844 手机布局、年度趋势与退款明细已做浏览器检查。
 

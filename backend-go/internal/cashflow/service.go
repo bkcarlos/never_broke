@@ -2,429 +2,157 @@ package cashflow
 
 import (
 	"context"
-	"fmt"
+	"math"
 	"time"
 
-	"neverbroke/internal/installment"
-	"neverbroke/internal/ledger"
+	"gorm.io/gorm"
 	"neverbroke/internal/models"
 	"neverbroke/internal/money"
+	"neverbroke/internal/payroll"
 	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/repository"
 	"neverbroke/internal/workspace"
-
-	"gorm.io/gorm"
 )
 
-// BuildForecast 构建现金流预测
+// BuildForecast supports repository-only callers without inventing verified
+// balances or future plans that are available only in persistent storage.
 func BuildForecast(ctx context.Context, store repository.Store, userID string, req CashflowForecastRequest) (CashflowForecastResponse, error) {
-	// 1. 计算起始余额
-	var startingBalance float64
-	if req.Base == ForecastBaseTotalAssets {
-		accounts, err := store.Accounts().ListByUser(ctx, userID)
-		if err != nil {
-			return CashflowForecastResponse{}, fmt.Errorf("failed to list accounts: %w", err)
-		}
-		for _, acc := range accounts {
-			if acc.Currency != "" && acc.Currency != money.Currency(ctx) {
-				continue
-			}
-			if !acc.Archived {
-				startingBalance += acc.Balance
-			}
-		}
-	} else if req.Base == ForecastBaseAccount {
-		if req.AccountID == "" {
-			return CashflowForecastResponse{}, fmt.Errorf("accountId is required when base is account")
-		}
-		acc, err := store.Accounts().GetByID(ctx, userID, req.AccountID)
-		if err != nil {
-			return CashflowForecastResponse{}, fmt.Errorf("failed to get account: %w", err)
-		}
-		if acc == nil || (acc.Currency != "" && acc.Currency != money.Currency(ctx)) {
-			return CashflowForecastResponse{}, fmt.Errorf("account currency does not match forecast currency")
-		}
-		startingBalance = acc.Balance
-	} else {
-		return CashflowForecastResponse{}, fmt.Errorf("invalid base: %s", req.Base)
-	}
-
-	// 2. 解析起始日期
-	startDate, err := time.Parse("2006-01-02", req.StartDate)
-	if err != nil {
-		return CashflowForecastResponse{}, fmt.Errorf("invalid startDate: %w", err)
-	}
-
-	// 3. 计算结束日期
-	endDate := startDate.AddDate(0, 0, req.Days)
-
-	// 4. 这里简化处理：不再获取周期收入和分期计划
-	// 仅基于账户余额和预算计算
-
-	// 5. 获取预算信息（用于日常消费预估）
-	now := time.Now()
-	var monthlyBudget float64 = 3000.0 // 默认预算
-	budgetData, err := store.Budgets().GetByMonth(ctx, userID, now.Format("2006-01"))
-	if err == nil && budgetData != nil && budgetData.TotalBudget > 0 {
-		monthlyBudget = budgetData.TotalBudget
-	}
-
-	// 计算本月已消费金额
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	monthEnd := monthStart.AddDate(0, 1, 0)
-	monthStartStr := monthStart.Format("2006-01-02")
-	monthEndStr := monthEnd.Format("2006-01-02")
-	transactions, err := store.Transactions().ListByUserBetween(ctx, userID, monthStartStr, monthEndStr)
-	var monthExpense float64
-	if err == nil {
-		for _, tx := range transactions {
-			if tx.Type == ledger.TransactionTypeExpense {
-				monthExpense += tx.Amount
-			}
-		}
-	}
-
-	// 计算本月剩余天数
-	lastDayOfMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.UTC).Day()
-	remainingDaysInMonth := lastDayOfMonth - now.Day()
-	if remainingDaysInMonth <= 0 {
-		remainingDaysInMonth = 1
-	}
-	dailyBudget := (monthlyBudget - monthExpense) / float64(remainingDaysInMonth)
-	if dailyBudget < 0 {
-		dailyBudget = 0
-	}
-
-	// 6. 构建日期到流入/流出的映射
-	type dayFlow struct {
-		inflow  float64
-		outflow float64
-	}
-	dayFlows := make(map[string]*dayFlow)
-
-	// 6.1 处理日常消费预估（在整个预测期内按每天均摊）
-	current := startDate
-	for current.Before(endDate) {
-		dateStr := current.Format("2006-01-02")
-		if dayFlows[dateStr] == nil {
-			dayFlows[dateStr] = &dayFlow{}
-		}
-		dayFlows[dateStr].outflow += dailyBudget
-		current = current.AddDate(0, 0, 1)
-	}
-
-	// 7. 逐日累积计算
-	var points []DailyForecastPoint
-	currentBalance := startingBalance
-	current = startDate
-	dangerDates := []string{}
-	warningDates := []string{}
-
-	for current.Before(endDate) {
-		dateStr := current.Format("2006-01-02")
-		flow := dayFlows[dateStr]
-		if flow == nil {
-			flow = &dayFlow{}
-		}
-
-		openingBalance := currentBalance
-		inflow := flow.inflow
-		outflow := flow.outflow
-		closingBalance := openingBalance + inflow - outflow
-
-		point := DailyForecastPoint{
-			Date:           dateStr,
-			OpeningBalance: &openingBalance,
-			Inflow:         inflow,
-			Outflow:        outflow,
-			ClosingBalance: &closingBalance,
-		}
-		points = append(points, point)
-
-		// 检查状态
-		if closingBalance < 0 {
-			dangerDates = append(dangerDates, dateStr)
-		} else if closingBalance < req.SafeAmount {
-			warningDates = append(warningDates, dateStr)
-		}
-
-		currentBalance = closingBalance
-		current = current.AddDate(0, 0, 1)
-	}
-
-	// 8. 确定整体状态
-	var status ForecastStatus
-	if len(dangerDates) > 0 {
-		status = ForecastStatusDanger
-	} else if len(warningDates) > 0 {
-		status = ForecastStatusWarning
-	} else {
-		status = ForecastStatusSafe
-	}
-
-	return CashflowForecastResponse{
-		StartDate:    req.StartDate,
-		BalanceKnown: true, DailyBudget: dailyBudget,
-		EndDate:      endDate.Format("2006-01-02"),
-		Base:         req.Base,
-		AccountID:    req.AccountID,
-		SafeAmount:   req.SafeAmount,
-		Points:       points,
-		Status:       status,
-		DangerDates:  dangerDates,
-		WarningDates: warningDates,
-	}, nil
-}
-
-// BuildForecastWithDB 构建现金流预测（使用db查询周期收入和分期）
-func BuildForecastWithDB(ctx context.Context, store repository.Store, db *gorm.DB, userID string, req CashflowForecastRequest) (CashflowForecastResponse, error) {
-	items, sourceAccounts, err := workspace.Load(db, userID)
+	start, err := validateRequest(req)
 	if err != nil {
 		return CashflowForecastResponse{}, err
 	}
-	if req.Base == ForecastBaseAccount {
-		selected := []models.Account{}
-		for _, a := range sourceAccounts {
-			if a.ID == req.AccountID && a.Currency == money.Currency(ctx) && a.Type != "credit" {
-				selected = append(selected, a)
-			}
+	sourceAccounts, err := store.Accounts().ListByUser(ctx, userID)
+	if err != nil {
+		return CashflowForecastResponse{}, err
+	}
+	accounts := []models.Account{}
+	for _, a := range sourceAccounts {
+		accounts = append(accounts, models.Account{ID: a.ID, Type: string(a.Type), Currency: a.Currency, Balance: a.Balance, Archived: a.Archived})
+	}
+	first := time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC)
+	transactions, err := store.Transactions().ListByUserBetween(ctx, userID, first.AddDate(0, -3, 0).Format(time.DateOnly), start.AddDate(0, 0, 1).Format(time.DateOnly))
+	if err != nil {
+		return CashflowForecastResponse{}, err
+	}
+	items := []workspace.Entry{}
+	for _, tx := range transactions {
+		if tx.Projected {
+			continue
 		}
-		if len(selected) != 1 {
-			return CashflowForecastResponse{}, fmt.Errorf("请选择同币种的现金类账户；信用卡欠款不作为可用余额")
+		value := cents(tx.Amount)
+		var valuePtr *int64 = &value
+		if tx.AmountUnknown {
+			valuePtr = nil
 		}
-		sourceAccounts = selected
+		kind := string(tx.Type)
+		if kind == "expense" && value < 0 {
+			kind = "refund"
+			value = -value
+		}
+		date := tx.OccurredAt
+		if len(date) > 10 {
+			date = date[:10]
+		}
+		txCurrency := tx.Currency
+		if txCurrency == "" {
+			txCurrency = money.Currency(ctx)
+		}
+		items = append(items, workspace.Entry{Key: tx.ID, Kind: kind, Date: date, Currency: txCurrency, AccountID: tx.AccountID, FromAccountID: tx.FromAccountID, ToAccountID: tx.ToAccountID, Cents: valuePtr, Description: tx.Remark, Metadata: map[string]any{"分期计划": tx.InstallmentPlanID}})
+	}
+	result, err := buildForecast(req, money.Currency(ctx), items, accounts, nil, nil, nil)
+	result.Warnings = append(result.Warnings, "当前存储模式无法读取未来收入、固定支出和还款计划，收支估算不完整；请使用数据库模式。")
+	return result, err
+}
+
+func BuildForecastWithDB(ctx context.Context, store repository.Store, db *gorm.DB, userID string, req CashflowForecastRequest) (CashflowForecastResponse, error) {
+	start, err := validateRequest(req)
+	if err != nil {
+		return CashflowForecastResponse{}, err
+	}
+	db = db.WithContext(ctx)
+	items, accounts, err := workspace.Load(db, userID)
+	if err != nil {
+		return CashflowForecastResponse{}, err
 	}
 	var settings []workspace.Setting
-	if err := db.Where("user_id = ?", userID).Find(&settings).Error; err != nil {
+	if err = db.Where("user_id = ?", userID).Order("key").Find(&settings).Error; err != nil {
 		return CashflowForecastResponse{}, err
 	}
-	projection := workspace.Project(items, sourceAccounts, settings, money.Currency(ctx), req.StartDate, req.Days)
-	balanceKnown := projection.Starting != nil && projection.UnknownAmounts == 0
-	var startingBalance float64
-	if projection.Starting != nil {
-		startingBalance = float64(*projection.Starting) / 100
+	var plans []models.RecurringIncomePlan
+	if err = db.Where("user_id = ? AND active = ? AND currency = ?", userID, true, money.Currency(ctx)).Order("id").Find(&plans).Error; err != nil {
+		return CashflowForecastResponse{}, err
 	}
-
-	// 2. 解析起始日期
-	startDate, err := time.Parse("2006-01-02", req.StartDate)
-	if err != nil {
-
-		return CashflowForecastResponse{}, fmt.Errorf("invalid startDate: %w", err)
-	}
-
-	// 3. 计算结束日期
-	endDate := startDate.AddDate(0, 0, req.Days)
-
-	// 4. 获取周期收入计划
-	var recurringPlans []models.RecurringIncomePlan
-	if db != nil {
-		if err := db.Where("user_id = ? AND active = ? AND currency = ?", userID, true, money.Currency(ctx)).Find(&recurringPlans).Error; err != nil {
-			return CashflowForecastResponse{}, err
-		}
-	}
-
-	// 6. 获取预算信息
-	now := time.Now()
-	var monthlyBudget float64
-	budgetData, err := store.Budgets().GetByMonth(ctx, userID, now.Format("2006-01"))
+	incomes, err := incomeEvents(plans, start, start.AddDate(0, 0, req.Days), recurringincome.PolicyLookup(payroll.NewService(payroll.NewRepository(db)).GetRegionRuleAt))
 	if err != nil {
 		return CashflowForecastResponse{}, err
 	}
-	if money.Currency(ctx) == "CNY" && budgetData != nil && budgetData.TotalBudget > 0 {
-		monthlyBudget = budgetData.TotalBudget
-	}
-
-	// 计算本月已消费金额
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
-	monthEnd := monthStart.AddDate(0, 1, 0)
-	transactions, err := store.Transactions().ListByUserBetween(ctx, userID, monthStart.Format(time.RFC3339), monthEnd.Format(time.RFC3339))
-	if err != nil {
-		return CashflowForecastResponse{}, err
-	}
-	var monthExpense float64
-	for _, tx := range transactions {
-		if tx.Type == ledger.TransactionTypeExpense {
-			monthExpense += tx.Amount
-		}
-	}
-
-	lastDayOfMonth := time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.UTC).Day()
-	remainingDaysInMonth := lastDayOfMonth - now.Day()
-	if remainingDaysInMonth <= 0 {
-		remainingDaysInMonth = 1
-	}
-	dailyBudget := (monthlyBudget - monthExpense) / float64(remainingDaysInMonth)
-	if dailyBudget < 0 {
-		dailyBudget = 0
-	}
-
-	// 7. 构建日期到流入/流出的映射
-	type dayFlow struct {
-		inflow  float64
-		outflow float64
-	}
-	dayFlows := make(map[string]*dayFlow)
-
-	// 7.1 处理周期收入
-	for _, plan := range recurringPlans {
-		if !plan.Active {
-			continue
-		}
-		projectedDates := projectRecurringIncomeFromDB(&plan, startDate, endDate)
-		for _, date := range projectedDates {
-			dateStr := date.Format("2006-01-02")
-			if dayFlows[dateStr] == nil {
-				dayFlows[dateStr] = &dayFlow{}
+	budgets := map[string]int64{}
+	first := time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC)
+	if money.Currency(ctx) == "CNY" {
+		for month := first; month.Before(start.AddDate(0, 0, req.Days)); month = month.AddDate(0, 1, 0) {
+			b, err := store.Budgets().GetByMonth(ctx, userID, month.Format("2006-01"))
+			if err != nil {
+				return CashflowForecastResponse{}, err
 			}
-			dayFlows[dateStr].inflow += plan.Amount
+			if b != nil && b.TotalBudget > 0 {
+				budgets[month.Format("2006-01")] = int64(math.Round(b.TotalBudget * 100))
+			}
 		}
 	}
-
-	// Include source bills and native installments exactly once, honoring review states.
-	for _, p := range projection.Points {
-		if dayFlows[p.Date] == nil {
-			dayFlows[p.Date] = &dayFlow{}
-		}
-		dayFlows[p.Date].outflow += float64(p.Billed+p.Estimated) / 100
-	}
-
-	// 7.3 处理日常消费预估
-	current := startDate
-	for current.Before(endDate) {
-		dateStr := current.Format("2006-01-02")
-		if dayFlows[dateStr] == nil {
-			dayFlows[dateStr] = &dayFlow{}
-		}
-		dayFlows[dateStr].outflow += dailyBudget
-		current = current.AddDate(0, 0, 1)
-	}
-
-	// 8. 逐日累积计算
-	var points []DailyForecastPoint
-	currentBalance := startingBalance
-	current = startDate
-	dangerDates := []string{}
-	warningDates := []string{}
-
-	for current.Before(endDate) {
-		dateStr := current.Format("2006-01-02")
-		flow := dayFlows[dateStr]
-		if flow == nil {
-			flow = &dayFlow{}
-		}
-
-		openingBalance := currentBalance
-		inflow := flow.inflow
-		outflow := flow.outflow
-		closingBalance := openingBalance + inflow - outflow
-
-		points = append(points, DailyForecastPoint{
-			Date:           dateStr,
-			OpeningBalance: &openingBalance,
-			Inflow:         inflow,
-			Outflow:        outflow,
-			ClosingBalance: &closingBalance,
-		})
-
-		if closingBalance < 0 {
-			dangerDates = append(dangerDates, dateStr)
-		} else if closingBalance < req.SafeAmount {
-			warningDates = append(warningDates, dateStr)
-		}
-
-		currentBalance = closingBalance
-		current = current.AddDate(0, 0, 1)
-	}
-
-	var status ForecastStatus
-	if len(dangerDates) > 0 {
-		status = ForecastStatusDanger
-	} else if len(warningDates) > 0 {
-		status = ForecastStatusWarning
-	} else {
-		status = ForecastStatusSafe
-	}
-
-	if !balanceKnown {
-		status = ForecastStatus("unknown")
-		dangerDates = []string{}
-		warningDates = []string{}
-		for i := range points {
-			points[i].OpeningBalance = nil
-			points[i].ClosingBalance = nil
-		}
-	}
-	return CashflowForecastResponse{
-		StartDate:    req.StartDate,
-		BalanceKnown: balanceKnown, UnknownAmounts: projection.UnknownAmounts, DailyBudget: dailyBudget,
-		EndDate:      endDate.Format("2006-01-02"),
-		Base:         req.Base,
-		AccountID:    req.AccountID,
-		SafeAmount:   req.SafeAmount,
-		Points:       points,
-		Status:       status,
-		DangerDates:  dangerDates,
-		WarningDates: warningDates,
-	}, nil
+	return buildForecast(req, money.Currency(ctx), items, accounts, settings, incomes, budgets)
 }
 
-// projectRecurringIncomeFromDB 推算周期收入在未来日期范围内的收入日期
-func projectRecurringIncomeFromDB(plan *models.RecurringIncomePlan, startDate, endDate time.Time) []time.Time {
-	var dates []time.Time
-	current := plan.NextDueDate
-
-	for current.Before(endDate) || current.Equal(endDate) {
-		if current.After(startDate) || current.Equal(startDate) {
-			dates = append(dates, current)
-		}
-
-		switch recurringincome.RecurringIncomeFrequency(plan.Frequency) {
-		case recurringincome.FrequencyMonthly:
-			current = current.AddDate(0, 1, 0)
-		case recurringincome.FrequencyBimonthly:
-			current = current.AddDate(0, 2, 0)
-		case recurringincome.FrequencyQuarterly:
-			current = current.AddDate(0, 3, 0)
-		case recurringincome.FrequencySemiannual:
-			current = current.AddDate(0, 6, 0)
-		case recurringincome.FrequencyWeekly:
-			current = current.AddDate(0, 0, 7)
-		case recurringincome.FrequencyYearly:
-			current = current.AddDate(1, 0, 0)
-		default:
-			return dates
-		}
-	}
-
-	return dates
+type incomeEvent struct {
+	Date, Name, AccountID, Currency, Warning string
+	Cents                                    int64
 }
 
-// calculateInstallmentScheduleFromDB 计算分期计划在指定日期范围内的还款计划
-func calculateInstallmentScheduleFromDB(plan *models.InstallmentPlan, startDate, endDate time.Time) []installment.InstallmentPreviewItem {
-	req := installment.PreviewInstallmentRequest{
-		Principal:          plan.Principal,
-		TermMonths:         plan.TermMonths,
-		MonthlyRatePercent: plan.MonthlyRate * 100,
-		RepayMethod:        installment.InstallmentRepayMethod(plan.RepayMethod),
-		FirstDueDate:       plan.FirstDueDate.Format("2006-01-02"),
-		Currency:           plan.Currency,
-	}
-
-	preview, err := installment.BuildSchedule(req)
-	if err != nil {
-		return nil
-	}
-
-	var result []installment.InstallmentPreviewItem
-	for _, item := range preview.Schedule {
-		dueDate, err := time.Parse("2006-01-02", item.DueDate)
-		if err != nil {
+func incomeEvents(plans []models.RecurringIncomePlan, start, end time.Time, lookup recurringincome.PolicyLookup) ([]incomeEvent, error) {
+	out := []incomeEvent{}
+	for _, p := range plans {
+		if !p.Active {
 			continue
 		}
-		if (dueDate.After(startDate) || dueDate.Equal(startDate)) && dueDate.Before(endDate) {
-			result = append(result, item)
+		versions, err := recurringincome.SalaryVersions(p)
+		if err != nil {
+			return nil, err
+		}
+		if p.Type == "salary" && len(versions) > 0 {
+			for year := start.Year(); year <= end.Year(); year++ {
+				rows, err := recurringincome.PreviewSalaryHistory(versions, year, lookup)
+				if err != nil {
+					return nil, err
+				}
+				for _, r := range rows {
+					if r.Date < start.Format(time.DateOnly) || r.Date >= end.Format(time.DateOnly) {
+						continue
+					}
+					if p.LastFiredDate != nil && r.Date <= p.LastFiredDate.Format(time.DateOnly) {
+						continue
+					}
+					out = append(out, incomeEvent{Date: r.Date, Name: p.Label, AccountID: r.Config.AccountID, Currency: r.Config.Currency, Cents: int64(math.Round(r.PostTax * 100)), Warning: r.Warning})
+				}
+			}
+		} else {
+			first := p.NextDueDate
+			// Generate from the first day so an anchored 31st is not lost when
+			// NextDueDate was clamped to the 28th in a previous short month.
+			from := time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC)
+			for _, date := range workspace.RecurrenceDates(first, p.Frequency, "", from, end) {
+				if p.DayOfMonth != nil && *p.DayOfMonth >= 1 && *p.DayOfMonth <= 31 && p.Frequency != "weekly" {
+					d, _ := time.Parse(time.DateOnly, date)
+					month := time.Date(d.Year(), d.Month(), 1, 0, 0, 0, 0, time.UTC)
+					date = month.AddDate(0, 0, min(*p.DayOfMonth, month.AddDate(0, 1, -1).Day())-1).Format(time.DateOnly)
+				}
+				if date < start.Format(time.DateOnly) || date >= end.Format(time.DateOnly) {
+					continue
+				}
+				if date < p.NextDueDate.Format(time.DateOnly) || (p.LastFiredDate != nil && date <= p.LastFiredDate.Format(time.DateOnly)) {
+					continue
+				}
+				out = append(out, incomeEvent{Date: date, Name: p.Label, AccountID: p.AccountID, Currency: p.Currency, Cents: int64(math.Round(p.Amount * 100))})
+			}
 		}
 	}
-
-	return result
+	return out, nil
 }

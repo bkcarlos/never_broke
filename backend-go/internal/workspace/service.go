@@ -14,6 +14,8 @@ import (
 )
 
 type Entry struct {
+	FromAccountID  string         `json:"fromAccountId,omitempty"`
+	ToAccountID    string         `json:"toAccountId,omitempty"`
 	Key            string         `json:"key"`
 	TransactionID  string         `json:"transactionId,omitempty"`
 	Kind           string         `json:"kind"`
@@ -183,7 +185,7 @@ func Load(db *gorm.DB, user string) ([]Entry, []models.Account, error) {
 		if currency == "" {
 			currency = "CNY"
 		}
-		out = append(out, Entry{Key: "tx:" + t.ID, TransactionID: t.ID, Kind: kind, Date: date, Currency: currency, Cents: &cents, Description: str(t.Remark), Merchant: str(t.Remark), Category: str(t.CategoryKey), AccountID: str(t.AccountID), Confirmation: "manual", Metadata: map[string]any{}})
+		out = append(out, Entry{FromAccountID: str(t.FromAccountID), ToAccountID: str(t.ToAccountID), Key: "tx:" + t.ID, TransactionID: t.ID, Kind: kind, Date: date, Currency: currency, Cents: &cents, Description: str(t.Remark), Merchant: str(t.Remark), Category: str(t.CategoryKey), AccountID: str(t.AccountID), Confirmation: "manual", Metadata: map[string]any{"分期计划": str(t.InstallmentPlanID)}})
 	}
 	native, err := nativePlans(db, user, am)
 	if err != nil {

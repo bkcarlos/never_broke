@@ -494,7 +494,20 @@ export interface DailyTimeline {
 export type ForecastBase = 'total_assets' | 'account'
 export type ForecastStatus = 'safe' | 'warning' | 'danger' | 'unknown'
 
+export interface ForecastEvent { kind: 'income' | 'fixed' | 'daily' | 'repayment'; name: string; amount: number }
+
+export interface MonthlyForecast {
+  month: string; from: string; to: string; partial: boolean
+  actualIncome: number; actualOutflow: number; forecastIncome: number
+  fixedExpense: number; dailyExpense: number; repayment: number
+  income: number; outflow: number; net: number
+  closingBalance: number | null; minBalance: number | null; minBalanceDate: string
+  firstGapDate: string; gapAmount: number | null; status: ForecastStatus
+  spendingSource: 'history' | 'current' | 'budget' | 'unknown'
+}
+
 export interface DailyForecastPoint {
+  events: ForecastEvent[]
   date: string           // YYYY-MM-DD
   openingBalance: number | null
   inflow: number
@@ -503,6 +516,11 @@ export interface DailyForecastPoint {
 }
 
 export interface CashflowForecast {
+  currency: string
+  months: MonthlyForecast[]
+  warnings: string[]
+  spendingKnown: boolean
+  historyDays: number
   balanceKnown: boolean
   unknownAmounts: number
   dailyBudget: number

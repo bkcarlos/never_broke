@@ -74,6 +74,11 @@ func ForecastHandler(store repository.Store, db *gorm.DB) gin.HandlerFunc {
 			SafeAmount: safeAmount,
 		}
 
+		if _, err := validateRequest(req); err != nil {
+			response.BadRequest(c, err.Error())
+			return
+		}
+
 		logger.Debug("Building cashflow forecast",
 			zap.String("userID", userID),
 			zap.String("startDate", startDate),

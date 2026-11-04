@@ -35,6 +35,8 @@ type Edit struct {
 	Note             string       `json:"note,omitempty"`
 }
 type Setting struct {
+	AccountID string    `json:"accountId,omitempty"`
+	EndDate   string    `json:"endDate,omitempty"`
 	UserID    string    `gorm:"primaryKey" json:"-"`
 	Key       string    `gorm:"primaryKey" json:"key"`
 	Kind      string    `gorm:"index" json:"kind"`

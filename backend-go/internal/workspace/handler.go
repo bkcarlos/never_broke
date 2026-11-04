@@ -394,13 +394,9 @@ func setting(c *gin.Context, db *gorm.DB) {
 			response.BadRequest(c, "分类预算无效")
 			return
 		}
-	case "subscription":
-		if s.Cents <= 0 || (s.Period != "monthly" && s.Period != "yearly") {
-			response.BadRequest(c, "订阅金额或周期无效")
-			return
-		}
-		if _, e := time.Parse("2006-01-02", s.Date); e != nil {
-			response.BadRequest(c, "下次日期无效")
+	case "subscription", "fixed_expense":
+		if e := ValidateRecurringExpense(s); e != nil {
+			response.BadRequest(c, e.Error())
 			return
 		}
 	case "balance":
@@ -426,6 +422,12 @@ func setting(c *gin.Context, db *gorm.DB) {
 		}
 		if old.Kind != "" && old.Kind != s.Kind {
 			return errors.New("不能更改设置类型")
+		}
+		if (s.Kind == "subscription" || s.Kind == "fixed_expense") && s.AccountID != "" {
+			var a models.Account
+			if e := tx.Where("user_id = ? AND id = ? AND currency = ? AND archived = ?", s.UserID, s.AccountID, s.Currency, false).First(&a).Error; e != nil || a.Type == "credit" {
+				return errors.New("请选择同币种的现金类扣款账户")
+			}
 		}
 		if s.Kind == "balance" {
 			var a models.Account
