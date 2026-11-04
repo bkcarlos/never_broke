@@ -15,7 +15,10 @@
           <button class="button primary submit" :disabled="loading">{{loading?'正在处理…':mode==='login'?'登录工作台':'创建账户'}}</button>
         </form>
       </section>
-      <p class="login-footer">个人财务工作台 · 让每一笔都有迹可循</p>
+      <footer class="login-footer">
+        <p>个人财务工作台 · 让每一笔都有迹可循</p>
+        <a v-if="icpFiling" class="filing-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">{{ icpFiling }}</a>
+      </footer>
     </div>
   </main>
 </template>
@@ -23,6 +26,7 @@
 import {ref,reactive} from 'vue'
 import {useRoute,useRouter} from 'vue-router'
 import {login,register,HttpError} from '@/api/auth'
+const icpFiling = import.meta.env.VITE_ICP_FILING?.trim()
 const router=useRouter(),route=useRoute(),mode=ref<'login'|'register'>('login')
 const form=reactive({email:'',password:'',nickname:''}),showPassword=ref(false),loading=ref(false),errorMessage=ref('')
 async function handleSubmit(){
@@ -38,5 +42,6 @@ async function handleSubmit(){
 }
 </script>
 <style scoped>
+.filing-link{display:inline-block;margin-top:8px;color:#737887;text-decoration:none;line-height:24px}.filing-link:hover{text-decoration:underline;color:#554bc8}.filing-link:focus-visible{outline:2px solid #554bc8;outline-offset:3px;border-radius:2px}
 .login-page{min-height:100dvh;background:#f6f7fb;display:grid;place-items:center;padding:32px 20px;color:#222632}.login-wrapper{width:100%;max-width:420px}.brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:650;margin:0 0 28px 3px}.brand span{display:grid;place-items:center;width:38px;height:38px;background:#554bc8;color:white;border-radius:10px;font-size:23px}.login-card{background:white;border:1px solid #e3e5ec;border-radius:12px;padding:32px;box-shadow:0 8px 32px #26304b06}.login-card h1{font-size:25px;letter-spacing:-.6px;margin:6px 0 10px}.mode-tabs{display:flex;border-bottom:1px solid #e6e7ee;margin:26px 0 24px}.mode-tabs button{flex:1;padding:12px;border:0;background:none;color:#7c8090;border-bottom:2px solid transparent}.mode-tabs .active{color:#554bc8;border-bottom-color:#554bc8}.field{display:flex;flex-direction:column;gap:8px;font-size:13px;margin-bottom:18px}.field .control{width:100%;height:43px;box-sizing:border-box}.password-field{position:relative}.password-field input{padding-right:55px}.password-field button{position:absolute;right:10px;top:13px;border:0;background:transparent;color:#6c7183;font-size:12px}.submit{width:100%;height:43px;margin-top:6px}.login-footer{font-size:12px;color:#9599a7;text-align:center;margin-top:24px}@media(max-width:480px){.login-card{padding:26px 22px}.login-page{padding:24px 16px}}
 </style>

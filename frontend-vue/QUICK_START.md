@@ -8,7 +8,7 @@
 # 1. 停止当前服务器（在终端 8 中按 Ctrl+C）
 
 # 2. 清理缓存并重启
-cd /Users/bkcarlos/code/never_broke_new/frontend-vue
+cd /path/to/never_broke/frontend-vue
 rm -rf node_modules/.vite
 pnpm dev
 ```

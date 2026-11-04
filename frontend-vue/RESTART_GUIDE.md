@@ -10,7 +10,7 @@
 ### 方案 1：清理缓存并重启（推荐）
 
 ```bash
-cd /Users/bkcarlos/code/never_broke_new/frontend-vue
+cd /path/to/never_broke/frontend-vue
 
 # 停止当前开发服务器 (在终端按 Ctrl+C)
 
@@ -24,7 +24,7 @@ pnpm dev
 ### 方案 2：使用测试脚本
 
 ```bash
-cd /Users/bkcarlos/code/never_broke_new/frontend-vue
+cd /path/to/never_broke/frontend-vue
 
 # 停止当前开发服务器 (Ctrl+C)
 

@@ -13,3 +13,14 @@ draft_6aca3958_folder/
 deploy/.env*
 deploy/sync.env
 deploy/*session*.json
+
+# Private deployment settings and local environment values
+**/.env.*
+!**/.env.example
+deploy/*.local.md
+deploy/public-ingress.conf
+deploy/backups/
+deploy/frontend/
+deploy/*RELEASE*
+*.pem
+*.key
