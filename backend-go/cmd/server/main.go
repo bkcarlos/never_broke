@@ -8,6 +8,7 @@ import (
 	"neverbroke/internal/dbconfig"
 	"neverbroke/internal/http/router"
 	"neverbroke/internal/models"
+	"neverbroke/internal/payroll"
 	"neverbroke/internal/repository/postgres"
 	"neverbroke/internal/workspace"
 	"os"
@@ -64,6 +65,9 @@ func main() {
 	// 自动迁移数据库表
 	if err := autoMigrate(db); err != nil {
 		logger.Fatal("Failed to run auto migrations", zap.Error(err))
+	}
+	if err := payroll.SeedPolicyHistory(db); err != nil {
+		panic(err)
 	}
 	logger.Info("✅ Database tables migrated successfully")
 

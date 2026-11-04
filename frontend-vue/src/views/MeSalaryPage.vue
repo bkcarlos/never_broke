@@ -36,7 +36,7 @@
         <!-- Current Salary Plan Card -->
         <section v-if="currentPlan" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-3 flex items-center justify-between">
-            <h2 class="text-white font-medium">当前工资方案</h2>
+            <h2 class="text-white font-medium">最近保存的工资版本</h2>
             <span class="px-2 py-1 rounded-full text-xs bg-white/20 text-white">
               {{ currentPlan.active ? '已启用' : '已停用' }}
             </span>
@@ -60,9 +60,17 @@
                 <div class="text-lg font-bold text-gray-900 truncate">{{ getAccountName(currentPlan.accountId) }}</div>
               </div>
             </div>
+            <div class="mt-4 space-y-2">
+              <h3 class="text-sm font-medium">薪资生效记录</h3>
+              <button v-for="version in currentPlan.salaryVersions || []" :key="version.startDate" type="button" class="w-full text-left rounded-lg bg-gray-50 p-3 text-sm" @click="editVersion(version)">
+                {{version.startDate.slice(0, 7)}} 起 · ¥{{version.preTaxMonthly.toLocaleString()}} / 月
+                <span class="block text-xs text-gray-500 mt-1">{{version.baseMode === 'policy' ? '按各月政策估算基数' : '使用实际固定基数'}} · {{version.payMonthOffset ? '次月发薪' : '当月发薪'}} · 点击修改此版本</span>
+              </button>
+              <button type="button" class="text-blue-600 text-sm" @click="addRaise">＋ 新增调薪 / 基数调整</button>
+            </div>
             <div class="mt-4 flex gap-3">
               <button
-                @click="handleEditPlan"
+                @click="handleEditPlan()"
                 class="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
               >
                 编辑方案
@@ -87,6 +95,7 @@
           <p class="text-sm text-gray-400 mt-1">在下方填写信息后保存</p>
         </div>
 
+        <div v-if="salaryPreview?.items.some(item => item.warning)" class="p-4 bg-amber-50 text-amber-800 text-sm rounded-lg" role="status">部分月份缺少已核验政策，暂按该版本保存的基数估算，到手和累计个税仅供参考。</div>
         <!-- Salary Configuration Form -->
         <section class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-3">
@@ -145,10 +154,7 @@
                     </svg>
                   </div>
                 </div>
-                <label class="block text-sm text-gray-700 mt-3">基数适用日期
-                  <input v-model="ruleDate" type="date" class="w-full px-3 py-2 border border-gray-200 rounded-lg mt-1" @change="loadRegionRule(form.cityCode)" />
-                </label>
-                <p class="text-xs text-gray-500 mt-1">按所选日期查官方基数；方案起始日期另行设置。当前已核验北京、上海。</p>
+                <p class="text-xs text-gray-500 mt-3">下方展示 {{ruleDate}} 的政策；日历按工资所属月份自动选择政策版本。</p>
                 <p v-if="ruleError" class="text-xs text-red-600 mt-2" role="alert">{{ruleError}} <button type="button" class="underline" @click="loadRegionRule(form.cityCode)">重试</button></p>
               </div>
             </div>
@@ -333,7 +339,7 @@
                     </div>
                     
                     <PayrollRuleSource :rule="regionRule" />
-                    <p v-if="currentPlan" class="text-xs text-blue-700 mt-2">保存工资方案后，日历将使用这里的基数重新预估。</p>
+                    <p v-if="currentPlan" class="text-xs text-blue-700 mt-2">每次保存保留其他生效月份；相同生效月份会更新该版本。</p>
                     <!-- 实际使用的基数 -->
                     <div v-if="form.preTaxMonthly > 0" class="mt-3 pt-3 border-t border-blue-200">
                       <div class="text-blue-700 font-medium mb-1">按当前月薪估算的缴费基数</div>
@@ -553,14 +559,29 @@
             <!-- 发薪设置 -->
             <div class="border-t border-gray-100 pt-5">
               <h3 class="font-medium text-gray-900 mb-4">发薪设置</h3>
+              <p class="text-xs text-gray-500 mb-3">例如 2026 年 7 月涨薪：新增版本，选择 2026-07，填写新月薪。1–6 月保留原配置，个税在同年内连续累计。</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <label class="text-sm">基数计算方式
+                  <select v-model="baseMode" class="w-full border rounded-lg p-2 mt-1"><option value="policy">按各月政策上下限，以月薪估算</option><option value="fixed">填写实际申报基数（涨薪不自动修改）</option></select>
+                </label>
+                <label class="text-sm">工资到账月份
+                  <select v-model.number="payMonthOffset" :disabled="!!currentPlan" class="w-full border rounded-lg p-2 mt-1"><option :value="0">当月发当月工资</option><option :value="1">次月发上月工资</option></select>
+                </label>
+              </div>
+              <div v-if="baseMode === 'fixed'" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <label class="text-sm">实际社保基数<input v-model.number="fixedSocialBase" type="number" min="0" class="w-full border rounded-lg p-2 mt-1" /></label>
+                <label class="text-sm">实际公积金基数<input v-model.number="fixedHousingBase" type="number" min="0" class="w-full border rounded-lg p-2 mt-1" /></label>
+              </div>
+              <p class="text-xs text-gray-500 mb-3">实际基数通常依据申报工资确定，不一定随月薪上涨。按工资单填写固定基数可保留这一差异；缴费比例沿用你的配置。已有历史时，发薪月份方式保持一致。</p>
+
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">
-                    开始日期 <span class="text-red-500">*</span>
+                    生效月份 <span class="text-red-500">*</span>
                   </label>
                   <input
-                    v-model="form.startDate"
-                    type="date"
+                    v-model="effectiveMonth"
+                    type="month"
                     class="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
                 </div>
@@ -651,26 +672,6 @@
               </div>
             </div>
 
-            <!-- 年度汇总 - 第二行：公积金详情 -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div class="p-4 bg-purple-50 rounded-lg text-center">
-                <div class="text-sm text-gray-500 mb-1">个人公积金/月</div>
-                <div class="text-lg font-bold text-purple-600">¥{{ monthlyHousingFundPerson.toLocaleString() }}</div>
-              </div>
-              <div class="p-4 bg-purple-50 rounded-lg text-center">
-                <div class="text-sm text-gray-500 mb-1">公司公积金/月</div>
-                <div class="text-lg font-bold text-purple-600">¥{{ monthlyHousingFundCompany.toLocaleString() }}</div>
-              </div>
-              <div class="p-4 bg-purple-100 rounded-lg text-center">
-                <div class="text-sm text-gray-500 mb-1">公积金总计/月</div>
-                <div class="text-lg font-bold text-purple-700">¥{{ monthlyHousingFundTotal.toLocaleString() }}</div>
-              </div>
-              <div class="p-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg text-center">
-                <div class="text-sm text-purple-100 mb-1">全年公积金总计</div>
-                <div class="text-xl font-bold text-white">¥{{ yearlyHousingFundTotal.toLocaleString() }}</div>
-              </div>
-            </div>
-
             <!-- 月度明细表格 -->
             <div class="overflow-x-auto">
               <table class="min-w-full text-sm">
@@ -682,22 +683,22 @@
                     <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">公积金(个人)</th>
                     <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">个税</th>
                     <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase">税后到手</th>
-                    <th class="px-3 py-3 text-right text-xs font-medium text-purple-600 uppercase bg-purple-50">公积金累计</th>
+                    <th class="px-3 py-3 text-right text-xs font-medium text-purple-600 uppercase bg-purple-50">个人公积金累计</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                   <tr v-for="(item, index) in salaryPreview.items" :key="item.date" class="hover:bg-gray-50">
                     <td class="px-3 py-3 whitespace-nowrap font-medium text-gray-900">
-                      {{ item.date }}
+                      {{ item.date }}<small class="block text-gray-500">{{item.salaryMonth}} 工资</small><small v-if="item.warning" class="block text-amber-700">政策待核验</small>
                     </td>
                     <td class="px-3 py-3 whitespace-nowrap text-right text-gray-700">
                       ¥{{ item.preTax.toLocaleString() }}
                     </td>
                     <td class="px-3 py-3 whitespace-nowrap text-right text-orange-600">
-                      -¥{{ monthlySocialSecurityOnly.toLocaleString() }}
+                      -¥{{ roundMoney(item.socialSecurity - (item.contributions?.housing || 0)).toLocaleString() }}
                     </td>
                     <td class="px-3 py-3 whitespace-nowrap text-right text-purple-600">
-                      -¥{{ monthlyHousingFundPerson.toLocaleString() }}
+                      -¥{{ (item.contributions?.housing || 0).toLocaleString() }}
                     </td>
                     <td class="px-3 py-3 whitespace-nowrap text-right text-red-600">
                       -¥{{ item.taxAmount.toLocaleString() }}
@@ -706,7 +707,7 @@
                       ¥{{ item.postTax.toLocaleString() }}
                     </td>
                     <td class="px-3 py-3 whitespace-nowrap text-right font-bold text-purple-700 bg-purple-50">
-                      ¥{{ ((index + 1) * monthlyHousingFundTotal).toLocaleString() }}
+                      ¥{{ roundMoney(salaryPreview.items.slice(0,index+1).reduce((sum,row)=>sum+(row.contributions?.housing || 0),0)).toLocaleString() }}
                     </td>
                   </tr>
                 </tbody>
@@ -714,8 +715,8 @@
                   <tr class="font-bold">
                     <td class="px-3 py-4 text-gray-900">年度合计</td>
                     <td class="px-3 py-4 text-right text-gray-900">¥{{ salaryPreview.totalPreTax.toLocaleString() }}</td>
-                    <td class="px-3 py-4 text-right text-orange-600">-¥{{ (monthlySocialSecurityOnly * salaryPreview.items.length).toLocaleString() }}</td>
-                    <td class="px-3 py-4 text-right text-purple-600">-¥{{ (monthlyHousingFundPerson * salaryPreview.items.length).toLocaleString() }}</td>
+                    <td class="px-3 py-4 text-right text-orange-600">-¥{{ roundMoney(totalSocialSecurityYear - yearlyHousingFundTotal).toLocaleString() }}</td>
+                    <td class="px-3 py-4 text-right text-purple-600">-¥{{ yearlyHousingFundTotal.toLocaleString() }}</td>
                     <td class="px-3 py-4 text-right text-red-600">-¥{{ salaryPreview.totalTax.toLocaleString() }}</td>
                     <td class="px-3 py-4 text-right text-emerald-600">¥{{ salaryPreview.totalPostTax.toLocaleString() }}</td>
                     <td class="px-3 py-4 text-right text-purple-700 bg-purple-100">¥{{ yearlyHousingFundTotal.toLocaleString() }}</td>
@@ -724,17 +725,14 @@
               </table>
             </div>
 
-            <!-- 公积金说明 -->
+            <!-- 估算说明 -->
             <div class="p-4 bg-purple-50 border border-purple-100 rounded-lg">
               <div class="flex items-start gap-3">
                 <span class="text-2xl">🏠</span>
                 <div>
                   <h4 class="font-medium text-purple-800 mb-1">公积金账户说明</h4>
                   <p class="text-sm text-purple-700">
-                    公积金由个人和公司各缴纳 <span class="font-bold">{{ (form.hfRate * 100).toFixed(0) }}%</span>，
-                    每月入账 <span class="font-bold">¥{{ monthlyHousingFundTotal.toLocaleString() }}</span>，
-                    全年累计 <span class="font-bold">¥{{ yearlyHousingFundTotal.toLocaleString() }}</span>。
-                    可用于购房、租房提取或公积金贷款。
+                    表格累计仅统计个人缴纳的公积金，逐月使用对应薪资版本和基数。公司缴纳部分以工资单或公积金记录为准。
                   </p>
                 </div>
               </div>
@@ -757,7 +755,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import {localDate} from '@/api/workspace'
 import PayrollRuleSource from '@/components/PayrollRuleSource.vue'
 import { useRouter } from 'vue-router'
@@ -772,7 +770,6 @@ import type {
 } from '@/types'
 import { getSalaryPlan, upsertSalaryPlan, deleteSalaryPlan } from '@/api/meSalary'
 import { getAccounts } from '@/api/accounts'
-import { previewSalaryToYearEnd } from '@/api/recurringIncome'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import { getPayrollRegions, getPayrollRegionRule } from '@/api/payroll'
 
@@ -791,7 +788,12 @@ const salaryPreview = ref<SalaryPreviewResponse | null>(null)
 // 地区列表和规则
 const regions = ref<PayrollRegion[]>([])
 const regionRule = ref<PayrollRegionRule | null>(null)
-const ruleDate = ref(localDate())
+const ruleDate = computed(() => form.value.startDate || localDate())
+const baseMode = ref<'fixed' | 'policy'>('policy')
+const payMonthOffset = ref(0)
+const fixedSocialBase = ref(0)
+const fixedHousingBase = ref(0)
+const effectiveMonth = computed({get: () => form.value.startDate.slice(0,7), set: (month: string) => { form.value.startDate = month ? `${month}-01` : '' }})
 const ruleError = ref('')
 let ruleSequence = 0
 
@@ -884,6 +886,7 @@ const currentCityLimit = computed(() => regionRule.value ? {
 
 // 计算实际社保缴费基数（考虑上下限）
 const actualSsBase = computed(() => {
+  if (baseMode.value === 'fixed') return fixedSocialBase.value
   const salary = form.value.preTaxMonthly
   const limit = currentCityLimit.value
   if (!limit) return 0
@@ -894,6 +897,7 @@ const actualSsBase = computed(() => {
 
 // 计算实际公积金缴费基数（考虑上下限）
 const actualHfBase = computed(() => {
+  if (baseMode.value === 'fixed') return fixedHousingBase.value
   const salary = form.value.preTaxMonthly
   const limit = currentCityLimit.value
   if (!limit) return 0
@@ -947,7 +951,8 @@ const roundMoney = (value: number) => Math.round(value * 100) / 100
 
 const isFormValid = computed(() => {
   return (
-    !!regionRule.value && !loadingRegionRule.value &&
+    (baseMode.value === 'fixed' || (!!regionRule.value && !loadingRegionRule.value)) &&
+    fixedSocialBase.value >= 0 && fixedHousingBase.value >= 0 &&
     form.value.preTaxMonthly > 0 &&
     form.value.cityCode !== '' &&
     form.value.startDate !== '' &&
@@ -957,35 +962,10 @@ const isFormValid = computed(() => {
   )
 })
 
-// 公积金计算（基于限制后的基数）
-const monthlyHousingFundPerson = computed(() => {
-  return roundMoney(actualHfBase.value * form.value.hfRate)
-})
-
-const monthlyHousingFundCompany = computed(() => {
-  return roundMoney(actualHfBase.value * form.value.hfRate)
-})
-
-const monthlyHousingFundTotal = computed(() => {
-  return monthlyHousingFundPerson.value + monthlyHousingFundCompany.value
-})
-
-const yearlyHousingFundTotal = computed(() => {
-  const months = salaryPreview.value?.items?.length || 12
-  return monthlyHousingFundTotal.value * months
-})
-
-// 社保计算（基于限制后的基数，不含公积金）
-const monthlySocialSecurityOnly = computed(() => {
-  const c = contributionConfig.value
-  return roundMoney(c.socialBase*c.pensionRate) + roundMoney(c.socialBase*c.medicalRate) + roundMoney(c.socialBase*c.unemploymentRate)
-})
+const yearlyHousingFundTotal = computed(() => roundMoney(salaryPreview.value?.items.reduce((sum,item)=>sum+(item.contributions?.housing || 0),0) || 0))
 
 // 全年社保+公积金总额（个人部分）
-const totalSocialSecurityYear = computed(() => {
-  const months = salaryPreview.value?.items?.length || 12
-  return (monthlySocialSecurityOnly.value + monthlyHousingFundPerson.value) * months
-})
+const totalSocialSecurityYear = computed(() => roundMoney(salaryPreview.value?.items.reduce((sum,item)=>sum+item.socialSecurity,0) || 0))
 
 function getCityName(cityCode: string): string {
   // 优先从 API 获取的地区列表中查找
@@ -1061,18 +1041,8 @@ async function handlePreviewOnly() {
   errorMessage.value = null
 
   try {
-    const preview = await previewSalaryToYearEnd({
-      preTaxAmount: form.value.preTaxMonthly,
-      cityCode: form.value.cityCode,
-      startDate: form.value.startDate,
-      payDay: form.value.payDay,
-      frequency: 'monthly',
-      currency: form.value.currency,
-      socialRate: currentSocialRate.value,
-      contributions: contributionConfig.value,
-      extraDeductions: totalSpecialDeduction.value,
-    })
-    salaryPreview.value = preview
+    const result = await upsertSalaryPlan(salaryPayload(), true)
+    salaryPreview.value = result.preview
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '预览失败'
   } finally {
@@ -1080,13 +1050,10 @@ async function handlePreviewOnly() {
   }
 }
 
-async function handleSaveAndPreview() {
-  if (!isFormValid.value) return
-  saving.value = true
-  errorMessage.value = null
-
-  try {
-    const payload: SalaryPlanConfig = {
+function salaryPayload(): SalaryPlanConfig {
+  return {
+      baseMode: baseMode.value,
+      payMonthOffset: payMonthOffset.value,
       preTaxMonthly: form.value.preTaxMonthly,
       cityCode: form.value.cityCode,
       startDate: form.value.startDate,
@@ -1097,6 +1064,16 @@ async function handleSaveAndPreview() {
       accountId: form.value.accountId,
       currency: form.value.currency,
     }
+
+}
+
+async function handleSaveAndPreview() {
+  if (!isFormValid.value) return
+  saving.value = true
+  errorMessage.value = null
+
+  try {
+    const payload = salaryPayload()
 
     const result = await upsertSalaryPlan(payload)
     currentPlan.value = result.plan
@@ -1110,46 +1087,44 @@ async function handleSaveAndPreview() {
   }
 }
 
-async function handleEditPlan() {
-  if (!currentPlan.value) return
-
-  form.value = {
-    preTaxMonthly: currentPlan.value.salaryPreTaxMonthly || 0,
-    cityCode: currentPlan.value.cityCode || 'beijing',
-    startDate: currentPlan.value.salaryStartDate || '',
-    payDay: currentPlan.value.salaryPayDay || currentPlan.value.dayOfMonth || 10,
-    accountId: currentPlan.value.accountId,
-    currency: currentPlan.value.currency,
-    hfRate: 0.12
+async function editVersion(v: SalaryPlanConfig) {
+  form.value = {preTaxMonthly:v.preTaxMonthly,cityCode:v.cityCode,startDate:v.startDate,payDay:v.payDay,accountId:v.accountId,currency:v.currency,hfRate:v.contributions?.housingRate ?? 0.12}
+  baseMode.value = v.baseMode || 'fixed'
+  payMonthOffset.value = v.payMonthOffset || 0
+  fixedSocialBase.value = v.contributions?.socialBase ?? v.preTaxMonthly
+  fixedHousingBase.value = v.contributions?.housingBase ?? v.preTaxMonthly
+  for (const key of Object.keys(specialDeductions) as (keyof typeof specialDeductions)[]) specialDeductions[key] = 0
+  specialDeductionEnabled.value = v.extraDeductions > 0
+  specialDeductions.elderlyCare = v.extraDeductions
+  customRatesEnabled.value = !!v.contributions
+  if (v.contributions) {
+    ssRates.pensionPerson=v.contributions.pensionRate
+    ssRates.medicalPerson=v.contributions.medicalRate
+    ssRates.unemploymentPerson=v.contributions.unemploymentRate
   }
-
-  // 加载对应城市的规则
-  await loadRegionRule(form.value.cityCode)
-
-  // 恢复专项附加扣除
-  const savedDeductions = currentPlan.value.salaryExtraDeductions || 0
-  if (savedDeductions > 0) {
-    specialDeductionEnabled.value = true
-    // 简化处理：将总额放入赡养老人项（实际应该分别保存各项）
-    specialDeductions.elderlyCare = savedDeductions
-  } else {
-    specialDeductionEnabled.value = false
-  }
-
-  const contributions = currentPlan.value.salaryContributions
-  customRatesEnabled.value = !!contributions
-  if (contributions) {
-    ssRates.pensionPerson = contributions.pensionRate
-    ssRates.medicalPerson = contributions.medicalRate
-    ssRates.unemploymentPerson = contributions.unemploymentRate
-    form.value.hfRate = contributions.housingRate
-  }
+  salaryPreview.value=null
+  await loadRegionRule(v.cityCode)
 }
+async function handleEditPlan() {
+  const p=currentPlan.value
+  if (!p) return
+  const version=p.salaryVersions?.find(v=>v.startDate===p.salaryStartDate) || p.salaryVersions?.slice(-1)[0]
+  await editVersion(version || {preTaxMonthly:p.salaryPreTaxMonthly || 0,cityCode:p.cityCode || 'beijing',startDate:p.salaryStartDate || '',payDay:p.salaryPayDay || 10,accountId:p.accountId,currency:p.currency,socialRate:p.salarySocialRate || 0,extraDeductions:p.salaryExtraDeductions || 0,contributions:p.salaryContributions,baseMode:'fixed'})
+}
+async function addRaise() {
+  const last=currentPlan.value?.salaryVersions?.slice(-1)[0]
+  if (last) await editVersion(last)
+  const next = new Date((last?.startDate.slice(0,7) || localDate().slice(0,7)) + '-01T12:00:00')
+  next.setMonth(next.getMonth()+1)
+  form.value.startDate = `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}-01`
+  salaryPreview.value=null
+}
+watch(() => form.value.startDate, () => { salaryPreview.value=null; void loadRegionRule(form.value.cityCode) })
 
 async function handleDeletePlan() {
   if (!currentPlan.value) return
 
-  if (!confirm('确定要删除当前工资方案吗？')) return
+  if (!confirm('确定要删除最近保存的工资版本吗？')) return
 
   try {
     await deleteSalaryPlan(currentPlan.value.id)
@@ -1181,8 +1156,7 @@ async function loadData() {
       await handleEditPlan()
     } else {
       // Initialize form with default values
-      const today = new Date()
-      form.value.startDate = today.toISOString().split('T')[0]
+      form.value.startDate = localDate().slice(0,7) + '-01'
       if (accounts.value.length > 0) {
         form.value.accountId = accounts.value[0].id
       }

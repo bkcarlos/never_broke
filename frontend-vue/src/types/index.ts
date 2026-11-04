@@ -370,6 +370,7 @@ export interface RecurringIncomePlan {
   createdAt: string
 
   // 薪资专用字段
+  salaryVersions?: SalaryPlanConfig[]
   salaryContributions?: SalaryContributions
   salaryPreTaxMonthly?: number
   salarySocialRate?: number
@@ -433,6 +434,9 @@ export interface SalaryPreviewRequest {
 }
 
 export interface SalaryPreviewItem {
+  salaryMonth?: string
+  policyFrom?: string
+  warning?: string
   contributions?: SalaryContributionAmounts
   date: string
   preTax: number
@@ -549,6 +553,8 @@ export interface CitySocialRateDetail {
 // ========== 薪资方案配置相关类型 ==========
 
 export interface SalaryPlanConfig {
+  baseMode?: 'fixed' | 'policy'
+  payMonthOffset?: number
   contributions?: SalaryContributions
   preTaxMonthly: number
   cityCode: string

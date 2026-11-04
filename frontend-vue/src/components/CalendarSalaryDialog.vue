@@ -33,7 +33,9 @@
             </dl>
             <p class="salary-note">基本减除费用和专项附加等扣除用于计算个税，不会再次从到手薪资中扣除。</p>
           </details>
-          <p class="salary-note">按当前有效薪资方案预估，自方案起始日累计，同一年内连续计算，跨年重新累计；不含其他任职收入、奖金或实际已缴税调整。此预估不代表实际到账，以工资单为准。</p>
+          <p v-if="salary.salaryMonth" class="salary-note">工资所属月份：{{salary.salaryMonth}}<span v-if="salary.policyFrom"> · 使用 {{salary.policyFrom}} 起生效的基数政策</span></p>
+          <p v-if="salary.warning" class="salary-note legacy-note">{{salary.warning}}</p>
+          <p class="salary-note">按工资所属月份的薪资版本预估，自方案起始日累计，同一年内连续计算，跨年重新累计；不含其他任职收入、奖金或实际已缴税调整。此预估不代表实际到账，以工资单为准。</p>
         </div>
         <footer class="salary-footer"><RouterLink to="/me/salary" class="button" @click="$emit('close')">管理薪资配置</RouterLink><button class="button primary" @click="$emit('close')">知道了</button></footer>
       </section>

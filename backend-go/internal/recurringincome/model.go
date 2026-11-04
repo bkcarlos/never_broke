@@ -40,12 +40,13 @@ type RecurringIncomePlan struct {
 	CreatedAt     string                   `json:"createdAt"`
 
 	// 薪资专用配置（可选）
-	SalaryContributions   *SalaryContributions `json:"salaryContributions,omitempty"`
-	SalaryPreTaxMonthly   float64              `json:"salaryPreTaxMonthly,omitempty"`
-	SalarySocialRate      float64              `json:"salarySocialRate,omitempty"`
-	SalaryExtraDeductions float64              `json:"salaryExtraDeductions,omitempty"`
-	SalaryPayDay          int                  `json:"salaryPayDay,omitempty"`
-	SalaryStartDate       string               `json:"salaryStartDate,omitempty"` // YYYY-MM-DD
+	SalaryVersions        []UpsertSalaryPlanRequest `json:"salaryVersions,omitempty"`
+	SalaryContributions   *SalaryContributions      `json:"salaryContributions,omitempty"`
+	SalaryPreTaxMonthly   float64                   `json:"salaryPreTaxMonthly,omitempty"`
+	SalarySocialRate      float64                   `json:"salarySocialRate,omitempty"`
+	SalaryExtraDeductions float64                   `json:"salaryExtraDeductions,omitempty"`
+	SalaryPayDay          int                       `json:"salaryPayDay,omitempty"`
+	SalaryStartDate       string                    `json:"salaryStartDate,omitempty"` // YYYY-MM-DD
 }
 
 // UpsertRecurringIncomeRequest 新建/更新请求
@@ -99,6 +100,10 @@ type SalaryPreviewRequest struct {
 
 // SalaryPreviewItem 单次发薪预览
 type SalaryPreviewItem struct {
+	SalaryMonth string `json:"salaryMonth,omitempty"`
+	PolicyFrom  string `json:"policyFrom,omitempty"`
+	Warning     string `json:"warning,omitempty"`
+
 	Contributions    *SalaryContributionAmounts `json:"contributions,omitempty"`
 	Date             string                     `json:"date"`             // 发薪日
 	PreTax           float64                    `json:"preTax"`           // 税前
@@ -133,6 +138,9 @@ type ProjectedTransaction struct {
 
 // UpsertSalaryPlanRequest 保存工资方案请求
 type UpsertSalaryPlanRequest struct {
+	BaseMode       string `json:"baseMode,omitempty"`       // fixed or policy
+	PayMonthOffset int    `json:"payMonthOffset,omitempty"` // 0: same month, 1: next month
+
 	Contributions   *SalaryContributions `json:"contributions,omitempty"`
 	PreTaxMonthly   float64              `json:"preTaxMonthly"`
 	CityCode        string               `json:"cityCode"`

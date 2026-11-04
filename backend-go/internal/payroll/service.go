@@ -26,7 +26,10 @@ func (s *Service) GetRegionRule(regionCode string, year int) (*RegionRuleRespons
 }
 
 func (s *Service) GetRegionRuleAt(regionCode, date string) (*RegionRuleResponse, error) {
-	return findOfficialRule(regionCode, date)
+	if s.repo == nil || s.repo.db == nil {
+		return findOfficialRule(regionCode, date)
+	}
+	return s.repo.RuleAt(regionCode, date)
 }
 
 // CalculateSalary 计算薪资

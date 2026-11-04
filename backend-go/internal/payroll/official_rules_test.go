@@ -31,7 +31,7 @@ func TestOfficialBaseSelectionAndNoSilentFallback(t *testing.T) {
 		_, err := service.GetRegionRuleAt(code, "2026-11-04")
 		require.ErrorIs(t, err, ErrRuleNotFound)
 	}
-	for _, date := range []string{"2027-07-01", "2025-08-31"} {
+	for _, date := range []string{"2027-07-01", "2024-06-30"} {
 		_, err := service.GetRegionRuleAt("CN-BJ", date)
 		require.ErrorIs(t, err, ErrRuleNotFound)
 	}

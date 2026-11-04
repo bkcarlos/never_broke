@@ -6,6 +6,7 @@ import (
 	"neverbroke/internal/http/response"
 	"neverbroke/internal/ledger"
 	"neverbroke/internal/models"
+	"neverbroke/internal/payroll"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -98,6 +99,7 @@ func toBusinessModel(p *models.RecurringIncomePlan) RecurringIncomePlan {
 		plan.SalaryStartDate = p.SalaryStartDate.Format("2006-01-02")
 	}
 
+	plan.SalaryVersions, _ = SalaryVersions(*p)
 	if p.SalaryContributions != nil {
 		_ = json.Unmarshal([]byte(*p.SalaryContributions), &plan.SalaryContributions)
 	}
@@ -314,6 +316,32 @@ func (h *Handler) RealizePlanHandler(c *gin.Context) {
 		return
 	}
 
+	if dbPlan.Type == "salary" && dbPlan.SalaryPreTaxMonthly != nil {
+		versions, e := SalaryVersions(dbPlan)
+		if e != nil {
+			response.InternalError(c, "薪资历史读取失败")
+			return
+		}
+		items, e := PreviewSalaryHistory(versions, occurredAt.Year(), payroll.NewService(payroll.NewRepository(h.db)).GetRegionRuleAt)
+		if e != nil {
+			response.BadRequest(c, "薪资预估失败")
+			return
+		}
+		matched := false
+		for _, item := range items {
+			if item.Date == realizeDate {
+				dbPlan.Amount = item.PostTax
+				dbPlan.AccountID = item.Config.AccountID
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			response.BadRequest(c, "所选日期不是此工资方案的发薪日")
+			return
+		}
+	}
+
 	// 映射类型到分类
 	var categoryKey string
 	switch RecurringIncomeType(dbPlan.Type) {
@@ -463,6 +491,28 @@ func (h *Handler) ProjectedTransactionsHandler(c *gin.Context) {
 
 	for _, dbPlan := range dbPlans {
 		plan := toBusinessModel(&dbPlan)
+		if dbPlan.Type == "salary" && dbPlan.SalaryPreTaxMonthly != nil {
+			versions, err := SalaryVersions(dbPlan)
+			if err != nil {
+				response.InternalError(c, "薪资历史读取失败")
+				return
+			}
+			service := payroll.NewService(payroll.NewRepository(h.db))
+			for year := fromDate.Year(); year <= toDate.Year(); year++ {
+				items, err := PreviewSalaryHistory(versions, year, service.GetRegionRuleAt)
+				if err != nil {
+					response.BadRequest(c, "薪资预估失败")
+					return
+				}
+				for _, item := range items {
+					if item.Date < from || item.Date > to {
+						continue
+					}
+					projected = append(projected, ProjectedTransaction{Date: item.Date, AccountID: item.Config.AccountID, Amount: item.PostTax, Type: "income", Label: plan.Label, PlanID: plan.ID, IsSalary: true})
+				}
+			}
+			continue
+		}
 		dates := generateIncomeDates(plan, fromDate, toDate)
 		isSalary := plan.Type == RecurringIncomeTypeSalary
 
@@ -525,6 +575,9 @@ func (h *Handler) GetSalaryPlanHandler(c *gin.Context) {
 	if err == nil {
 		plan := toBusinessModel(&dbPlan)
 		salaryPlan = &plan
+	} else if err != gorm.ErrRecordNotFound {
+		response.InternalError(c, "读取薪资方案失败")
+		return
 	}
 
 	logger.Info("Get salary plan",
@@ -576,37 +629,30 @@ func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
 		return
 	}
 
-	// 调用薪资预览
-	socialRate := req.SocialRate
-	previewReq := SalaryPreviewRequest{
-		PreTaxAmount:    req.PreTaxMonthly,
-		CityCode:        req.CityCode,
-		StartDate:       req.StartDate,
-		PayDay:          req.PayDay,
-		Frequency:       FrequencyMonthly,
-		Currency:        req.Currency,
-		SocialRate:      &socialRate,
-		ExtraDeductions: req.ExtraDeductions,
-		Contributions:   req.Contributions,
+	if req.Currency == "" {
+		req.Currency = "CNY"
 	}
-
-	preview, err := PreviewSalaryToYearEnd(previewReq)
+	startDate, err := time.Parse(time.DateOnly, req.StartDate)
 	if err != nil {
-		logger.Warn("Preview salary failed", zap.Error(err))
-		response.BadRequest(c, "preview salary failed")
+		response.BadRequest(c, "生效日期无效")
 		return
 	}
-
-	if len(preview.Items) == 0 {
-		response.BadRequest(c, "no preview items generated")
+	if req.BaseMode == "policy" && startDate.Day() != 1 {
+		response.BadRequest(c, "自动政策方案请从月份首日生效")
 		return
 	}
-
+	// Validate all values before attempting a transactional save.
+	if _, err = MergeSalaryVersion(nil, req); err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	preview, err := PreviewSalaryToYearEnd(SalaryPreviewRequest{PreTaxAmount: req.PreTaxMonthly, CityCode: req.CityCode, StartDate: req.StartDate, PayDay: req.PayDay, Frequency: FrequencyMonthly, Currency: req.Currency, SocialRate: &req.SocialRate, ExtraDeductions: req.ExtraDeductions, Contributions: req.Contributions})
+	if err != nil || len(preview.Items) == 0 {
+		response.BadRequest(c, "无效薪资或缴费配置")
+		return
+	}
 	postTaxAmount := preview.Items[0].PostTax
-
-	// 解析日期
-	nextDueDate, _ := time.Parse("2006-01-02", preview.Items[0].Date)
-	startDate, _ := time.Parse("2006-01-02", req.StartDate)
+	nextDueDate, _ := time.Parse(time.DateOnly, preview.Items[0].Date)
 
 	// 创建新方案
 	dbPlan := &models.RecurringIncomePlan{
@@ -638,17 +684,58 @@ func (h *Handler) UpsertSalaryPlanHandler(c *gin.Context) {
 		dbPlan.CityCode = &req.CityCode
 	}
 
-	// Keep the previous configuration active if saving the new details fails.
-	if err := h.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&models.RecurringIncomePlan{}).
-			Where("user_id = ? AND type = ? AND active = ?", userID.(string), string(RecurringIncomeTypeSalary), true).
-			Update("active", false).Error; err != nil {
+	// Serialize per-user writes so concurrent raises cannot discard each other's history.
+	err = h.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtext(?))", "salary:"+userID.(string)).Error; err != nil {
 			return err
 		}
+		var old models.RecurringIncomePlan
+		var versions []UpsertSalaryPlanRequest
+		found := tx.Where("user_id = ? AND type = ? AND active = ?", userID.(string), "salary", true).Order("created_at DESC").First(&old).Error
+		if found == nil {
+			var e error
+			versions, e = SalaryVersions(old)
+			if e != nil {
+				return e
+			}
+		} else if found != gorm.ErrRecordNotFound {
+			return found
+		}
+		versions, e := MergeSalaryVersion(versions, req)
+		if e != nil {
+			return e
+		}
+		service := payroll.NewService(payroll.NewRepository(tx))
+		previewYear := startDate.AddDate(0, req.PayMonthOffset, 0).Year()
+		items, e := PreviewSalaryHistory(versions, previewYear, service.GetRegionRuleAt)
+		if e != nil {
+			return e
+		}
+		preview = HistoryPreview(items, previewYear)
+		for _, item := range items {
+			if item.Config.StartDate == req.StartDate {
+				dbPlan.Amount = item.PostTax
+				dbPlan.NextDueDate, _ = time.Parse(time.DateOnly, item.Date)
+				break
+			}
+		}
+		raw, e := json.Marshal(versions)
+		if e != nil {
+			return e
+		}
+		value := string(raw)
+		dbPlan.SalaryVersions = &value
+		if c.Query("preview") == "true" {
+			return nil
+		}
+		if e := tx.Model(&models.RecurringIncomePlan{}).Where("user_id = ? AND type = ? AND active = ?", userID.(string), "salary", true).Update("active", false).Error; e != nil {
+			return e
+		}
 		return tx.Create(dbPlan).Error
-	}); err != nil {
-		logger.Error("Failed to create salary plan", zap.Error(err))
-		response.InternalError(c, "failed to create salary plan")
+	})
+	if err != nil {
+		logger.Warn("Save salary history failed", zap.Error(err))
+		response.BadRequest(c, "保存失败："+err.Error())
 		return
 	}
 

@@ -5,6 +5,7 @@ import (
 	"log"
 	"neverbroke/internal/dbconfig"
 	"neverbroke/internal/models"
+	"neverbroke/internal/payroll"
 	"neverbroke/internal/repository/postgres"
 	"os"
 )
@@ -44,6 +45,9 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	if err := payroll.SeedPolicyHistory(db); err != nil {
+		panic(err)
+	}
 	fmt.Println("✅ All GORM migrations completed successfully!")
 	fmt.Println("\n📋 Migrated tables:")
 	fmt.Println("  - accounts")

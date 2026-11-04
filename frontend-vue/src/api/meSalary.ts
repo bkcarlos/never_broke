@@ -28,9 +28,10 @@ export async function getSalaryPlan(): Promise<GetSalaryPlanResponse> {
 // 保存/更新工资方案
 export async function upsertSalaryPlan(
   payload: SalaryPlanConfig,
+  previewOnly = false,
 ): Promise<UpsertSalaryPlanResponse> {
   try {
-    return await request<UpsertSalaryPlanResponse>('/me/salary-plan', {
+    return await request<UpsertSalaryPlanResponse>(`/me/salary-plan${previewOnly ? '?preview=true' : ''}`,  {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

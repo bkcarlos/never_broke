@@ -24,6 +24,19 @@ type officialRule struct {
 }
 
 var officialRules = []officialRule{
+	{Code: "CN-BJ", Name: "北京", Year: 2025, From: "2025-07-01", Through: "2025-08-31", SSMin: 7162, SSMax: 35811, HFMin: 2420, HFMax: 35811, HFRateMax: .12, Sources: []RuleSource{
+		{"北京市人社局 · 2025年度社保基数", "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/tzxx/202509/t20250919_4205649.html"},
+		{"北京住房公积金管理中心 · 2025年度缴存政策（下限9月调整）", "https://banshi.beijing.gov.cn/zcjd/202509/t20250925_428450.html"},
+		{"北京住房公积金管理中心 · 调整前下限", "https://gjj.beijing.gov.cn/web/zwgk61/2024zcwj/436433461/543368452/index.html"},
+	}},
+	{Code: "CN-BJ", Name: "北京", Year: 2024, From: "2024-07-01", Through: "2025-06-30", SSMin: 6821, SSMax: 35283, HFMin: 2420, HFMax: 35283, HFRateMax: .12, Sources: []RuleSource{
+		{"北京市人社局 · 2024年度社保基数", "https://rsj.beijing.gov.cn/xxgk/2024zcjd/202407/t20240731_3763679.html"},
+		{"北京住房公积金管理中心 · 2024年度缴存政策", "https://gjj.beijing.gov.cn/web/zwgk61/2024zcwj/436433461/543368452/index.html"},
+	}},
+	{Code: "CN-SH", Name: "上海", Year: 2025, From: "2025-07-01", Through: "2026-06-30", SSMin: 7460, SSMax: 37302, HFMin: 2690, HFMax: 37302, HFRateMax: .07, Sources: []RuleSource{
+		{"上海市人社局 · 2025年度社保基数", "https://rsj.sh.gov.cn/tgsgg_17341/20250918/t0035_1435637.html"},
+		{"上海市公积金中心 · 2025年度缴存政策", "https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html"},
+	}},
 	{Code: "CN-BJ", Name: "北京", Year: 2025, From: "2025-09-01", Through: "2026-06-30", SSMin: 7162, SSMax: 35811, HFMin: 2540, HFMax: 35811, HFRateMax: .12, Sources: []RuleSource{
 		{"北京市人社局 · 2025年度社保基数", "https://www.beijing.gov.cn/fuwu/bmfw/sy/jrts/tzxx/202509/t20250919_4205649.html"},
 		{"北京住房公积金管理中心 · 2025年度缴存政策", "https://gjj.beijing.gov.cn/web/zwgk61/2024zcjd/743765478/index.html"},

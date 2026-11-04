@@ -8,6 +8,7 @@ import (
 	"neverbroke/internal/dbconfig"
 	"neverbroke/internal/http/router"
 	"neverbroke/internal/models"
+	"neverbroke/internal/payroll"
 	"neverbroke/internal/repository/postgres"
 	"neverbroke/internal/workspace"
 	"os"
@@ -83,6 +84,9 @@ func setupTestDB() {
 		panic(fmt.Sprintf("Failed to migrate test database: %v", err))
 	}
 
+	if err := payroll.SeedPolicyHistory(testDB); err != nil {
+		panic(err)
+	}
 	// 创建存储和路由
 	testStore = postgres.NewPgStore(testDB)
 	testRouter = router.Setup(testStore, testDB)

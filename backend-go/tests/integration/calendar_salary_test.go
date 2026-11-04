@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"neverbroke/internal/models"
+	"neverbroke/internal/payroll"
 	"neverbroke/internal/recurringincome"
 	"neverbroke/internal/workspace"
 )
@@ -71,7 +72,48 @@ func TestCalendarSalarySavedConfigurationAndIsolation(t *testing.T) {
 	call("GET", path, token, nil, &calendar)
 	require.Len(t, calendar.Salaries, 1)
 	require.Equal(t, 21000.0, calendar.Salaries[0].PreTax)
+	// Adding a July raise retains January-June and cumulative tax across the boundary.
+	config.StartDate = "2026-07-01"
+	config.PreTaxMonthly = 50000
+	config.BaseMode = "policy"
+	call("POST", "/me/salary-plan", token, config, &saved)
+	require.Len(t, saved.Plan.SalaryVersions, 2)
+	call("GET", path, token, nil, &calendar)
+	require.Equal(t, 21000.0, calendar.Salaries[0].PreTax)
+	call("GET", "/workspace/calendar?month=2026-07&day=2026-07-01&currency=CNY&view=spending", token, nil, &calendar)
+	require.Len(t, calendar.Salaries, 1)
+	require.Equal(t, 50000.0, calendar.Salaries[0].PreTax)
+	require.Equal(t, 176000.0, calendar.Salaries[0].CumulativePreTax)
+	require.Equal(t, 36348.0, calendar.Salaries[0].Configuration.SocialBase)
+	// Previewing a future change must not persist it.
+	config.StartDate = "2026-10-01"
+	call("POST", "/me/salary-plan?preview=true", token, config, &saved)
+	call("GET", "/me/salary-plan", token, nil, &fetched)
+	require.Len(t, fetched.Plan.SalaryVersions, 2)
 	var refreshed models.Account
 	require.NoError(t, testDB.First(&refreshed, "id = ?", account.ID).Error)
 	require.Equal(t, 100.0, refreshed.Balance)
+}
+
+func TestPayrollHistoryPersistence(t *testing.T) {
+	require.NoError(t, payroll.SeedPolicyHistory(testDB))
+	var before, after int64
+	require.NoError(t, testDB.Model(&payroll.PolicyHistory{}).Count(&before).Error)
+	require.NoError(t, payroll.SeedPolicyHistory(testDB))
+	require.NoError(t, testDB.Model(&payroll.PolicyHistory{}).Count(&after).Error)
+	require.Equal(t, before, after)
+	service := payroll.NewService(payroll.NewRepository(testDB))
+	for _, tc := range []struct{ date, ss, hf string }{
+		{"2025-06-30", "6821", "2420"}, {"2025-07-01", "7162", "2420"}, {"2025-09-01", "7162", "2540"}, {"2026-07-01", "7270", "2540"},
+	} {
+		rule, err := service.GetRegionRuleAt("CN-BJ", tc.date)
+		require.NoError(t, err)
+		require.Equal(t, tc.ss, rule.SSBaseMin.String())
+		require.Equal(t, tc.hf, rule.HFBaseMin.String())
+	}
+	tx := testDB.Begin()
+	defer tx.Rollback()
+	require.NoError(t, tx.Delete(&payroll.PolicyHistory{}, "region_code = ?", "CN-BJ").Error)
+	_, err := payroll.NewService(payroll.NewRepository(tx)).GetRegionRuleAt("CN-BJ", "2026-07-01")
+	require.ErrorIs(t, err, payroll.ErrRuleNotFound) // Production reads DB, never silently falls back to seeds.
 }
