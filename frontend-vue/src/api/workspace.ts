@@ -38,7 +38,11 @@ export interface CalendarSalary extends SalaryPreviewItem {
   key:string; title:string; accountId:string; currency:string; cityCode:string
   basicDeduction:number; extraDeductions:number; configuration?:SalaryContributions
 }
+export interface CalendarFixedExpense {
+  key:string; settingKey:string; title:string; date:string; cents:number; currency:string; accountId:string; period:string
+}
 export interface CalendarResult {
+  fixedExpenses:CalendarFixedExpense[]
   salaries:CalendarSalary[]
   month:string; day:string; currency:string; nextRepayment:string; days:CalendarDay[]; totals:CalendarMetric
   items:Entry[]; total:number; offset:number; hasMore:boolean; accounts:Account[]; categories:Category[]

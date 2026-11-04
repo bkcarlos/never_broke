@@ -2,15 +2,15 @@
   <div class="work-page calendar-page" :style="{'--calendar-weeks':cells.length/7||6}">
     <header class="page-heading">
       <div>
-        <p class="eyebrow">SPENDING & REPAYMENTS</p>
-        <h1>账本日历</h1>
-        <p class="subtitle">每天花了多少，哪天发薪、需要还款，一眼看清。</p>
+        <p class="eyebrow">INCOME & EXPENSE CALENDAR</p>
+        <h1>收支日历</h1>
+        <p class="subtitle">消费流水、发薪日期、固定支出与还款计划，一眼看清。</p>
       </div>
       <div class="actions">
-        <button class="button repayment-toggle" :class="{enabled:showRepayments}" role="switch" :aria-checked="showRepayments" @click="toggleRepayments"><span class="toggle-track" aria-hidden="true"><span /></span>显示还款项</button>
+        <button class="button repayment-toggle" :class="{enabled:showRepayments}" title="仅控制还款计划，固定支出和薪资仍会显示" role="switch" :aria-checked="showRepayments" @click="toggleRepayments"><span class="toggle-track" aria-hidden="true"><span /></span>显示还款计划</button>
         <button class="button mobile-filter-toggle" :aria-expanded="filtersOpen" aria-controls="calendar-filters" @click="filtersOpen=!filtersOpen">筛选 · {{currency}}{{account?' · 1':''}}</button>
         <RouterLink to="/detail" class="button calendar-secondary">交易账本</RouterLink>
-        <RouterLink to="/plans" class="button calendar-secondary">管理还款</RouterLink>
+        <RouterLink to="/plans" class="button calendar-secondary">管理还款</RouterLink><RouterLink to="/cashflow#fixed-expenses" class="button calendar-secondary">管理固定支出</RouterLink>
       </div>
     </header>
 
@@ -49,6 +49,7 @@
         <div v-for="metric in mobileMetrics" :key="metric.label" :title="money(metric.cents)" :aria-label="metric.label+' '+money(metric.cents)"><span>{{metric.label}}</span><strong :class="metric.tone">{{compactMoney(metric.cents)}}</strong></div>
       </div>
       <div v-if="salaries.length" class="salary-summary" role="status"><span><strong>本月预估到手薪资</strong><small>{{salaries.length}} 次发薪 · 点击日历中的薪资查看扣除明细</small></span><strong>{{money(salaryTotal)}}</strong></div>
+      <div v-if="fixedExpenses.length" class="salary-summary fixed-summary"><span><strong>本月固定支出计划</strong><small>{{fixedExpenses.length}} 次扣款 · 按周期展开，不计入实际消费</small></span><strong>{{money(fixedTotal)}}</strong><RouterLink to="/cashflow#fixed-expenses">管理</RouterLink></div>
       <p v-if="data.totals.unknownRepayments" class="notice" role="status">有 {{data.totals.unknownRepayments}} 项还款金额待确认，上方仅合计已知金额。</p>
 
 
@@ -62,24 +63,26 @@
                 <button class="mobile-day-button" :aria-label="dayLabel(cell.day)" aria-haspopup="dialog" @click="selectDay(cell.day.date)">
                   <span class="mobile-day-date">{{Number(cell.day.date.slice(-2))}}</span>
                   <span class="mobile-day-amount" :class="{refund:!cell.day.count&&cell.day.refundCount}">{{cell.day.count?compactAmount(cell.day.gross):cell.day.refundCount?'+'+compactAmount(cell.day.refund):cell.day.entryCount?'还款':''}}</span>
+                  <span v-if="fixedOn(cell.day.date).length" class="mobile-fixed-amount">固 {{compactAmount(fixedOnTotal(cell.day.date))}}</span>
                   <span v-if="salariesOn(cell.day.date).length" class="mobile-salary-amount">薪 +{{compactAmount(salaryOnTotal(cell.day.date))}}</span>
-                  <span v-if="cell.day.entryCount" class="mobile-day-indicators"><span>{{cell.day.entryCount}}笔</span><i v-if="cell.day.refundCount" class="dot refund-dot"/><i v-if="cell.day.billedCount" class="dot billed-dot"/><i v-if="cell.day.estimatedCount" class="dot estimated-dot"/></span>
+                  <span v-if="dayItemCount(cell.day)" class="mobile-day-indicators"><span>{{dayItemCount(cell.day)}}项</span><i v-if="cell.day.refundCount" class="dot refund-dot"/><i v-if="cell.day.billedCount" class="dot billed-dot"/><i v-if="cell.day.estimatedCount" class="dot estimated-dot"/></span>
                 </button>
-                <button class="day-number" :aria-label="dayLabel(cell.day)" aria-haspopup="dialog" @click="selectDay(cell.day.date)">{{Number(cell.day.date.slice(-2))}}<span v-if="cell.day.date===today" class="today-label">今天</span><span class="day-count">{{cell.day.entryCount?cell.day.entryCount+' 笔':''}}</span></button>
-                <button v-for="salary in salariesOn(cell.day.date)" :key="salary.key" class="calendar-event salary-event" :aria-label="'预估到手薪资 '+money(Math.round(salary.postTax*100))+'，点击查看扣除明细'" :title="salary.title+' · 预估到手 '+money(Math.round(salary.postTax*100))" aria-haspopup="dialog" @click="openSalary(salary)"><span class="event-kind">预估到手</span><span class="event-title">{{salary.title}}</span><strong class="event-amount">+{{money(Math.round(salary.postTax*100))}}</strong></button>
-                <button v-for="event in dayPreview(cell.day)" :key="event.key" class="calendar-event" :class="eventTone(event)" :aria-label="eventLabel(event)" :title="eventLabel(event)" aria-haspopup="dialog" @click="openRecord(event.key)">
-                  <span class="event-kind">{{event.kind==='schedule'&&event.status!=='billed'?'预计':eventKind(event)}}</span><span class="event-title">{{calendarTitle(event.title,event.kind)}}</span><strong class="event-amount">{{event.kind==='refund'?'+':''}}{{amount(event.cents,currency,settings.showAmount)}}</strong>
-                </button>
-                <button v-if="cell.day.entryCount>dayPreview(cell.day).length" class="day-more" :aria-label="'还有 '+(cell.day.entryCount-dayPreview(cell.day).length)+' 笔，点击查看'" aria-haspopup="dialog" @click="selectDay(cell.day.date)">还有 {{cell.day.entryCount-dayPreview(cell.day).length}} 笔<span class="day-more-label"> · 点击查看</span></button>
-                <span v-if="!cell.day.entryCount&&!salariesOn(cell.day.date).length" class="day-empty">—</span>
+                <button class="day-number" :aria-label="dayLabel(cell.day)" aria-haspopup="dialog" @click="selectDay(cell.day.date)">{{Number(cell.day.date.slice(-2))}}<span v-if="cell.day.date===today" class="today-label">今天</span><span class="day-count">{{dayItemCount(cell.day)?dayItemCount(cell.day)+' 项':''}}</span></button>
+                <template v-for="item in dayPreview(cell.day)" :key="item.key">
+                  <button v-if="item.salary" class="calendar-event salary-event" :aria-label="'预估到手薪资 '+money(Math.round(item.salary.postTax*100))+'，点击查看扣除明细'" :title="item.salary.title+' · 预估到手 '+money(Math.round(item.salary.postTax*100))" aria-haspopup="dialog" @click="openSalary(item.salary)"><span class="event-kind">预估到手</span><span class="event-title">{{item.salary.title}}</span><strong class="event-amount">+{{money(Math.round(item.salary.postTax*100))}}</strong></button>
+                  <button v-else-if="item.fixed" class="calendar-event fixed-event" :aria-label="'固定支出计划 '+item.fixed.title+' '+money(item.fixed.cents)" :title="'固定支出计划 · '+item.fixed.title+' '+money(item.fixed.cents)" aria-haspopup="dialog" @click="selectDay(cell.day.date)"><span class="event-kind">固定</span><span class="event-title">{{item.fixed.title}}</span><strong class="event-amount">{{money(item.fixed.cents)}}</strong></button>
+                  <button v-else-if="item.event" class="calendar-event" :class="eventTone(item.event)" :aria-label="eventLabel(item.event)" :title="eventLabel(item.event)" aria-haspopup="dialog" @click="openRecord(item.event.key)"><span class="event-kind">{{item.event.kind==='schedule'&&item.event.status!=='billed'?'预计':eventKind(item.event)}}</span><span class="event-title">{{calendarTitle(item.event.title,item.event.kind)}}</span><strong class="event-amount">{{item.event.kind==='refund'?'+':''}}{{amount(item.event.cents,currency,settings.showAmount)}}</strong></button>
+                </template>
+                <button v-if="dayItemCount(cell.day)>dayPreview(cell.day).length" class="day-more" :aria-label="'还有 '+(dayItemCount(cell.day)-dayPreview(cell.day).length)+' 项，点击查看'" aria-haspopup="dialog" @click="selectDay(cell.day.date)">还有 {{dayItemCount(cell.day)-dayPreview(cell.day).length}} 项<span class="day-more-label"> · 点击查看</span></button>
+                <span v-if="!dayItemCount(cell.day)" class="day-empty">—</span>
               </section>
               <div v-else class="calendar-day outside" aria-hidden="true" />
             </template>
           </div>
         </div>
-        <div class="calendar-legend"><span v-if="salaries.length" class="salary-tone">● 预估薪资</span><span class="spending">● 消费</span><span class="refund">● 退款</span><span v-if="showRepayments" class="billed">● 已出账应还</span><span v-if="showRepayments" class="estimated">● 预计应还</span><span>{{currency}} · 点日期看明细</span></div>
+        <div class="calendar-legend"><span v-if="salaries.length" class="salary-tone">● 预估薪资</span><span v-if="fixedExpenses.length" class="fixed-tone">● 固定支出计划</span><span class="spending">● 消费</span><span class="refund">● 退款</span><span v-if="showRepayments" class="billed">● 已出账应还</span><span v-if="showRepayments" class="estimated">● 预计应还</span><span>{{currency}} · 点日期看明细</span></div>
       </section>
-      <p class="scope-note">薪资按发薪日展示预估到手金额，不计入实际收入或消费；历史月份也按当前有效方案估算。还款按到期日展示，不重复计入消费。已还、已取消、已替代的计划不计入应还；无记录不代表没有消费。日期格直接展示商户、事项与金额；点日期或“更多”弹窗查看全部记录。</p>
+      <p class="scope-note">固定支出按当前启用配置逐次展示计划金额，不代表已经扣款，也不计入实际消费；停用后不再展示计划，实际流水保留。薪资按发薪日展示预估到手金额，不计入实际收入或消费；历史月份也按当前有效方案估算。还款按到期日展示，不重复计入消费。已还、已取消、已替代的计划不计入应还；无记录不代表没有消费。日期格直接展示商户、事项与金额；点日期或“更多”弹窗查看全部记录。</p>
 
       <RecordDrawer v-if="recordKey" :record-key="recordKey" :categories="data.categories" :show="settings.showAmount" @close="recordKey=''" @open="recordKey=$event" @saved="load" />
     </template>
@@ -93,17 +96,26 @@ import {computed, nextTick, ref, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import type {LocationQueryRaw} from 'vue-router'
 import {getCalendar, amount, accountName, localDate} from '@/api/workspace'
-import type {Account, CalendarDay, CalendarEvent, CalendarResult, CalendarSalary} from '@/api/workspace'
+import type {Account, CalendarDay, CalendarEvent, CalendarResult, CalendarSalary, CalendarFixedExpense} from '@/api/workspace'
 import {useUserSettingsStore} from '@/stores/userSettings'
 import CalendarDayDialog from '@/components/CalendarDayDialog.vue'
 import CalendarSalaryDialog from '@/components/CalendarSalaryDialog.vue'
 import RecordDrawer from '@/components/RecordDrawer.vue'
 import {calendarTitle,calendarKind} from '@/utils/calendarDisplay'
 
-// Keep salary visible within the three preview rows, reserving a row for expansion.
-const dayPreview=(day:CalendarDay)=>{
-  const capacity=Math.max(1,3-salariesOn(day.date).length)
-  return day.events.slice(0,day.entryCount>capacity?capacity-1:capacity)
+interface DayPreviewItem {key:string;salary?:CalendarSalary;fixed?:CalendarFixedExpense;event?:CalendarEvent}
+const dayItemCount=(day:CalendarDay)=>day.entryCount+salariesOn(day.date).length+fixedOn(day.date).length
+// Share the date cell between plans and actual records, keeping an overflow link.
+const dayPreview=(day:CalendarDay):DayPreviewItem[]=>{
+  const salaries=salariesOn(day.date).map(salary=>({key:salary.key,salary}))
+  const fixed=fixedOn(day.date).map(expense=>({key:expense.key,fixed:expense}))
+  const events=day.events.map(event=>({key:event.key,event}))
+  const rows:DayPreviewItem[]=[]
+  // One of each kind first so multiple salaries cannot bury a fixed expense.
+  if(salaries.length)rows.push(salaries[0])
+  if(fixed.length)rows.push(fixed[0])
+  rows.push(...events,...salaries.slice(1),...fixed.slice(1))
+  return rows.slice(0,dayItemCount(day)>3?2:3)
 }
 
 const route=useRoute(), router=useRouter(), settings=useUserSettingsStore()
@@ -113,6 +125,15 @@ const data=ref<CalendarResult|null>(null), accounts=ref<Account[]>([])
 const loading=ref(false), error=ref(''), recordKey=ref(''), offset=ref(0), dayOpen=ref(false)
 const filtersOpen=ref(false)
 const selectedSalary=ref<CalendarSalary|null>(null)
+const fixedExpenses=computed(()=>data.value?.fixedExpenses||[])
+const fixedByDate=computed(()=>{
+  const result:Record<string,CalendarFixedExpense[]>={}
+  for(const expense of fixedExpenses.value)(result[expense.date]||=[]).push(expense)
+  return result
+})
+const fixedOn=(date:string)=>fixedByDate.value[date]||[]
+const fixedOnTotal=(date:string)=>fixedOn(date).reduce((sum,x)=>sum+x.cents,0)
+const fixedTotal=computed(()=>fixedExpenses.value.reduce((sum,x)=>sum+x.cents,0))
 const salaries=computed(()=>data.value?.salaries||[])
 const salariesByDate=computed(()=>{
   const result:Record<string,CalendarSalary[]>={}
@@ -159,7 +180,7 @@ const cells=computed(()=>{
   return Array.from({length:size},(_,i)=>({key:i,day:data.value?.days[i-start]}))
 })
 function dayLabel(day:CalendarDay){
-  return (salariesOn(day.date).length?`预估到手薪资 ${money(salaryOnTotal(day.date))}，`:'')+`${day.date}，消费 ${money(day.gross)}，退款 ${money(day.refund)}`+(showRepayments.value?`，已出账应还 ${money(day.billed)}，预计应还 ${money(day.estimated)}${day.unknownRepayments?'，有金额待确认事项':''}`:'')
+  return (fixedOn(day.date).length?`固定支出计划 ${money(fixedOnTotal(day.date))}，`:'')+(salariesOn(day.date).length?`预估到手薪资 ${money(salaryOnTotal(day.date))}，`:'')+`${day.date}，消费 ${money(day.gross)}，退款 ${money(day.refund)}`+(showRepayments.value?`，已出账应还 ${money(day.billed)}，预计应还 ${money(day.estimated)}${day.unknownRepayments?'，有金额待确认事项':''}`:'')
 }
 async function load(){
   const seq=++sequence
@@ -200,6 +221,8 @@ watch(()=>route.fullPath,()=>{
 </script>
 
 <style scoped>
+.salary-summary.fixed-summary{background:#fff6ee;border-color:#f2dfcd;color:#a26729}.fixed-summary>span{flex:1}.fixed-summary>a{font-size:11px;color:#a26729}.fixed-tone{color:#a26729}.calendar-event.fixed-event{background:#fff6ee;border-color:#f2dfcd;border-left-color:#c48b4f;color:#915b22}.mobile-fixed-amount{color:#a26729;font-size:9px;line-height:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
 .salary-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#edf8f3;border:1px solid #d8eade;border-radius:9px;color:#21745a}.salary-summary>span{display:flex;flex-direction:column;gap:5px}.salary-summary strong{font-size:14px;font-variant-numeric:tabular-nums}.salary-summary small{font-size:11px}.salary-tone{color:#21745a}.calendar-event.salary-event{background:#edf8f3;border-color:#d8eade;border-left-color:#329476;color:#21745a}.mobile-salary-amount{color:#21745a;font-size:9px;line-height:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
 @media(max-width:767px){.salary-summary{padding:8px 10px}.salary-summary strong{font-size:12px}.salary-summary small{font-size:9px}.calendar-day:has(.mobile-salary-amount) .mobile-day-amount:empty{display:none}}
 
@@ -254,7 +277,7 @@ watch(()=>route.fullPath,()=>{
   .mobile-calendar-summary>div:last-child{border:0}.mobile-calendar-summary span{font-size:9px;color:var(--muted);white-space:nowrap}
   .mobile-calendar-summary strong{font-size:clamp(10px,3vw,13px);font-variant-numeric:tabular-nums;white-space:nowrap}
   .notice{margin:0;padding:5px 7px;font-size:10px;line-height:1.5}
-  .month-calendar{flex:1;display:flex;flex-direction:column;min-height:calc(var(--calendar-weeks)*49px + 62px)}
+  .month-calendar{flex:1;display:flex;flex-direction:column;min-height:calc(var(--calendar-weeks)*78px + 62px)}
   .calendar-scroll{display:flex;flex-direction:column;flex:1;min-height:0;overflow:visible}
   .calendar-week,.calendar-grid{min-width:0;width:100%}.calendar-week{flex-shrink:0}.calendar-week span{padding:7px 0;font-size:10px}
   .calendar-grid{flex:1;min-height:0;grid-template-rows:repeat(var(--calendar-weeks),minmax(0,1fr))}

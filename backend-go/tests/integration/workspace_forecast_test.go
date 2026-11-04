@@ -89,10 +89,40 @@ func TestFixedExpensesPersistAndDriveMonthlyForecast(t *testing.T) {
 	otherResult, err := cashflow.BuildForecastWithDB(context.Background(), testStore, testDB, otherID, req)
 	require.NoError(t, err)
 	require.Zero(t, otherResult.Months[0].FixedExpense)
+	calendarRows := func(who, month, account string) []workspace.CalendarFixedExpense {
+		t.Helper()
+		req := httptest.NewRequest("GET", "/api/workspace/calendar?month="+month+"&day="+month+"-01&currency=CNY&view=spending&account="+account, nil)
+		req.Header.Set("X-Test-User", who)
+		writer := httptest.NewRecorder()
+		engine.ServeHTTP(writer, req)
+		var result struct {
+			Code int
+			Data struct {
+				FixedExpenses []workspace.CalendarFixedExpense `json:"fixedExpenses"`
+				Totals        workspace.CalendarMetric
+				Total         int
+			}
+		}
+		require.NoError(t, json.Unmarshal(writer.Body.Bytes(), &result))
+		require.Zero(t, result.Code, writer.Body.String())
+		require.Zero(t, result.Data.Totals.Gross)
+		require.Zero(t, result.Data.Totals.Billed)
+		require.Zero(t, result.Data.Total)
+		return result.Data.FixedExpenses
+	}
+	occurrences := calendarRows(uid, "2026-11", bank.ID)
+	require.Len(t, occurrences, 1)
+	require.Equal(t, "2026-11-10", occurrences[0].Date)
+	require.Equal(t, int64(300000), occurrences[0].Cents)
+	require.Len(t, calendarRows(uid, "2026-12", ""), 1)
+	require.Empty(t, calendarRows(uid, "2027-01", ""))
+	require.Empty(t, calendarRows(otherID, "2026-11", ""))
+	require.Empty(t, calendarRows(uid, "2026-11", foreign.ID))
 	saved.Enabled = false
 	code, saved = save(uid, saved)
 	require.Zero(t, code)
 	require.Equal(t, 2, saved.Version)
+	require.Empty(t, calendarRows(uid, "2026-11", ""))
 	result, err = cashflow.BuildForecastWithDB(context.Background(), testStore, testDB, uid, req)
 	require.NoError(t, err)
 	require.Zero(t, result.Months[0].FixedExpense)

@@ -3,7 +3,7 @@
     <div class="day-dialog-backdrop" @click.self="$emit('close')" @keydown.esc.stop.prevent="$emit('close')" @keydown.tab="trapFocus">
       <section ref="dialog" class="day-dialog" role="dialog" aria-modal="true" aria-labelledby="calendar-day-title" tabindex="-1">
         <header class="panel-head">
-          <div><h2 id="calendar-day-title">{{date}} · 当日明细</h2><p class="subtitle">{{currency}} · {{repayments?'消费、退款与还款安排':'消费与退款'}}<template v-if="current"> · 共 {{current.total}} 笔<template v-if="salaries.length"> · {{salaries.length}} 次预估发薪</template></template></p></div>
+          <div><h2 id="calendar-day-title">{{date}} · 当日明细</h2><p class="subtitle">{{currency}} · {{repayments?'实际流水与收支计划':'实际流水、薪资与固定支出'}}<template v-if="current"> · 共 {{current.total}} 笔<template v-if="salaries.length"> · {{salaries.length}} 次预估发薪</template><template v-if="fixedExpenses.length"> · {{fixedExpenses.length}} 项固定支出计划</template></template></p></div>
           <button class="icon-button" aria-label="关闭当日明细" @click="$emit('close')">×</button>
         </header>
         <div class="day-dialog-body" :aria-busy="loading">
@@ -13,6 +13,10 @@
             <div v-if="salaries.length" class="day-records">
               <button v-for="salary in salaries" :key="salary.key" class="day-record salary" aria-haspopup="dialog" @click="$emit('salary',salary)"><span class="record-kind">预估到手</span><span class="record-title">{{salary.title}} · 查看扣除明细</span><strong>+{{amount(Math.round(salary.postTax*100),currency,show)}}</strong></button>
             </div>
+            <div v-if="fixedExpenses.length" class="day-records">
+              <div v-for="expense in fixedExpenses" :key="expense.key" class="day-record fixed"><span class="record-kind">固定支出</span><span class="record-title" :title="expense.title">{{expense.title}}<small>{{periodLabel(expense.period)}} · {{expenseAccount(expense.accountId)}}</small></span><strong>{{amount(expense.cents,currency,show)}}</strong></div>
+              <p class="fixed-note">以上为计划扣款，实际支付以流水为准。<RouterLink to="/cashflow#fixed-expenses" @click="$emit('close')">管理固定支出 →</RouterLink></p>
+            </div>
             <div v-if="current.items.length" class="day-records">
               <button v-for="item in current.items" :key="item.key" class="day-record" :class="item.kind==='schedule'?item.edit.status:item.kind" @click="$emit('open',item.key)">
                 <span class="record-kind">{{calendarKind(item.kind,item.edit.status)}}</span>
@@ -20,7 +24,7 @@
                 <strong>{{item.kind==='refund'?'+':''}}{{amount(item.cents,currency,show)}}</strong>
               </button>
             </div>
-            <div v-else-if="!salaries.length" class="empty"><strong>当天暂无{{repayments?'消费或待还款记录':'消费或退款记录'}}</strong>关闭弹窗即可继续查看其他日期。</div>
+            <div v-else-if="!salaries.length&&!fixedExpenses.length" class="empty"><strong>当天暂无流水或收支计划</strong>关闭弹窗即可继续查看其他日期。</div>
           </template>
         </div>
         <footer v-if="current && current.total>50" class="pagination">
@@ -35,12 +39,15 @@
 <script setup lang="ts">
 import {computed,nextTick,onBeforeUnmount,onMounted,ref} from 'vue'
 import type {CalendarResult,CalendarSalary} from '@/api/workspace'
-import {amount} from '@/api/workspace'
+import {amount,accountName} from '@/api/workspace'
 import {calendarTitle,calendarKind} from '@/utils/calendarDisplay'
 const props=defineProps<{date:string;currency:string;repayments:boolean;data:CalendarResult|null;loading:boolean;error:string;show:boolean}>()
 defineEmits<{(e:'close'):void;(e:'open',key:string):void;(e:'page',offset:number):void;(e:'retry'):void;(e:'salary',salary:CalendarSalary):void}>()
 const current=computed(()=>props.data?.day===props.date?props.data:null)
 const salaries=computed(()=>current.value?.salaries?.filter(s=>s.date===props.date)||[])
+const fixedExpenses=computed(()=>current.value?.fixedExpenses?.filter(x=>x.date===props.date)||[])
+const periodLabel=(period:string)=>({monthly:'每月',quarterly:'每季度',yearly:'每年',weekly:'每周'}[period]||period)
+function expenseAccount(id:string){const account=current.value?.accounts.find(a=>a.id===id);return account?accountName(account):'未指定扣款账户'}
 const dialog=ref<HTMLElement|null>(null), previousFocus=document.activeElement as HTMLElement|null
 onMounted(async()=>{await nextTick();dialog.value?.focus()})
 onBeforeUnmount(()=>{if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true})})
@@ -55,6 +62,8 @@ function trapFocus(event:KeyboardEvent){
 </script>
 
 <style scoped>
+.day-record.fixed{background:#fff6ee}.day-record.fixed .record-kind,.day-record.fixed strong{color:#a26729}.record-title small{display:block;font-size:10px;color:var(--muted);margin-top:4px}.fixed-note{font-size:11px;line-height:1.8;padding:10px 20px;color:var(--muted)}
+
 .day-record.salary{background:#edf8f3}.day-record.salary .record-kind,.day-record.salary strong{color:#21745a}
 .day-dialog-backdrop{position:fixed;inset:0;z-index:1100;background:#1d24444d;display:flex;align-items:center;justify-content:center;padding:24px}.day-dialog{background:white;width:640px;max-width:100%;max-height:85dvh;border-radius:12px;box-shadow:0 20px 80px #1822482b;display:flex;flex-direction:column;overflow:hidden}.day-dialog>.panel-head,.day-dialog>.pagination{flex-shrink:0}.day-dialog-body{overflow:auto;overscroll-behavior:contain;min-height:100px}.day-dialog-body .error-box{margin:16px}.dialog-loading{padding:24px;text-align:center;font-size:12px;color:var(--muted)}
 .day-record{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;min-height:48px;padding:12px 20px;background:white;text-align:left;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink)}.day-record:last-child{border-bottom:0}.day-record:hover{background:#f8f8fd}.record-kind{color:#5557ca;font-size:11px}.record-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.day-record strong{font-variant-numeric:tabular-nums;font-weight:550;white-space:nowrap}.day-record.refund .record-kind,.day-record.refund strong{color:var(--green)}.day-record.billed .record-kind{color:#3978aa}.day-record.estimated .record-kind{color:#a57521}
