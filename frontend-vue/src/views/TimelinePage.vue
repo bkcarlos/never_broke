@@ -50,7 +50,7 @@
       </div>
       <div v-if="salaries.length" class="salary-summary" role="status"><span><strong>本月预估到手薪资</strong><small>{{salaries.length}} 次发薪 · 点击日历中的薪资查看扣除明细</small></span><strong>{{money(salaryTotal)}}</strong></div>
       <div v-if="fixedExpenses.length" class="salary-summary fixed-summary"><span><strong>本月固定支出计划</strong><small>{{fixedExpenses.length}} 次扣款 · 按周期展开，不计入实际消费</small></span><strong>{{money(fixedTotal)}}</strong><RouterLink to="/cashflow#fixed-expenses">管理</RouterLink></div>
-      <p v-if="data.totals.unknownRepayments" class="notice" role="status">有 {{data.totals.unknownRepayments}} 项还款金额待确认，上方仅合计已知金额。</p>
+      <p v-if="showRepayments&&data.totals.unknownRepayments" class="notice" role="status">有 {{data.totals.unknownRepayments}} 项还款金额待确认，上方仅合计已知金额。</p>
 
 
       <section class="panel month-calendar" :aria-busy="loading" aria-label="月历">
@@ -62,10 +62,10 @@
               <section v-if="cell.day" class="calendar-day" :class="{selected:cell.day.date===selectedDate,today:cell.day.date===today}" :aria-label="cell.day.date">
                 <button class="mobile-day-button" :aria-label="dayLabel(cell.day)" aria-haspopup="dialog" @click="selectDay(cell.day.date)">
                   <span class="mobile-day-date">{{Number(cell.day.date.slice(-2))}}</span>
-                  <span class="mobile-day-amount" :class="{refund:!cell.day.count&&cell.day.refundCount}">{{cell.day.count?compactAmount(cell.day.gross):cell.day.refundCount?'+'+compactAmount(cell.day.refund):cell.day.entryCount?'还款':''}}</span>
+                  <span class="mobile-day-amount" :class="{refund:!cell.day.count&&cell.day.refundCount}">{{cell.day.count?compactAmount(cell.day.gross):cell.day.refundCount?'+'+compactAmount(cell.day.refund):showRepayments&&cell.day.entryCount?'还款':''}}</span>
                   <span v-if="fixedOn(cell.day.date).length" class="mobile-fixed-amount">固 {{compactAmount(fixedOnTotal(cell.day.date))}}</span>
                   <span v-if="salariesOn(cell.day.date).length" class="mobile-salary-amount">薪 +{{compactAmount(salaryOnTotal(cell.day.date))}}</span>
-                  <span v-if="dayItemCount(cell.day)" class="mobile-day-indicators"><span>{{dayItemCount(cell.day)}}项</span><i v-if="cell.day.refundCount" class="dot refund-dot"/><i v-if="cell.day.billedCount" class="dot billed-dot"/><i v-if="cell.day.estimatedCount" class="dot estimated-dot"/></span>
+                  <span v-if="dayItemCount(cell.day)" class="mobile-day-indicators"><span>{{dayItemCount(cell.day)}}项</span><i v-if="cell.day.refundCount" class="dot refund-dot"/><i v-if="showRepayments&&cell.day.billedCount" class="dot billed-dot"/><i v-if="showRepayments&&cell.day.estimatedCount" class="dot estimated-dot"/></span>
                 </button>
                 <button class="day-number" :aria-label="dayLabel(cell.day)" aria-haspopup="dialog" @click="selectDay(cell.day.date)">{{Number(cell.day.date.slice(-2))}}<span v-if="cell.day.date===today" class="today-label">今天</span><span class="day-count">{{dayItemCount(cell.day)?dayItemCount(cell.day)+' 项':''}}</span></button>
                 <template v-for="item in dayPreview(cell.day)" :key="item.key">
@@ -87,7 +87,7 @@
       <RecordDrawer v-if="recordKey" :record-key="recordKey" :categories="data.categories" :show="settings.showAmount" @close="recordKey=''" @open="recordKey=$event" @saved="load" />
     </template>
     <CalendarSalaryDialog v-if="selectedSalary" :salary="selectedSalary" :account-label="salaryAccountLabel" :show="settings.showAmount" @close="selectedSalary=null" />
-    <CalendarDayDialog v-if="dayOpen" :date="selectedDate" :currency="currency" :repayments="showRepayments" :data="data" :loading="loading" :error="error" :show="settings.showAmount" @close="dayOpen=false" @open="openRecord" @salary="openSalary" @page="offset=$event;load()" @retry="load" />
+    <CalendarDayDialog v-if="dayOpen" :date="selectedDate" :currency="currency" :repayments="showRepayments" :data="dayData" :loading="dayLoading" :error="dayError" :show="settings.showAmount" @close="dayOpen=false" @open="openRecord" @salary="openSalary" @page="offset=$event;loadDay()" @retry="loadDay" />
   </div>
 </template>
 
@@ -104,12 +104,12 @@ import RecordDrawer from '@/components/RecordDrawer.vue'
 import {calendarTitle,calendarKind} from '@/utils/calendarDisplay'
 
 interface DayPreviewItem {key:string;salary?:CalendarSalary;fixed?:CalendarFixedExpense;event?:CalendarEvent}
-const dayItemCount=(day:CalendarDay)=>day.entryCount+salariesOn(day.date).length+fixedOn(day.date).length
+const dayItemCount=(day:CalendarDay)=>(showRepayments.value?day.entryCount:day.count+day.refundCount)+salariesOn(day.date).length+fixedOn(day.date).length
 // Share the date cell between plans and actual records, keeping an overflow link.
 const dayPreview=(day:CalendarDay):DayPreviewItem[]=>{
   const salaries=salariesOn(day.date).map(salary=>({key:salary.key,salary}))
   const fixed=fixedOn(day.date).map(expense=>({key:expense.key,fixed:expense}))
-  const events=day.events.map(event=>({key:event.key,event}))
+  const events=day.events.filter(event=>showRepayments.value||event.kind!=='schedule').map(event=>({key:event.key,event}))
   const rows:DayPreviewItem[]=[]
   // One of each kind first so multiple salaries cannot bury a fixed expense.
   if(salaries.length)rows.push(salaries[0])
@@ -123,6 +123,8 @@ const today=localDate(), month=ref(today.slice(0,7)), selectedDate=ref(today)
 const currency=ref('CNY'), account=ref(''), showRepayments=ref(false)
 const data=ref<CalendarResult|null>(null), accounts=ref<Account[]>([])
 const loading=ref(false), error=ref(''), recordKey=ref(''), offset=ref(0), dayOpen=ref(false)
+const dayData=ref<CalendarResult|null>(null), dayLoading=ref(false), dayError=ref('')
+let daySequence=0
 const filtersOpen=ref(false)
 const selectedSalary=ref<CalendarSalary|null>(null)
 const fixedExpenses=computed(()=>data.value?.fixedExpenses||[])
@@ -186,18 +188,28 @@ async function load(){
   const seq=++sequence
   loading.value=true;error.value=''
   try{
-    const result=await getCalendar({month:month.value,day:selectedDate.value,currency:currency.value,account:account.value,view:showRepayments.value?'all':'spending',offset:offset.value})
+    const result=await getCalendar({month:month.value,day:selectedDate.value,currency:currency.value,account:account.value,view:'all',offset:0})
     if(seq===sequence){data.value=result;accounts.value=result.accounts||[]}
   }catch(e){if(seq===sequence)error.value=e instanceof Error?e.message:String(e)}
   finally{if(seq===sequence)loading.value=false}
+}
+// Day pagination has its own request state, so it never replaces the month grid.
+async function loadDay(){
+  const seq=++daySequence
+  dayLoading.value=true;dayError.value=''
+  try{
+    const result=await getCalendar({month:month.value,day:selectedDate.value,currency:currency.value,account:account.value,view:showRepayments.value?'all':'spending',offset:offset.value})
+    if(seq===daySequence)dayData.value=result
+  }catch(e){if(seq===daySequence)dayError.value=e instanceof Error?e.message:String(e)}
+  finally{if(seq===daySequence)dayLoading.value=false}
 }
 function toggleRepayments(){
   const query:LocationQueryRaw={...route.query,month:month.value,day:selectedDate.value,currency:currency.value,account:account.value,repayments:showRepayments.value?'0':'1'}
   delete query.view
   void router.replace({path:'/timeline',query})
 }
-function refresh(){offset.value=0;data.value=null;recordKey.value='';selectedSalary.value=null;dayOpen.value=false;void load()}
-function selectDay(date:string){selectedDate.value=date;offset.value=0;dayOpen.value=true;void load()}
+function refresh(){++daySequence;dayData.value=null;offset.value=0;data.value=null;recordKey.value='';selectedSalary.value=null;dayOpen.value=false;void load()}
+function selectDay(date:string){selectedDate.value=date;offset.value=0;dayData.value=null;dayOpen.value=true;void loadDay()}
 function selectMonth(){
   if(!/^(19\d{2}|20\d{2}|21\d{2}|2200)-(0[1-9]|1[0-2])$/.test(month.value))month.value=today.slice(0,7)
   selectedDate.value=month.value===today.slice(0,7)?today:month.value+'-01'
@@ -210,12 +222,18 @@ function changeMonth(delta:number){
 }
 function goToday(){month.value=today.slice(0,7);selectMonth()}
 watch(()=>route.fullPath,()=>{
+  const previousScope=[month.value,selectedDate.value,currency.value,account.value].join('|')
   const q=route.query, m=String(q.month||''), d=String(q.day||'')
   showRepayments.value=q.repayments==='1'||(q.repayments===undefined&&(q.view==='all'||q.view==='repayment'))
   month.value=/^(19\d{2}|20\d{2}|21\d{2}|2200)-(0[1-9]|1[0-2])$/.test(m)?m:today.slice(0,7)
   const [y,n]=month.value.split('-').map(Number), last=new Date(y,n,0).getDate()
   selectedDate.value=d.startsWith(month.value+'-')&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number(d.slice(-2))>=1&&Number(d.slice(-2))<=last?d:month.value===today.slice(0,7)?today:month.value+'-01'
   currency.value=q.currency==='USD'?'USD':'CNY';account.value=String(q.account||'')
+  // A visibility-only query change reuses the loaded month, including repayments.
+  if(previousScope===[month.value,selectedDate.value,currency.value,account.value].join('|')){
+    if(dayOpen.value){offset.value=0;void loadDay()}
+    if(data.value||loading.value)return
+  }
   refresh()
 },{immediate:true})
 </script>
