@@ -24,6 +24,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const iconPaths: Record<string, string> = {
+  'arrow-left': 'M469 171L128 512l341 341 60-60-238-238h605v-86H291l238-238z',
   'home': 'M512 128L128 448v448h256V640h256v256h256V448z',
   'list': 'M128 256h768v85.333H128V256z m0 213.333h768v85.334H128v-85.334z m0 213.334h768V768H128v-85.333z',
   'add': 'M554.667 469.333V256h-85.334v213.333H256v85.334h213.333V768h85.334V554.667H768v-85.334z',

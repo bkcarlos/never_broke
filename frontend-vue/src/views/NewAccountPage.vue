@@ -1,35 +1,27 @@
 <template>
-  <div class="page-container">
-    <div class="page-content px-4">
-      <!-- 顶部栏 -->
-      <div class="flex items-center gap-4 mb-6">
-        <button
-          @click="handleBack"
-          class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <Icon name="arrow-left" size="24px" class="text-gray-700" />
-        </button>
-        <h1 class="text-2xl font-bold text-gray-900">{{ t('newAccount.title') }}</h1>
-      </div>
-
+  <PageFrame :title="t('newAccount.title')" eyebrow="NEW ACCOUNT" subtitle="添加你的资金账户，统一管理余额与交易。" back-to="/accounts" back-label="返回账户" compact>
+    <div class="form-columns">
+      <form class="form-surface" @submit.prevent="handleSubmit">
       <!-- 表单卡片 -->
-      <div class="bg-white rounded-lg shadow p-6 space-y-6">
+      <div class="account-fields">
         <!-- 账户类型 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
             {{ t('newAccount.type') }} <span class="text-red-500">{{ t('common.required') }}</span>
           </label>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="account-type-options">
             <button
               v-for="type in accountTypes"
               :key="type.value"
+              type="button"
+              :aria-pressed="form.type === type.value"
               @click="handleTypeChange(type.value)"
               :disabled="type.value === 'cash' && hasCashAccount"
-              class="px-4 py-3 border-2 rounded-lg font-medium transition-all"
+              class="account-type-option"
               :class="[
                 form.type === type.value
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-300 text-gray-700 hover:border-gray-400',
+                  ? 'selected'
+                  : '',
                 type.value === 'cash' && hasCashAccount
                   ? 'opacity-50 cursor-not-allowed'
                   : ''
@@ -153,22 +145,19 @@
             <option value="USD">USD (美元)</option>
             <option value="EUR">EUR (欧元)</option>
           </select>
+          <p v-if="form.currency==='EUR'" class="mt-2 text-xs text-gray-500">欧元账户可记录余额；收支日历与余额核验目前支持人民币和美元。</p>
           <p v-if="errors.currency" class="mt-1 text-sm text-red-500">{{ errors.currency }}</p>
         </div>
 
-        <!-- 预览 -->
-        <div class="pt-4 border-t border-gray-200">
-          <p class="text-sm text-gray-600 mb-2">{{ t('newAccount.preview') }}</p>
-          <p class="text-lg font-semibold text-gray-900">{{ previewName }}</p>
-        </div>
       </div>
 
       <!-- 提交按钮 -->
-      <div class="mt-6">
+      <div class="form-actions">
+        <RouterLink to="/accounts" class="button">取消</RouterLink>
         <button
-          @click="handleSubmit"
+          type="submit"
           :disabled="submitting"
-          class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          class="button primary"
         >
           {{ submitting ? t('newAccount.creating') : t('newAccount.create') }}
         </button>
@@ -178,17 +167,19 @@
       <div v-if="submitError" class="mt-4 p-4 bg-red-50 text-red-600 rounded-lg">
         {{ submitError }}
       </div>
+      </form>
+      <aside class="form-aside"><p class="eyebrow">ACCOUNT PREVIEW</p><h2>{{ t('newAccount.preview') }}</h2><div class="account-preview-name">{{ previewName }}</div><span class="tag purple">{{ form.currency }}</span><p>{{ form.type === 'credit' ? '信用卡记录当前欠款与额度，便于查看还款压力。' : '填写当前可用余额，后续可在账户页面核验。' }}</p><p>银行卡只需填写尾号，方便区分同一家银行的不同账户。</p></aside>
     </div>
-  </div>
+  </PageFrame>
 </template>
 
 <script setup lang="ts">
+import PageFrame from '@/components/PageFrame.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { createAccount, getAccounts } from '@/api/accounts'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import type { AccountType, AccountInstitution, CreateAccountPayload, Account } from '@/types'
-import Icon from '@/components/Icon.vue'
 import { t } from '@/i18n'
 
 const router = useRouter()
@@ -374,9 +365,6 @@ function handleTypeChange(newType: AccountType) {
   errors.tempLimit = ''
 }
 
-function handleBack() {
-  router.back()
-}
 
 async function handleSubmit() {
   if (!validateForm()) {
@@ -418,5 +406,11 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 页面样式已移至全局样式文件 */
+.account-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 20px; }
+.account-fields > div:first-child { grid-column: 1 / -1; }
+.account-type-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.account-type-option { min-height: 48px; padding: 10px 6px; border: 1px solid var(--line); border-radius: 7px; font-size: 12px; color: var(--muted); }
+.account-type-option.selected { border-color: var(--brand); background: var(--soft); color: var(--brand); }
+.account-preview-name { margin: 20px 0 14px; font-size: 22px; font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .account-fields { grid-template-columns: minmax(0, 1fr); } .account-type-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>

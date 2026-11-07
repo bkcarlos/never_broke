@@ -155,3 +155,9 @@ select.control {
 }
 
 .mobile-record .mobile-info { text-align: left; background: transparent; }
+
+/* The mobile shell already names the active page. */
+@media (max-width: 767px) {
+  .app-main > .work-page > .page-heading h1 { display: none; }
+  .app-main > .work-page > .page-heading .subtitle { margin-top: 0; }
+}

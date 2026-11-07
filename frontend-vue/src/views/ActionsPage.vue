@@ -1,76 +1,30 @@
 <template>
-  <div class="page-container">
-    <div class="page-content px-4">
-    <div class="actions-grid grid grid-cols-2 gap-4">
-      <!-- 记支出 -->
-      <button 
-        @click="handleAction('addExpense')"
-        class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-      >
-        <Icon name="minus-circle" size="40px" class="mb-2 text-red-500" />
-        <div class="font-semibold">{{ t('actions.addExpense') }}</div>
-      </button>
-
-      <!-- 记收入 -->
-      <button 
-        @click="handleAction('addIncome')"
-        class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-      >
-        <Icon name="add-circle" size="40px" class="mb-2 text-green-500" />
-        <div class="font-semibold">{{ t('actions.addIncome') }}</div>
-      </button>
-
-      <!-- 转账 -->
-      <button 
-        @click="handleAction('transfer')"
-        class="action-btn bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
-      >
-        <Icon name="transfer" size="40px" class="mb-2 text-blue-500" />
-        <div class="font-semibold">{{ t('actions.transfer') }}</div>
-      </button>
+  <PageFrame title="快捷记账" eyebrow="QUICK ACTIONS" subtitle="选择记录类型，开始整理这一笔收支。" compact>
+    <div class="action-grid">
+      <RouterLink v-for="action in actions" :key="action.type" :to="{ path: '/record', query: { type: action.type } }" class="panel action-card">
+        <span class="action-icon"><Icon :name="action.icon" size="24px" /></span>
+        <h2>{{ action.title }}</h2><p>{{ action.description }}</p><span class="action-link">开始记录 →</span>
+      </RouterLink>
     </div>
-
-    <!-- 提示信息 -->
-    <div class="mt-6 p-4 bg-blue-50 rounded-lg flex items-center gap-2">
-      <Icon name="info-circle" size="20px" class="text-blue-500 flex-shrink-0" />
-      <p class="text-sm text-blue-700">
-        {{ t('actions.comingSoon') }}
-      </p>
-    </div>
-    </div>
-  </div>
+  </PageFrame>
 </template>
-
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { t } from '@/i18n'
+import PageFrame from '@/components/PageFrame.vue'
 import Icon from '@/components/Icon.vue'
-
-const router = useRouter()
-
-function handleAction(action: string) {
-  if (action === 'transfer') {
-    router.push('/transfer')
-    return
-  }
-  // TODO: 后续实现具体功能
-  console.log('Action clicked:', action)
-  const actionName = t(`actions.${action}`)
-  alert(`TODO: ${t('actions.todoAlert').replace('{action}', actionName)}`)
-}
+const actions = [
+  { type: 'expense', icon: 'minus-circle', title: '记支出', description: '记录消费金额、分类和付款账户。' },
+  { type: 'income', icon: 'add-circle', title: '记收入', description: '记录实际到账的工资和其他收入。' },
+  { type: 'transfer', icon: 'transfer', title: '账户转账', description: '记录账户之间的资金流动。' },
+  { type: 'refund', icon: 'refresh', title: '记录退款', description: '记录退回款项，冲减原分类支出。' },
+]
 </script>
-
 <style scoped>
-.action-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 120px;
-}
-
-.action-btn:active {
-  transform: scale(0.98);
-}
+.action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.action-card { display: block; padding: 28px; color: var(--ink); text-decoration: none; transition: border-color .15s; }
+.action-card:hover { border-color: var(--brand); }
+.action-icon { display: grid; place-items: center; width: 44px; height: 44px; background: var(--soft); color: var(--brand); border-radius: 10px; margin-bottom: 24px; }
+.action-card h2 { font-size: 17px; font-weight: 600; }
+.action-card p { color: var(--muted); font-size: 12px; margin: 10px 0 24px; line-height: 1.8; }
+.action-link { color: var(--brand); font-size: 12px; }
+@media (max-width: 560px) { .action-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; } .action-card { padding: 22px; } }
 </style>
-

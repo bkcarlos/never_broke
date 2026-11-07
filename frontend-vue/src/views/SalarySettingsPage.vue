@@ -1,17 +1,7 @@
 <template>
-  <div class="page-container">
-    <div class="page-content px-4">
-      <!-- 顶部栏 -->
-      <div class="flex items-center gap-4 mb-6">
-        <button
-          @click="handleBack"
-          class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <Icon name="arrow-left" size="24px" class="text-gray-700" />
-        </button>
-        <h1 class="text-2xl font-bold text-gray-900">{{ t('salary.title') }}</h1>
-      </div>
-
+  <PageFrame :title="t('salary.title')" eyebrow="INCOME PLANS" subtitle="设置收入金额、到账账户与发放日期。" back-to="/profile" compact>
+    <p class="notice">此页面支持查看和新增收入计划，编辑与删除暂未开放。工资方案请前往 <RouterLink to="/me/salary">薪资管理 →</RouterLink></p>
+    <div class="salary-settings-content">
       <!-- 现有收入计划列表 -->
       <div class="mb-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ t('salary.existingPlans') }}</h2>
@@ -25,7 +15,7 @@
           <div
             v-for="plan in incomePlans"
             :key="plan.id"
-            class="bg-white rounded-lg shadow p-4"
+            class="panel p-4"
           >
             <div class="flex justify-between items-start mb-2">
               <div>
@@ -42,13 +32,13 @@
               </div>
               <div class="flex gap-2">
                 <button
-                  @click="handleEdit(plan)"
+                  disabled title="暂未开放编辑"
                   class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
                 >
                   {{ t('salary.edit') }}
                 </button>
                 <button
-                  @click="handleDelete(plan.id)"
+                  disabled title="暂未开放删除"
                   class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
                 >
                   {{ t('salary.delete') }}
@@ -60,7 +50,7 @@
       </div>
 
       <!-- 新增/编辑表单 -->
-      <div class="bg-white rounded-lg shadow p-6">
+      <div class="panel p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">
           {{ editingPlan ? t('salary.editPlan') : t('salary.newPlan') }}
         </h2>
@@ -171,7 +161,7 @@
           <button
             @click="handleSubmit"
             :disabled="submitting"
-            class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            class="button primary"
           >
             {{ submitting ? t('salary.submitting') : editingPlan ? t('salary.update') : t('salary.submit') }}
           </button>
@@ -183,20 +173,18 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageFrame>
 </template>
 
 <script setup lang="ts">
+import PageFrame from '@/components/PageFrame.vue'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { listIncomePlans, createIncomePlan } from '@/api/incomePlans'
 import { getAccounts } from '@/api/accounts'
 import type { IncomePlan, IncomeFrequency, CreateIncomePlanPayload, Account } from '@/types'
-import Icon from '@/components/Icon.vue'
 import { t } from '@/i18n'
 
-const router = useRouter()
 
 const loading = ref(false)
 const accounts = ref<Account[]>([])
@@ -268,25 +256,6 @@ function resetForm() {
   })
 }
 
-function handleEdit(_plan: IncomePlan) {
-  alert(t('salary.todoEdit'))
-  // editingPlan.value = plan
-  // form.name = plan.name
-  // form.amount = plan.amount
-  // form.frequency = plan.frequency
-  // form.accountId = plan.accountId
-  // form.firstPayDate = plan.firstPayDate
-  // form.endDate = plan.endDate || ''
-}
-
-function handleDelete(_id: string) {
-  alert(t('salary.todoDelete'))
-}
-
-function handleBack() {
-  router.back()
-}
-
 async function handleSubmit() {
   if (!validateForm()) {
     return
@@ -341,7 +310,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 页面样式已移至全局样式文件 */
+.salary-settings-content { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 900px) { .salary-settings-content { grid-template-columns: minmax(0, 1fr); } }
 </style>
 
 

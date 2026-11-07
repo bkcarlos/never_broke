@@ -27,7 +27,7 @@
     <TopBar v-if="!isMobile" class="app-topbar" />
     
     <!-- 主内容区域 -->
-    <main class="app-main">
+    <main ref="mainContent" class="app-main">
       <router-view />
     </main>
 
@@ -93,13 +93,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Icon from './components/Icon.vue'
 import Sidebar from './components/Sidebar.vue'
 import TopBar from './components/TopBar.vue'
 import RadialActionMenu from './components/RadialActionMenu.vue'
 import { t } from './i18n'
+import { pageTitles, isSettingsPage } from './router/pageTitles'
 import type { RadialAction } from './types/actions'
 import { useBreakpoint } from './composables/useBreakpoint'
 import { useUserSettingsStore } from './stores/userSettings'
@@ -112,6 +113,7 @@ const userSettingsStore = useUserSettingsStore()
 const { isMobile, isTablet } = useBreakpoint()
 
 const isRadialOpen = ref<boolean>(false)
+const mainContent = ref<HTMLElement | null>(null)
 
 // 判断是否是登录页面
 const isLoginPage = computed(() => route.path === '/login')
@@ -125,18 +127,13 @@ const layoutClass = computed(() => ({
 }))
 
 // 页面标题（移动端顶部栏显示）
-const pageTitle = computed(() => {
-  const pageTitles: Record<string, string> = {
-    '/': t('nav.home'),
-    '/detail': '交易账本',
-    '/review':'核对工作台', '/plans':'账单与还款', '/insights':'订阅与预算', '/accounts':'账户管理', '/settings/import-bills':'导入与同步',
-    '/reports': t('nav.reports'),
-    '/timeline': '收支日历',
-    '/profile': t('nav.profile'),
-    '/record': t('actions.record'),
-  }
-  return pageTitles[route.path] || t('app.title')
-})
+const pageTitle = computed(() => pageTitles[route.path] || t('app.title'))
+
+watch(() => route.path, async () => {
+  await nextTick()
+  mainContent.value?.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  document.title = `${pageTitle.value} · NeverBroke`
+}, { flush: 'post', immediate: true })
 
 // 监听路由变化，关闭圆弧菜单
 watch(() => route.path, () => {
@@ -184,6 +181,7 @@ const radialActions: RadialAction[] = [
 ]
 
 const isActive = (path: string) => {
+  if (path === '/profile') return isSettingsPage(route.path)
   if (path === '/') {
     return route.path === '/'
   }

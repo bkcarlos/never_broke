@@ -1,163 +1,39 @@
 <template>
-  <div class="page-container">
-    <div class="page-content">
-    <!-- 加载状态 -->
-    <div v-if="loading" class="text-center py-8">
-      <p class="text-gray-500">{{ t('common.loading') }}</p>
-    </div>
-
-    <!-- 设置列表 -->
-    <div v-else class="settings space-y-4">
-      <!-- 语言设置 -->
-      <div class="setting-item bg-white rounded-lg shadow p-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <Icon name="language" size="24px" class="text-blue-500" />
-            <span class="font-semibold">{{ t('profile.language') }}</span>
-          </div>
-          <div class="flex gap-2">
-            <button
-              @click="handleLocaleSelect('zh-CN')"
-              class="px-4 py-2 rounded-lg font-medium transition-all duration-200"
-              :class="userSettingsStore.locale === 'zh-CN' 
-                ? 'bg-blue-500 text-white shadow-md' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-            >
-              简体中文
-            </button>
-            <button
-              @click="handleLocaleSelect('en-US')"
-              class="px-4 py-2 rounded-lg font-medium transition-all duration-200"
-              :class="userSettingsStore.locale === 'en-US' 
-                ? 'bg-blue-500 text-white shadow-md' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-            >
-              English
-            </button>
-          </div>
-        </div>
+  <PageFrame title="设置与偏好" eyebrow="SETTINGS & PREFERENCES" subtitle="管理你的账本、收入计划和日常使用偏好。" compact>
+    <p v-if="loading" class="notice" role="status">{{ t('common.loading') }}</p>
+    <div v-if="error" class="error-box" role="alert">{{ error }}</div>
+    <div class="settings-layout">
+      <div class="settings-groups">
+        <section v-for="group in groups" :key="group.title" class="panel">
+          <div class="panel-head"><div><h2>{{ group.title }}</h2><p class="subtitle">{{ group.description }}</p></div></div>
+          <RouterLink v-for="link in group.links" :key="link.path" :to="link.path" class="settings-link">
+            <span class="setting-icon"><Icon :name="link.icon" size="20px" /></span>
+            <div><strong>{{ link.title }}</strong><p>{{ link.description }}</p></div>
+            <Icon name="chevron-right" size="16px" class="setting-chevron" />
+          </RouterLink>
+        </section>
       </div>
-
-      <!-- 金额显隐 -->
-      <div class="setting-item bg-white rounded-lg shadow p-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <Icon :name="userSettingsStore.showAmount ? 'eye' : 'eye-close'" size="24px" class="text-blue-500" />
-            <span class="font-semibold">
-              {{ userSettingsStore.showAmount ? t('profile.showAmount') : t('profile.hideAmount') }}
-            </span>
-          </div>
-          <button 
-            @click="toggleShowAmount"
-            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-            :class="userSettingsStore.showAmount ? 'bg-blue-500' : 'bg-gray-300'"
-          >
-            <span 
-              class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-              :class="userSettingsStore.showAmount ? 'translate-x-6' : 'translate-x-1'"
-            />
-          </button>
-        </div>
-      </div>
-
-      <!-- 账户管理 -->
-      <div class="setting-item bg-white rounded-lg shadow p-4">
-        <button 
-          @click="handleAddAccount"
-          class="w-full flex items-center justify-between"
-        >
-          <div class="flex items-center gap-3">
-            <Icon name="bank" size="24px" class="text-indigo-500" />
-            <span class="font-semibold">{{ t('account.manage.title', '账户管理') }}</span>
-          </div>
-          <Icon name="chevron-right" size="20px" class="text-gray-400" />
-        </button>
-      </div>
-
-      <!-- 设置预算 -->
-      <div class="setting-item bg-white rounded-lg shadow p-4">
-        <button 
-          @click="handleSetBudget"
-          class="w-full flex items-center justify-between"
-        >
-          <div class="flex items-center gap-3">
-            <Icon name="target" size="24px" class="text-purple-500" />
-            <span class="font-semibold">{{ t('actions.setBudget') }}</span>
-          </div>
-          <Icon name="chevron-right" size="20px" class="text-gray-400" />
-        </button>
-      </div>
-
-      <!-- 导入账单 -->
-      <div class="setting-item bg-white rounded-lg shadow p-4">
-        <button 
-          @click="handleImport"
-          class="w-full flex items-center justify-between"
-        >
-          <div class="flex items-center gap-3">
-            <Icon name="import" size="24px" class="text-orange-500" />
-            <span class="font-semibold">{{ t('actions.import') }}</span>
-          </div>
-          <Icon name="chevron-right" size="20px" class="text-gray-400" />
-        </button>
-      </div>
-
-      <!-- 薪资管理 -->
-      <div class="setting-item bg-white rounded-lg shadow p-4">
-        <button 
-          @click="handleSalaryControl"
-          class="w-full flex items-center justify-between"
-        >
-          <div class="flex items-center gap-3">
-            <Icon name="money" size="24px" class="text-emerald-500" />
-            <div class="text-left">
-              <div class="font-semibold block">
-                {{ t('me.salary.title', '薪资管理') }}
-              </div>
-              <div class="text-xs text-slate-500">
-                {{ t('me.salary.subtitle', '配置工资方案并预览税后收入') }}
-              </div>
+      <aside class="settings-preferences">
+        <section class="panel">
+          <div class="panel-head"><h2>使用偏好</h2><Icon name="settings" size="17px" class="subtle" /></div>
+          <div class="preference-row">
+            <label id="locale-label">{{ t('profile.language') }}</label>
+            <div class="locale-options" role="group" aria-labelledby="locale-label">
+              <button v-for="option in locales" :key="option.value" :class="{ selected: userSettingsStore.locale === option.value }" :aria-pressed="userSettingsStore.locale === option.value" :disabled="loading" @click="handleLocaleSelect(option.value)">{{ option.label }}</button>
             </div>
           </div>
-          <Icon name="chevron-right" size="20px" class="text-gray-400" />
-        </button>
-      </div>
-
-      <!-- 固定收入 -->
-      <div class="setting-item bg-white rounded-lg shadow p-4">
-        <button 
-          @click="handleRecurringIncome"
-          class="w-full flex items-center justify-between"
-        >
-          <div class="flex items-center gap-3">
-            <Icon name="refresh" size="24px" class="text-teal-500" />
-            <div class="text-left">
-              <span class="font-semibold block">{{ t('recurring.title', '固定收入') }}</span>
-              <p class="text-xs text-gray-500 mt-0.5">{{ t('recurring.subtitle', '管理您的周期性固定收入') }}</p>
-            </div>
+          <div class="preference-row amount-preference">
+            <div><label id="amount-label">金额显示</label><p>控制工作台中的金额显隐</p></div>
+            <button class="amount-switch" role="switch" :aria-checked="userSettingsStore.showAmount" aria-labelledby="amount-label" :class="{ enabled: userSettingsStore.showAmount }" :disabled="loading" @click="toggleShowAmount"><span /></button>
           </div>
-          <Icon name="chevron-right" size="20px" class="text-gray-400" />
-        </button>
-      </div>
-
-      <!-- 错误提示 -->
-      <div v-if="error" class="p-4 bg-red-50 text-red-600 rounded-lg">
-        {{ error }}
-      </div>
-
-      <!-- 退出登录 - 独立栏 -->
-      <div class="mt-8 pt-4 border-t border-gray-200">
-        <button
-          @click="handleLogout"
-          class="w-full py-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center justify-center gap-2 text-red-600 hover:text-red-700 font-semibold"
-        >
-          <Icon name="logout" size="20px" />
-          <span>{{ t('auth.logout') }}</span>
-        </button>
-      </div>
+        </section>
+        <section class="panel session-panel">
+          <h2>登录与安全</h2><p class="subtitle">在共享设备上使用后，记得退出登录。</p>
+          <button class="button danger" @click="handleLogout"><Icon name="logout" size="16px" />{{ t('auth.logout') }}</button>
+        </section>
+      </aside>
     </div>
-    </div>
-  </div>
+  </PageFrame>
 </template>
 
 <script setup lang="ts">
@@ -167,10 +43,25 @@ import { logout } from '@/api/auth'
 import { t } from '@/i18n'
 import type { Locale } from '@/types'
 import Icon from '@/components/Icon.vue'
+import PageFrame from '@/components/PageFrame.vue'
 import { useUserSettingsStore } from '@/stores/userSettings'
 
 const router = useRouter()
+const groups = [
+  { title: '账本与账户', description: '管理账户、预算与账单来源', links: [
+    { path: '/accounts', icon: 'wallet', title: '账户管理', description: '查看账户、核验余额与欠款' },
+    { path: '/settings/budget', icon: 'target', title: '月度预算', description: '设置每月支出额度与每日参考' },
+    { path: '/settings/import-bills', icon: 'import', title: '导入与同步', description: '导入账单，整理历史交易' },
+  ] },
+  { title: '收入与规划', description: '把未来的收入和支出安排清楚', links: [
+    { path: '/me/salary', icon: 'money', title: '薪资管理', description: '配置工资方案，预览税后收入' },
+    { path: '/settings/recurring-income', icon: 'repeat', title: '固定收入', description: '管理租金、副业等周期收入' },
+    { path: '/tools/salary-calculator', icon: 'chart', title: '薪资计算器', description: '试算社保、公积金与个税' },
+    { path: '/cashflow', icon: 'calendar', title: '收支预测', description: '查看未来结余与资金缺口' },
+  ] },
+]
 const userSettingsStore = useUserSettingsStore()
+const locales: { value: Locale; label: string }[] = [{ value: 'zh-CN', label: '简体中文' }, { value: 'en-US', label: 'English' }]
 
 const error = computed(() => userSettingsStore.error)
 const loading = computed(() => userSettingsStore.loading)
@@ -181,26 +72,6 @@ async function handleLocaleSelect(locale: Locale) {
 
 async function toggleShowAmount() {
   await userSettingsStore.toggleShowAmount()
-}
-
-function handleAddAccount() {
-  router.push('/accounts')
-}
-
-function handleSetBudget() {
-  router.push('/settings/budget')
-}
-
-function handleImport() {
-  router.push('/settings/import-bills')
-}
-
-function handleSalaryControl() {
-  router.push('/me/salary')
-}
-
-function handleRecurringIncome() {
-  router.push('/settings/recurring-income')
 }
 
 // 退出登录
@@ -223,7 +94,28 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 页面样式已移至全局样式文件 (style.css) 的 .page-container 和 .page-content */
-
+.settings-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.settings-groups, .settings-preferences { display: grid; gap: 20px; min-width: 0; }
+.settings-link { display: flex; align-items: center; gap: 14px; padding: 18px 20px; text-decoration: none; color: var(--ink); border-bottom: 1px solid #f0f1f6; }
+.settings-link:last-child { border-bottom: 0; }
+.settings-link:hover { background: #fafaff; }
+.setting-icon { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; border: 1px solid #e9e9f7; border-radius: 9px; background: #f4f4fc; color: var(--brand); }
+.settings-link strong { font-size: 13px; font-weight: 550; }
+.settings-link p, .preference-row p { font-size: 11px; line-height: 1.7; color: var(--muted); margin-top: 4px; }
+.setting-chevron { margin-left: auto; flex-shrink: 0; color: #a3a8b6; }
+.preference-row { padding: 20px; border-bottom: 1px solid var(--line); }
+.preference-row:last-child { border-bottom: 0; }
+.preference-row label, .session-panel h2 { font-size: 13px; font-weight: 550; }
+.locale-options { display: flex; padding: 3px; background: #f3f4f8; border-radius: 7px; margin-top: 12px; gap: 3px; }
+.locale-options button { flex: 1; min-height: 34px; border-radius: 5px; font-size: 12px; color: var(--muted); }
+.locale-options button.selected { background: white; color: var(--brand); box-shadow: 0 1px 3px #242a3b12; }
+.amount-preference { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.amount-switch { border-radius: 20px; width: 40px; height: 24px; flex-shrink: 0; padding: 3px; background: #c9cdd8; transition: background .15s; }
+.amount-switch.enabled { background: var(--brand); }
+.amount-switch span { display: block; width: 18px; height: 18px; border-radius: 50%; background: white; transition: transform .15s; }
+.amount-switch.enabled span { transform: translateX(16px); }
+.session-panel { padding: 20px; }
+.session-panel .button { margin-top: 18px; width: 100%; }
+@media (max-width: 900px) { .settings-layout { grid-template-columns: minmax(0, 1fr); } .settings-preferences { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .settings-preferences { grid-template-columns: minmax(0, 1fr); } .settings-link { padding: 16px; } }
 </style>
-

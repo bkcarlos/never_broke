@@ -1,46 +1,10 @@
 <template>
-  <div class="page-container">
-    <div class="page-content max-w-3xl mx-auto">
-      <!-- 头部：模式切换按钮 -->
-      <div class="mb-6">
-        <div class="flex gap-2 mb-4">
-          <button
-            @click="switchMode('expense')"
-            :class="[
-              'flex-1 py-3 px-4 rounded-lg font-semibold transition-all',
-              mode === 'expense'
-                ? 'bg-red-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            ]"
-          >
-            {{ t('record.expense') }}
-          </button>
-          <button
-            @click="switchMode('income')"
-            :class="[
-              'flex-1 py-3 px-4 rounded-lg font-semibold transition-all',
-              mode === 'income'
-                ? 'bg-green-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            ]"
-          >
-            {{ t('record.income') }}
-          </button>
-          <button
-            @click="switchMode('transfer')"
-            :class="[
-              'flex-1 py-3 px-4 rounded-lg font-semibold transition-all',
-              mode === 'transfer'
-                ? 'bg-blue-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            ]"
-          >
-            {{ t('record.transfer') }}
-          </button>
-        </div>
+  <PageFrame title="记一笔" eyebrow="NEW TRANSACTION" subtitle="记录一笔真实收支，让账本保持完整。" back-to="/detail" back-label="返回交易账本" compact>
+    <div class="form-columns">
+    <div class="form-surface">
+      <div class="record-modes" role="group" aria-label="交易类型">
+        <button v-for="item in recordModes" :key="item.value" :class="{ selected: mode === item.value }" :aria-pressed="mode === item.value" @click="switchMode(item.value)">{{ item.label }}</button>
       </div>
-
-      <button class="button" style="margin-bottom:18px" :class="{primary:mode==='refund'}" @click="switchMode('refund')">记录退款（冲减支出）</button>
       <p v-if="mode==='refund'" class="notice">输入退回金额与原消费分类。退款计入退款发生日期，冲减支出，不作为收入。</p>
       <!-- 表单 -->
       <form @submit.prevent="onSubmit" class="space-y-6">
@@ -195,7 +159,7 @@
         </div>
 
         <!-- 分期付款（仅支出模式） -->
-        <section v-if="mode === 'expense'" class="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+        <section v-if="mode === 'expense'" class="panel p-4 space-y-3">
           <div class="flex items-center justify-between">
             <div>
               <div class="text-sm font-medium text-slate-800">
@@ -293,19 +257,22 @@
         </div>
 
         <!-- 提交按钮 -->
-        <button
+        <div class="form-actions"><RouterLink to="/detail" class="button">取消</RouterLink><button
           type="submit"
           :disabled="submitting"
-          class="w-full py-3 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="button primary"
         >
           {{ submitting ? t('record.submitting') : t('record.submit') }}
-        </button>
+        </button></div>
       </form>
     </div>
-  </div>
+    <aside class="form-aside"><p class="eyebrow">RECORD GUIDE</p><h2>{{ mode === 'refund' ? '退款如何记录' : mode === 'transfer' ? '账户之间的资金流动' : mode === 'income' ? '记录实际到账收入' : '记录实际发生的支出' }}</h2><p>{{ mode === 'refund' ? '退款按退回日期冲减支出。选择原消费的分类，便于后续核对。' : mode === 'transfer' ? '选择转出和转入账户，内部转账不会增加收入或支出。' : mode === 'income' ? '选择到账账户和收入分类，计划中的收入可在固定收入中管理。' : '选择消费分类和付款账户，填写日期与备注，方便之后查找。' }}</p><RouterLink to="/settings/import-bills" class="button record-import">批量导入账单 →</RouterLink></aside>
+    </div>
+  </PageFrame>
 </template>
 
 <script setup lang="ts">
+import PageFrame from '@/components/PageFrame.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {get} from '@/api/http'
@@ -328,6 +295,12 @@ const router = useRouter()
 
 // 模式：expense, income, transfer
 const mode = ref<'expense' | 'income' | 'transfer' | 'refund'>('expense')
+const recordModes = computed(() => [
+  { value: 'expense' as const, label: t('record.expense') },
+  { value: 'income' as const, label: t('record.income') },
+  { value: 'transfer' as const, label: t('record.transfer') },
+  { value: 'refund' as const, label: '退款' },
+])
 
 // 切换模式时清空相关字段
 function switchMode(newMode: 'expense' | 'income' | 'transfer' | 'refund') {
@@ -531,7 +504,7 @@ async function onSubmit() {
 
 // 监听路由参数变化
 watch(() => route.query.type, (newType) => {
-  if (newType === 'expense' || newType === 'income' || newType === 'transfer') {
+  if (newType === 'expense' || newType === 'income' || newType === 'transfer' || newType === 'refund') {
     switchMode(newType)
   }
 }, { immediate: true })
@@ -545,5 +518,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 页面样式已移至全局样式文件 */
+.record-modes { display: flex; gap: 4px; padding: 4px; margin-bottom: 24px; background: #f3f4f8; border-radius: 8px; }
+.record-modes button { flex: 1; padding: 10px 4px; font-size: 13px; color: var(--muted); border-radius: 5px; }
+.record-modes button.selected { background: white; color: var(--brand); font-weight: 600; box-shadow: 0 1px 3px #242a3b12; }
+.record-import { margin-top: 24px; }
+@media (max-width: 420px) { form > .grid-cols-2 { grid-template-columns: minmax(0, 1fr); } }
 </style>

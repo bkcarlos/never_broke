@@ -1,16 +1,8 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-slate-50">
-    <!-- 顶部栏 -->
-    <header class="px-4 pt-4 pb-3 flex items-center gap-2 bg-white shadow-sm">
-      <button class="text-2xl text-slate-600" @click="router.back()">‹</button>
-      <h1 class="text-lg font-semibold">
-        {{ t('transfer.title', '账户间转账') }}
-      </h1>
-    </header>
-
-    <main class="flex-1 overflow-y-auto px-4 pt-4 pb-32 space-y-4">
+  <PageFrame :title="t('transfer.title', '账户间转账')" eyebrow="ACCOUNT TRANSFER" subtitle="记录账户之间的资金流动，保持余额清晰。" back-to="/accounts" back-label="返回账户" compact>
+    <div class="transfer-content">
       <!-- 金额卡片 -->
-      <section class="bg-white rounded-2xl shadow-sm p-4">
+      <section class="panel p-4">
         <div class="text-xs text-slate-500 mb-2">
           {{ t('transfer.amountLabel', '转账金额') }}
         </div>
@@ -35,7 +27,7 @@
       </section>
 
       <!-- 账户选择 -->
-      <section class="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+      <section class="panel p-4 space-y-4">
         <div class="flex items-center justify-between">
           <span class="text-sm font-medium text-slate-700">
             {{ t('transfer.fromAccount', '转出账户') }}
@@ -92,7 +84,7 @@
       </section>
 
       <!-- 日期时间 -->
-      <section class="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+      <section class="panel p-4 space-y-3">
         <div class="text-sm font-medium text-slate-700">
           {{ t('transfer.time', '时间') }}
         </div>
@@ -111,7 +103,7 @@
       </section>
 
       <!-- 备注 -->
-      <section class="bg-white rounded-2xl shadow-sm p-4">
+      <section class="panel p-4">
         <div class="text-sm font-medium text-slate-700 mb-2">
           {{ t('transfer.remark', '备注（可选）') }}
         </div>
@@ -127,24 +119,26 @@
       <p v-if="error" class="text-xs text-rose-500 px-1">
         {{ error }}
       </p>
-    </main>
+    </div>
 
     <!-- 底部提交按钮 -->
     <footer
-      class="fixed bottom-0 left-0 right-0 bg-white px-4 py-3 shadow-[0_-2px_6px_rgba(15,23,42,0.08)]"
+      class="form-actions"
     >
+      <RouterLink to="/accounts" class="button">取消</RouterLink>
       <button
-        class="w-full py-3 rounded-full text-white text-base font-medium bg-gradient-to-r from-indigo-500 via-purple-500 to-sky-500 disabled:opacity-60"
+        class="button primary"
         :disabled="!canSubmit"
         @click="onSubmit"
       >
         {{ loading ? t('common.loading', '加载中...') : t('transfer.submit', '确认转账') }}
       </button>
     </footer>
-  </div>
+  </PageFrame>
 </template>
 
 <script setup lang="ts">
+import PageFrame from '@/components/PageFrame.vue'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -283,4 +277,9 @@ async function onSubmit() {
 </script>
 
 <style scoped>
+.transfer-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.transfer-content > section { padding: 24px; }
+.transfer-content > section:nth-child(2) { grid-column: 2; grid-row: 1 / 3; }
+.transfer-content > section:nth-child(4) { grid-column: 1 / -1; }
+@media (max-width: 640px) { .transfer-content { grid-template-columns: minmax(0, 1fr); gap: 14px; } .transfer-content > section:nth-child(2) { grid-column: auto; grid-row: auto; } .transfer-content > section { padding: 18px; } }
 </style>

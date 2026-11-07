@@ -57,7 +57,7 @@ function getTypeLabel(type: AccountType): string {
   }
 }
 
-export function formatAccountDisplayName(account: Account): string {
+export function formatAccountDisplayName(account: Pick<Account, 'type' | 'institution' | 'cardLast4'>): string {
   const institutionLabel = getInstitutionLabel(account.institution)
   const typeLabel = getTypeLabel(account.type)
 

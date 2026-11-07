@@ -1,4 +1,5 @@
-import type {SalaryPreviewItem, SalaryContributions} from '@/types'
+import type {SalaryPreviewItem, SalaryContributions, AccountType, AccountInstitution} from '@/types'
+import {formatAccountDisplayName} from '@/utils/accountDisplay'
 import { get, post } from './http'
 export interface Category {id:string;name:string;aliases:string[]}
 export interface Allocation {key:string;cents:number}
@@ -7,7 +8,7 @@ export interface Entry {key:string;transactionId?:string;kind:string;date:string
 export interface Metric {gross:number;refund:number;net:number;income:number;count:number;refundCount:number;average:number;pending:number}
 export interface Group extends Metric {key:string;name:string}
 export interface Analysis extends Metric {categories:Group[];merchants:Group[];channels:Group[];trend:Group[];first:string;last:string;months:string[]}
-export interface Account {id:string;type:string;institution?:string;cardLast4?:string;currency:string;balance:number}
+export interface Account {id:string;type:AccountType;institution?:AccountInstitution;cardLast4?:string;currency:string;balance:number}
 export interface Result {quality:{receipts:number;matchedReceipts:number;refunds:number;confirmedRefunds:number;unclassified:number;platform:number;feeCents:number;feeRecords:number};items:Entry[];total:number;offset:number;hasMore:boolean;analysis:Analysis;accounts:Account[];categories:Category[];queues:Record<string,number>;years:Record<string,boolean>}
 export interface Change {id:string;key:string;before:string;after:string;reason:string;createdAt:string}
 export interface Attachment {id:string;name:string;mime:string;size:number}
@@ -24,9 +25,9 @@ export const getBatches=()=>get<Batch[]>('/workspace/batches')
 export const kindNames:Record<string,string>={expense:'消费',refund:'退款',income:'收入',transfer:'转账',receipt:'凭证',statement:'月度账单',schedule:'还款计划',reference:'参考明细',daily_summary:'每日汇总'}
 export const stateNames:Record<string,string>={formal:'正式账单',pending:'摘要待确认',manual:'手工记录',unknown:'未标注',estimated:'预计',billed:'已出账',paid:'已还',cancelled:'已取消',replaced:'已替代'}
 export const bankName=(v?:string)=>({cmb:'招商银行',ceb:'光大银行'}[v||'']||v||'账户')
-export const accountName=(a:Account)=>bankName(a.institution)+(a.cardLast4?' · '+a.cardLast4:'')
+export const accountName=(a:Account)=>formatAccountDisplayName(a)
 export function localDate(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-export function amount(cents:number|null,currency='CNY',show=true){if(cents===null)return '待确认';if(!show)return '••••';return (currency==='USD'?'US$':'¥')+(cents/100).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+export function amount(cents:number|null,currency='CNY',show=true){if(cents===null)return '待确认';if(!show)return '••••';const symbol:Record<string,string>={CNY:'¥',USD:'US$',EUR:'€'};return (symbol[currency]||currency+' ')+(cents/100).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2})}
 export const blankEdit=():Edit=>({reviewed:false,relationReviewed:false,allocations:[],relatedKeys:[]})
 
 export interface CalendarMetric extends Metric {

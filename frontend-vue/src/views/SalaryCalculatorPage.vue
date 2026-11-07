@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PageFrame from '@/components/PageFrame.vue'
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { t } from '@/i18n'
 import {localDate} from '@/api/workspace'
@@ -287,40 +288,16 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-blue-50 to-gray-50">
-    <!-- 顶部导航 -->
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-      <div class="max-w-6xl mx-auto px-4 py-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <router-link 
-              to="/" 
-              class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-            >
-              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </router-link>
-            <div>
-              <h1 class="text-lg font-semibold text-gray-900">{{ t('payroll.title') }}</h1>
-              <p class="text-xs text-gray-500">五险一金 · 个税计算 · 专项扣除</p>
-            </div>
-          </div>
-          <div class="text-sm text-gray-500">
-            {{ selectedYear }}年
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="max-w-6xl mx-auto px-4 py-6">
+  <PageFrame :title="t('payroll.title')" eyebrow="SALARY CALCULATOR" subtitle="调整工资与缴纳参数，查看月度和年度收入测算。" back-to="/profile">
+    <template #actions><span class="tag">{{ selectedYear }} 年</span><RouterLink to="/me/salary" class="button">管理工资方案 →</RouterLink></template>
+    <div>
       <div class="lg:grid lg:grid-cols-12 lg:gap-6">
         <!-- 左侧表单区域 -->
         <div class="lg:col-span-5 space-y-4">
           <!-- 基本信息卡片 -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-3">
-              <h2 class="text-white font-medium">基本信息</h2>
+          <div class="panel">
+            <div class="section-heading">
+              <h2>基本信息</h2>
             </div>
             <div class="p-5 space-y-4">
               <!-- 地区选择 -->
@@ -362,7 +339,7 @@ onMounted(async () => {
           </div>
 
           <!-- 社保配置卡片 -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="panel">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
               <h2 class="font-medium text-gray-900">是否缴纳社保</h2>
               <div class="flex gap-4">
@@ -655,7 +632,7 @@ onMounted(async () => {
           </div>
 
           <!-- 公积金配置卡片 -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="panel">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
               <h2 class="font-medium text-gray-900">是否缴纳公积金</h2>
               <div class="flex gap-4">
@@ -729,7 +706,7 @@ onMounted(async () => {
           </div>
 
           <!-- 专项附加扣除卡片 -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="panel">
             <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h2 class="font-medium text-gray-900">是否包含专项扣除</h2>
@@ -887,7 +864,7 @@ onMounted(async () => {
           <button
             @click="handleCalculate"
             :disabled="calculating || loading"
-            class="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 disabled:from-gray-400 disabled:to-gray-400 text-white font-medium rounded-xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+            class="button primary w-full"
           >
             <svg v-if="calculating" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -908,7 +885,7 @@ onMounted(async () => {
         <!-- 右侧结果区域 -->
         <div class="lg:col-span-7 mt-6 lg:mt-0">
           <!-- 无结果提示 -->
-          <div v-if="!result" class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+          <div v-if="!result" class="panel p-12 text-center">
             <div class="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
               <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -921,9 +898,9 @@ onMounted(async () => {
           <!-- 计算结果 -->
           <template v-else>
             <!-- 结果概览卡片 -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-              <div class="bg-gradient-to-r from-green-600 to-emerald-500 px-5 py-3">
-                <h2 class="text-white font-medium">计算结果（由于各地工伤保险略有差异，计算结果仅供查询）</h2>
+            <div class="panel mb-6">
+              <div class="section-heading">
+                <h2>计算结果（由于各地工伤保险略有差异，计算结果仅供查询）</h2>
               </div>
               <div class="p-5">
                 <div class="grid grid-cols-2 gap-4">
@@ -973,7 +950,7 @@ onMounted(async () => {
             </div>
 
             <!-- 12个月明细表格 -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="panel">
               <div class="px-5 py-3 border-b border-gray-100">
                 <h2 class="font-medium text-gray-900">每月收入明细</h2>
               </div>
@@ -1029,5 +1006,5 @@ onMounted(async () => {
         <p class="mt-1">* 各地社保、公积金政策可能有所不同，请以当地最新政策为准</p>
       </div>
     </div>
-  </div>
+  </PageFrame>
 </template>

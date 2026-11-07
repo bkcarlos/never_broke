@@ -69,7 +69,8 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, watch, nextTick} from 'vue'
+import {useRoute} from 'vue-router'
 import {fetchCashflowForecast} from '@/api/cashflow'
 import {getAccounts} from '@/api/accounts'
 import {amount, localDate} from '@/api/workspace'
@@ -78,7 +79,8 @@ import {useUserSettingsStore} from '@/stores/userSettings'
 import FixedExpenseManager from '@/components/FixedExpenseManager.vue'
 import type {Account, CashflowForecast, ForecastStatus} from '@/types'
 
-const user=useUserSettingsStore()
+const user=useUserSettingsStore(),route=useRoute()
+
 const monthCount=ref(3),currency=ref('CNY'),accountId=ref(''),safeAmount=ref(2000)
 const forecast=ref<CashflowForecast|null>(null),accounts=ref<Account[]>([]),loading=ref(false),error=ref(''),accountError=ref(''),selectedMonth=ref('')
 const cashAccounts=computed(()=>accounts.value.filter(a=>!a.archived&&a.type!=='credit'&&a.currency===currency.value))
@@ -118,6 +120,11 @@ async function loadForecast(){
   }catch(e){if(id===requestId)error.value=e instanceof Error?e.message:'预测加载失败，请重试'}finally{if(id===requestId)loading.value=false}
 }
 function changeCurrency(){accountId.value='';forecast.value=null;loadForecast()}
+watch(() => [route.hash, loading.value], async () => {
+  if (route.hash !== '#fixed-expenses' || loading.value) return
+  await nextTick()
+  document.getElementById('fixed-expenses')?.scrollIntoView({ block: 'start' })
+}, { flush: 'post' })
 onMounted(()=>{loadAccounts();loadForecast()})
 </script>
 

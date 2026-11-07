@@ -1,26 +1,7 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-blue-50 to-gray-50">
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-      <div class="max-w-4xl mx-auto px-4 py-3">
-        <div class="flex items-center gap-3">
-          <button 
-            @click="router.back()"
-            class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <div>
-            <h1 class="text-lg font-semibold text-gray-900">{{ t('me.salary.title', '薪资管理') }}</h1>
-            <p class="text-xs text-gray-500">五险一金 · 个税计算 · 工资方案</p>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+  <PageFrame :title="t('me.salary.title', '薪资管理')" eyebrow="SALARY PLANNING" subtitle="管理工资方案与生效版本，查看五险一金和税后收入。" back-to="/profile" compact>
+    <template #actions><RouterLink to="/tools/salary-calculator" class="button">薪资计算器 →</RouterLink></template>
+    <div class="space-y-5">
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-12">
         <div class="inline-flex items-center gap-2 text-gray-500">
@@ -34,10 +15,10 @@
 
       <template v-else>
         <!-- Current Salary Plan Card -->
-        <section v-if="currentPlan" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-3 flex items-center justify-between">
-            <h2 class="text-white font-medium">最近保存的工资版本</h2>
-            <span class="px-2 py-1 rounded-full text-xs bg-white/20 text-white">
+        <section v-if="currentPlan" class="panel">
+          <div class="section-heading flex items-center justify-between">
+            <h2>最近保存的工资版本</h2>
+            <span class="tag green">
               {{ currentPlan.active ? '已启用' : '已停用' }}
             </span>
           </div>
@@ -85,7 +66,7 @@
           </div>
         </section>
 
-        <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+        <div v-else class="panel p-8 text-center">
           <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
             <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -97,9 +78,9 @@
 
         <div v-if="salaryPreview?.items.some(item => item.warning)" class="p-4 bg-amber-50 text-amber-800 text-sm rounded-lg" role="status">部分月份缺少已核验政策，暂按该版本保存的基数估算，到手和累计个税仅供参考。</div>
         <!-- Salary Configuration Form -->
-        <section class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-3">
-            <h2 class="text-white font-medium">工资参数配置</h2>
+        <section class="panel">
+          <div class="section-heading">
+            <h2>工资参数配置</h2>
           </div>
           <div class="p-5 space-y-5">
             <!-- 基本信息 -->
@@ -623,7 +604,7 @@
               <button
                 @click="handleSaveAndPreview"
                 :disabled="saving || !isFormValid"
-                class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 disabled:from-gray-400 disabled:to-gray-400 text-white font-medium rounded-xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+                class="button primary w-full"
               >
                 <svg v-if="saving" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -647,9 +628,9 @@
         </section>
 
         <!-- Salary Preview Results -->
-        <section v-if="salaryPreview" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="bg-gradient-to-r from-green-600 to-emerald-500 px-5 py-3">
-            <h2 class="text-white font-medium">薪资预览</h2>
+        <section v-if="salaryPreview" class="panel">
+          <div class="section-heading">
+            <h2>薪资预览</h2>
           </div>
           <div class="p-5 space-y-5">
             <!-- 年度汇总 - 第一行 -->
@@ -750,15 +731,15 @@
           {{ errorMessage }}
         </div>
       </template>
-    </main>
-  </div>
+    </div>
+  </PageFrame>
 </template>
 
 <script setup lang="ts">
+import PageFrame from '@/components/PageFrame.vue'
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import {localDate} from '@/api/workspace'
 import PayrollRuleSource from '@/components/PayrollRuleSource.vue'
-import { useRouter } from 'vue-router'
 import { t } from '@/i18n'
 import type {
   RecurringIncomePlan,
@@ -773,7 +754,6 @@ import { getAccounts } from '@/api/accounts'
 import { formatAccountDisplayName } from '@/utils/accountDisplay'
 import { getPayrollRegions, getPayrollRegionRule } from '@/api/payroll'
 
-const router = useRouter()
 
 const loading = ref(false)
 const saving = ref(false)
